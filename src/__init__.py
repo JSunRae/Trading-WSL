@@ -6,7 +6,7 @@ with Interactive Brokers, including real-time data processing,
 market analysis, and automated trading capabilities.
 """
 
-__version__ = "0.11.0"
+__version__ = "0.11.1"
 __author__ = "Jason Rae"
 
 # NOTE: Do not import everything here to avoid dependency issues

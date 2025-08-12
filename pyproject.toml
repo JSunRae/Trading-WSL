@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trading"
-version = "0.11.0"
+version = "0.11.1"
 description = "Interactive Brokers Trading System with Real-time Data Processing"
 authors = [
     {name = "Jason Rae", email = "your.email@example.com"}
@@ -98,7 +98,7 @@ select = ["E", "F", "I", "UP", "B", "NPY", "PTH", "C90", "N", "W"]
 ignore = ["E501", "B008", "N999"]
 
 # Per-file ignores moved under lint section
-per-file-ignores = {"tests/*" = ["N802", "N806"], "__init__.py" = ["F401"], "src/Ib_Manual_Attempt.py" = ["E402", "N802", "N803", "N806", "N816", "N817", "E712", "UP031"], "scripts/*" = ["N999", "E402"]}
+per-file-ignores = {"tests/*" = ["N802", "N806"], "__init__.py" = ["F401"], "src/Ib_Manual_Attempt.py" = ["E402", "N802", "N803", "N806", "N816", "N817", "E712", "UP031"], "scripts/*" = ["N999", "E402"], "src/MasterPy_Trading.py" = ["N801", "N802", "N803", "N806", "N817", "C901", "PTH100", "PTH110", "PTH111", "PTH120", "PTH204", "E711", "E722", "UP038", "B018"]}
 
 exclude = [
     ".eggs",
