@@ -14,28 +14,31 @@ from joblib import dump, load  # type: ignore[import-untyped]  # Missing stubs
 
 # Import typed pandas helpers
 from src.data.pandas_helpers import (  # type: ignore[import-not-found]  # Local module
-    DataFrame,
     fillna_typed,
     load_excel,
     save_excel,
     sort_index_typed,
     sort_values_typed,
 )
-from src.types.project_types import HasStrftime  # type: ignore[import-not-found]  # Local module
+from src.types.project_types import (
+    HasStrftime,  # type: ignore[import-not-found]  # Local module
+)
 
 try:
     import pandas_market_calendars as market_cal  # type: ignore[import-untyped]  # Missing stubs
 except ImportError:
     # Optional dependency for market calendar functionality
     market_cal = None
-    print("Note: pandas_market_calendars not available. Market calendar features disabled.")
+    print(
+        "Note: pandas_market_calendars not available. Market calendar features disabled."
+    )
 
 try:
     import sys
+
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from src.types.project_types import (  # type: ignore[import-not-found]  # Local module
+    from src.types.project_types import (
         BarSize,
-        DataFrame,
         HasSymbol,
         Series,
         Symbol,
@@ -43,6 +46,7 @@ try:
 except ImportError:
     # Fallback types if project_types is not available
     from typing import Any
+
     Symbol = str  # type: ignore[misc]  # Fallback type
     BarSize = str  # type: ignore[misc]  # Fallback type
     HasSymbol = Any  # type: ignore[misc]  # Fallback type
@@ -88,11 +92,53 @@ else:
 #       Helper Functions for Type Safety
 ###############################################################################
 
+
+def _to_timestamp_or_same(value: Any) -> Any:
+    """Convert value to pandas Timestamp when possible, otherwise return as-is.
+
+    Avoids scattered isinstance checks; safe for str, datetime, pd.Timestamp.
+    Leaves empty string/None untouched.
+    """
+    if value in (None, ""):
+        return value
+    try:
+        return pd.Timestamp(value)
+    except Exception:
+        return value
+
+
+def _to_timestamp_or_none(value: Any):
+    """Best-effort conversion to pandas.Timestamp, else None for empty/invalid.
+
+    Accepts str, datetime, date, pandas Timestamp. Returns tz-naive Timestamp when possible.
+    """
+    if value in (None, ""):
+        return None
+    try:
+        ts = pd.Timestamp(value)
+        # Strip timezone to simplify downstream comparisons
+        if getattr(ts, "tz", None) is not None:
+            try:
+                ts = ts.tz_localize(None)
+            except Exception:
+                # Fallback for any odd tz objects
+                ts = pd.Timestamp(ts.to_pydatetime().replace(tzinfo=None))
+        return ts
+    except Exception:
+        return None
+
+
+def _date_key_str(value: Any) -> str:
+    """Normalize a date-like value to YYYY-MM-DD for key/index usage."""
+    s = safe_date_to_string(value)
+    return s[:10] if s else ""
+
+
 def safe_date_to_string(date_obj: Any) -> str:
     """Convert various date types to string format safely"""
     if isinstance(date_obj, str):
         return date_obj[:10] if len(date_obj) >= 10 else date_obj
-    elif hasattr(date_obj, 'strftime'):
+    elif hasattr(date_obj, "strftime"):
         # Type-safe access using Protocol
         date_with_strftime: HasStrftime = date_obj  # type: ignore[assignment]
         return date_with_strftime.strftime("%Y-%m-%d")
@@ -101,11 +147,12 @@ def safe_date_to_string(date_obj: Any) -> str:
     else:
         return str(date_obj)[:10]
 
+
 def safe_datetime_to_string(datetime_obj: Any) -> str:
     """Convert various datetime types to string format safely"""
     if isinstance(datetime_obj, str):
         return datetime_obj
-    elif hasattr(datetime_obj, 'strftime'):
+    elif hasattr(datetime_obj, "strftime"):
         # Type-safe access using Protocol
         datetime_with_strftime: HasStrftime = datetime_obj  # type: ignore[assignment]
         return datetime_with_strftime.strftime("%Y-%m-%d %H:%M:%S")
@@ -113,6 +160,7 @@ def safe_datetime_to_string(datetime_obj: Any) -> str:
         return ""
     else:
         return str(datetime_obj)
+
 
 def safe_df_scalar_access(df: Any, row: Any, col: Any, default: Any = None) -> Any:
     """Safely access a scalar value from DataFrame"""
@@ -123,6 +171,7 @@ def safe_df_scalar_access(df: Any, row: Any, col: Any, default: Any = None) -> A
         return default
     except (KeyError, IndexError, AttributeError):
         return default
+
 
 def safe_df_scalar_check(df: Any, row: Any, col: Any, check_value: Any) -> bool:
     """Safely check a scalar value from DataFrame against check_value"""
@@ -136,18 +185,19 @@ def safe_df_scalar_check(df: Any, row: Any, col: Any, check_value: Any) -> bool:
     except (KeyError, IndexError, AttributeError):
         return False
 
+
 ###############################################################################
 #       Profiling Lines and Time
 # import line_profiler
 # profile = line_profiler.LineProfiler()
 # atexit_register(profile.print_stats)
 
+
 ###############################################################################
 #       Classes
 ###############################################################################
 class BarCLS:
-    def __init__(self, BarStr_Full):
-
+    def __init__(self, BarStr_Full: str) -> None:  # noqa: N803
         self.BarStr_Full = BarStr_Full.lower()
         self.BarSize = BarStr_Full  # Store original for compatibility
         if " " in BarStr_Full:
@@ -534,7 +584,9 @@ class BarCLS:
 
         self.BarStr_Full = f"{self.BarPeriod} {self.BarName}"
 
-    def get_intervalReq(self, StartTime="", EndTime=""):
+    def get_intervalReq(
+        self, StartTime: Any | str | datetime = "", EndTime: Any | str | datetime = ""
+    ) -> str | int:  # noqa: N803
         if StartTime == "":
             # OLD IntervalReq = str(int(min([self.Interval_Max_Allowed, self.BarsReq])*self.Interval_mFactor))+self.Duration_Letter
             IntervalReq = (
@@ -542,22 +594,20 @@ class BarCLS:
                 + self.Duration_Letter
             )
         else:
-            # Convert string times to pandas Timestamps for calculation
+            # Convert inputs to pandas Timestamps when possible (no isinstance checks)
             try:
-                if isinstance(StartTime, str):
-                    StartTime = pd.Timestamp(StartTime)
-                if isinstance(EndTime, str):
-                    EndTime = pd.Timestamp(EndTime)
+                StartTime = _to_timestamp_or_same(StartTime)
+                EndTime = _to_timestamp_or_same(EndTime)
 
                 # Calculate the difference using pandas timedelta
                 time_diff = EndTime - StartTime
-                if self.delta_letter == 'D':
+                if self.delta_letter == "D":
                     Interval_Needed = int(time_diff.days)
-                elif self.delta_letter == 'H':
+                elif self.delta_letter == "H":
                     Interval_Needed = int(time_diff.total_seconds() / 3600)
-                elif self.delta_letter == 'M':
+                elif self.delta_letter == "M":
                     Interval_Needed = int(time_diff.total_seconds() / 60)
-                elif self.delta_letter == 'S':
+                elif self.delta_letter == "S":
                     Interval_Needed = int(time_diff.total_seconds())
                 else:
                     Interval_Needed = int(time_diff.total_seconds())
@@ -585,22 +635,24 @@ class BarCLS:
 
 
 class GracefulExiterCLS:
-    def __init__(self):
+    def __init__(self) -> None:
         self.state = False
         signal.signal(signal.SIGINT, self.keyboardInterruptHandler)
 
-    def exit(self):
+    def exit(self) -> bool:
         return self.state
 
-    def keyboardInterruptHandler(self, signum, frame):
+    def keyboardInterruptHandler(self, signum: int, frame: Any) -> None:
         print("Exit signal received...")
         self.state = True
 
 
 class Market_InfoCLS:
-    def __init__(self, StockMarket="NYSE"):
+    def __init__(self, StockMarket: str = "NYSE"):  # noqa: N803
         if market_cal is None:
-            print("Warning: Market calendar functionality unavailable without pandas_market_calendars")
+            print(
+                "Warning: Market calendar functionality unavailable without pandas_market_calendars"
+            )
             self.calandar = None
             self.Market_schedule = None
         else:
@@ -610,20 +662,22 @@ class Market_InfoCLS:
             )
         # self.Mark_open_days = self.calandar.valid_days(start_date='2012-07-01', end_date='2030-01-01')
 
-    def is_Market_Open(self):
+    def is_Market_Open(self) -> bool:
         if self.calandar is None:
             # Fallback: assume market is open during business hours (9 AM - 4 PM ET)
             from datetime import datetime, time
+
             now = datetime.now().time()
             return time(9, 0) <= now <= time(16, 0)
         return self.calandar.is_open_now(self.Market_schedule)
 
     def get_TradeDates(
-        self, forDate, Bar, daysWanted=3
-    ):  # Need type of bas, as only 1min is over several days
+        self, forDate: datetime, Bar: "BarCLS" | Any, daysWanted: int = 3
+    ):  # noqa: N803
         if self.Market_schedule is None:
             # Fallback: generate simple date list
             from datetime import timedelta
+
             if Bar.BarType == "1 min":
                 dates: list[str] = []
                 current_date = forDate
@@ -646,10 +700,11 @@ class Market_InfoCLS:
 
         return TradeDates
 
-    def get_LastTradeDay(self, forDate):
+    def get_LastTradeDay(self, forDate: datetime):  # noqa: N803
         if self.Market_schedule is None:
             # Fallback: return previous weekday
             from datetime import timedelta
+
             last_trade_day = forDate
             while last_trade_day.weekday() >= 5:  # Skip weekends
                 last_trade_day -= timedelta(days=1)
@@ -662,8 +717,7 @@ class Market_InfoCLS:
 
 
 class requestCheckerCLS:
-    def __init__(self, host, port, clientId, ib):
-
+    def __init__(self, host: str, port: int, clientId: int, ib: Any):  # noqa: N803
         self.ib = ib  # ib_async.IB()
         # self.ib.errorEvent += self.onErrorJR #`+=`` operator can be used as a synonym for 'connect' method
 
@@ -697,8 +751,12 @@ class requestCheckerCLS:
         # Use configuration-based paths instead of hardcoded ones
         if self.config:
             self.Loc_IBFailed = str(self.config.get_data_file_path("ib_failed_stocks"))
-            self.Loc_IBDlable = str(self.config.get_data_file_path("ib_downloadable_stocks"))
-            self.Loc_IBDled = str(self.config.get_data_file_path("ib_downloaded_stocks"))
+            self.Loc_IBDlable = str(
+                self.config.get_data_file_path("ib_downloadable_stocks")
+            )
+            self.Loc_IBDled = str(
+                self.config.get_data_file_path("ib_downloaded_stocks")
+            )
         else:
             # Fallback to platform-appropriate paths
             if sys.platform == "win32":
@@ -771,10 +829,10 @@ class requestCheckerCLS:
             self.timeframeRequests: list[float] = []
             self.allRequests: list[float] = []
 
-    def get_LastTradeDay(self, forDate):
+    def get_LastTradeDay(self, forDate: datetime):  # noqa: N803
         return self.NYSE.get_LastTradeDay(forDate)
 
-    def get_TradeDates(self, forDate, daysWanted=None):
+    def get_TradeDates(self, forDate: datetime, daysWanted: int | None = None):  # noqa: N803
         return self.NYSE.get_TradeDates(forDate, daysWanted)
 
     def appendFailed(
@@ -794,28 +852,15 @@ class requestCheckerCLS:
             )
             return
 
-        # Check if DataFrame is None (safety check)
-        if self.df_IBFailed is None:
-            print("Warning: df_IBFailed is None, cannot append failed record")
-            return
+        # df_IBFailed is always initialized; no None-check needed
 
-        # Convert EarliestAvailBar to string if it's a Timestamp
-        if hasattr(EarliestAvailBar, 'strftime') and not isinstance(EarliestAvailBar, str):
-            EarliestAvailBar = EarliestAvailBar.strftime("%Y-%m-%d %H:%M:%S")
-        elif str(type(EarliestAvailBar)).find('Timestamp') >= 0:
-            # Handle pandas Timestamp objects specifically
-            EarliestAvailBar = str(EarliestAvailBar)
-        elif EarliestAvailBar and not isinstance(EarliestAvailBar, str):
-            EarliestAvailBar = str(EarliestAvailBar)
+        # Normalize inputs to consistent forms
+        _earliest_ts = _to_timestamp_or_none(EarliestAvailBar)
+        EarliestAvailBar = safe_datetime_to_string(
+            _earliest_ts or EarliestAvailBar
+        )  # store string consistently
 
-        # Convert forDate to string if needed
-        if hasattr(forDate, 'strftime') and not isinstance(forDate, str):
-            forDate = forDate.strftime("%Y-%m-%d %H:%M:%S")
-        elif str(type(forDate)).find('Timestamp') >= 0:
-            # Handle pandas Timestamp objects specifically
-            forDate = str(forDate)
-        elif forDate and not isinstance(forDate, str):
-            forDate = str(forDate)
+        forDate = safe_datetime_to_string(forDate)
 
         if (
             BarSize == "" and comment != ""
@@ -854,27 +899,31 @@ class requestCheckerCLS:
                 # self.df_IBFailed = self.df_IBFailed.append({'Stock':symbol, 'NonExistant': 'No', 'DateStr': DateStr}, ignore_index=True)
                 self.df_IBFailed.loc[symbol, "NonExistant"] = "No"
                 if pd.isnull(self.df_IBFailed.loc[symbol, "EarliestAvailBar"]):
-                    if isinstance(EarliestAvailBar, datetime):
-                        self.df_IBFailed.loc[
-                            symbol, "EarliestAvailBar"
-                        ] = EarliestAvailBar
-                    elif isinstance(EarliestAvailBar, str):
-                        if len(EarliestAvailBar) > 0:
-                            self.df_IBFailed.loc[
-                                symbol, "EarliestAvailBar"
-                            ] = EarliestAvailBar
+                    # EarliestAvailBar already normalized to string above
+                    if EarliestAvailBar:
+                        self.df_IBFailed.loc[symbol, "EarliestAvailBar"] = (
+                            EarliestAvailBar
+                        )
 
                 if BarSize + "-LatestFailed" not in self.df_IBFailed.columns:
                     self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = forDate
                 else:
                     try:
-                        latest_failed = self.df_IBFailed.at[symbol, BarSize + "-LatestFailed"]
+                        latest_failed = self.df_IBFailed.at[
+                            symbol, BarSize + "-LatestFailed"
+                        ]
                         if pd.isnull(latest_failed):
-                            self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = forDate
+                            self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = (
+                                forDate
+                            )
                         elif latest_failed > forDate:
-                            self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = forDate
+                            self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = (
+                                forDate
+                            )
                     except (KeyError, IndexError):
-                        self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = forDate
+                        self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = (
+                            forDate
+                        )
 
         if SaveMe:
             self.FailChanges += 1
@@ -890,36 +939,25 @@ class requestCheckerCLS:
             )
 
     def is_failed(self, symbol: Symbol, BarSize: BarSize, forDate: str = "") -> bool:  # type: ignore
-        # Check if DataFrame is None (safety check)
-        if self.df_IBFailed is None:
-            print("Warning: df_IBFailed is None, cannot check if failed")
-            return False
+        # df_IBFailed is always initialized; no None-check needed
 
         if symbol not in self.df_IBFailed.index:  # Doesn't exist
             return False
         elif safe_df_scalar_check(self.df_IBFailed, symbol, "NonExistant", "Yes"):
             return True
         else:
-            latest_failed = safe_df_scalar_access(self.df_IBFailed, symbol, BarSize + "-LatestFailed")
-            if latest_failed is None:
+            latest_failed = safe_df_scalar_access(
+                self.df_IBFailed, symbol, BarSize + "-LatestFailed"
+            )
+            lf_ts = _to_timestamp_or_none(latest_failed)
+            fd_ts = _to_timestamp_or_none(forDate)
+            if lf_ts is None or fd_ts is None:
                 return False
-            elif latest_failed >= forDate:
-                return True
-            else:
-                return False
+            return lf_ts >= fd_ts
 
     async def getEarliestAvailBar(self, contract: Any) -> Any:
-        # Check if DataFrames are None (safety check)
-        if self.df_IBFailed is None or self.df_IBDownloadable is None:
-            print("Warning: DataFrames not initialized, using fallback for EarliestAvailBar")
-            # Fallback to API call
-            self.SendRequest("", contract.symbol, "", "TRADES")
-            # Use the ib instance that was passed in __init__
-            EarliestAvailBar = await self.ib.reqHeadTimeStampAsync(
-                contract, "TRADES", useRTH=False, formatDate=1
-            )  # Outside hours, 1=non timezone aware
-            self.ReqDict[self.ib.client._reqIdSeq] = [contract.symbol, "TRADES", ""]
-        elif contract.symbol in self.df_IBFailed.index:
+        # DataFrames are always initialized; check indices or fallback to API
+        if contract.symbol in self.df_IBFailed.index:
             EarliestAvailBar = self.df_IBFailed.loc[contract.symbol, "EarliestAvailBar"]
         elif contract.symbol in self.df_IBDownloadable.index:
             EarliestAvailBar = self.df_IBDownloadable.loc[
@@ -932,35 +970,36 @@ class requestCheckerCLS:
             )  # Outside hours, 1=non timezone aware
             self.ReqDict[self.ib.client._reqIdSeq] = [contract.symbol, "TRADES", ""]
 
-        try:
-            # Simple conversion - let pandas handle the conversion
-            EarliestAvailBar = pd.Timestamp(str(EarliestAvailBar))
-        except:
-            EarliestAvailBar = pd.Timestamp(year=2000, month=1, day=1)
+        # Normalize to tz-naive Timestamp with fallback
+        ts = _to_timestamp_or_none(EarliestAvailBar)
+        if ts is None:
+            ts = pd.Timestamp(year=2000, month=1, day=1)
+        return ts
 
-        return EarliestAvailBar
+    def avail2Download(
+        self, symbol: Symbol, bar_size: BarSize, forDate: str = ""
+    ) -> bool:
+        # df_IBFailed is always initialized; no None-check needed
 
-    def avail2Download(self, symbol: Symbol, bar_size: BarSize, forDate: str = "") -> bool:
-        # Check if DataFrame is None (safety check)
-        if self.df_IBFailed is None:
-            print("Warning: df_IBFailed is None, cannot check availability for download")
-            return True  # Assume available if we can't check
-
-        if isinstance(forDate, str) and forDate != "":
-            try:
-                forDate = datetime.strptime(forDate, "%Y-%m-%d %H:%M:%S")
-            except:
-                forDate = datetime.strptime(forDate, "%Y-%m-%d %H:%M:%S.%f")
-        elif forDate == "":
+        if forDate == "":
             MP.ErrorCapture(__name__, "forDate in avail2Download is blank", 180, False)
+            return True
+        else:
+            forDate_ts = _to_timestamp_or_none(forDate)
+            if forDate_ts is None:
+                # If we can't parse the input, allow download
+                return True
 
         if symbol in self.df_IBFailed.index:
             if self.df_IBFailed.loc[symbol, "NonExistant"] == "Yes":
                 return False
-            elif forDate != "":
+            elif True:
                 # if len(self.df_IBFailed[(self.df_IBFailed['Stock']==symbol) & (self.df_IBFailed['DateStr']==symbol)]) == 1:
-                earliest_avail = safe_df_scalar_access(self.df_IBFailed, symbol, "EarliestAvailBar")
-                if earliest_avail and earliest_avail > forDate:
+                earliest_avail = safe_df_scalar_access(
+                    self.df_IBFailed, symbol, "EarliestAvailBar"
+                )
+                ea_ts = _to_timestamp_or_none(earliest_avail)
+                if ea_ts is not None and ea_ts > forDate_ts:  # type: ignore[name-defined]
                     return False
                 else:
                     if (
@@ -968,10 +1007,14 @@ class requestCheckerCLS:
                     ):  # No column fails recorded
                         return True
                     else:
-                        latest_failed = safe_df_scalar_access(self.df_IBFailed, symbol, bar_size + "-LatestFailed")
-                        if latest_failed is None:  # no fail recorded
+                        latest_failed = safe_df_scalar_access(
+                            self.df_IBFailed, symbol, bar_size + "-LatestFailed"
+                        )
+                        lf_ts = _to_timestamp_or_none(latest_failed)
+                        if lf_ts is None:  # no fail recorded
                             return True
-                        elif latest_failed < forDate:  # a date before an already known failed date
+                        elif lf_ts < forDate_ts:  # type: ignore[name-defined]
+                            # a date before an already known failed date
                             return False
                         else:
                             return True
@@ -981,10 +1024,7 @@ class requestCheckerCLS:
             return True
 
     def Download_Exists(self, symbol: str, bar_size: str, forDate: str = "") -> bool:
-        # Check if DataFrame is None (safety check)
-        if self.df_IBDownloaded is None:
-            print("Warning: df_IBDownloaded is None, cannot check if download exists")
-            return False
+        # df_IBDownloaded is always initialized; no None-check needed
 
         # MutliIndex
         # if not self.df_IBDownloaded.index.isin([(forDate, symbol)]).any(): #Doesn't exist
@@ -996,13 +1036,7 @@ class requestCheckerCLS:
         # else:
         #    print("Unknown issue")
 
-        if isinstance(forDate, str):
-            date_str = forDate[:10]  # Take first 10 characters (YYYY-MM-DD)
-        elif isinstance(forDate, (date, datetime)):
-            date_str = forDate.strftime("%Y-%m-%d")
-        else:
-            date_str = str(forDate)[:10]
-
+        date_str = _date_key_str(forDate)
         StockDate = date_str + "-" + symbol
 
         if StockDate not in self.df_IBDownloaded.index:  # Doesn't exist
@@ -1016,18 +1050,9 @@ class requestCheckerCLS:
             return False
 
     def appendDownloaded(self, symbol: str, bar_size: str, forDate: Any) -> None:
-        # Check if DataFrame is None (safety check)
-        if self.df_IBDownloaded is None:
-            print("Warning: df_IBDownloaded is None, cannot append downloaded record")
-            return
+        # df_IBDownloaded is always initialized; no None-check needed
 
-        if isinstance(forDate, str):
-            date_str = forDate[:10]  # Take first 10 characters (YYYY-MM-DD)
-        elif isinstance(forDate, (date, datetime)):
-            date_str = forDate.strftime("%Y-%m-%d")
-        else:
-            date_str = str(forDate)[:10]
-
+        date_str = _date_key_str(forDate)
         StockDate = date_str + "-" + symbol
 
         # MutliIndex
@@ -1040,103 +1065,43 @@ class requestCheckerCLS:
         #    self.df_IBDownloaded.loc[(forDate, symbol), BarSize] = 'Yes'
 
         if StockDate not in self.df_IBDownloaded.index:
-            self.df_IBDownloaded.loc[
-                StockDate, bar_size
-            ] = "Yes"  # immutable, should save itself.
-            self.df_IBDownloaded.loc[
-                StockDate, "Stock"
-            ] = symbol  # immutable, should save itself.
-            self.df_IBDownloaded.loc[
-                StockDate, "Date"
-            ] = forDate  # immutable, should save itself.
+            self.df_IBDownloaded.loc[StockDate, bar_size] = (
+                "Yes"  # immutable, should save itself.
+            )
+            self.df_IBDownloaded.loc[StockDate, "Stock"] = (
+                symbol  # immutable, should save itself.
+            )
+            self.df_IBDownloaded.loc[StockDate, "Date"] = (
+                forDate  # immutable, should save itself.
+            )
             self.df_IBDownloaded.loc[StockDate, :] = fillna_typed(
                 self.df_IBDownloaded.loc[StockDate, :], "TBA"
             ).iloc[0]  # Get the Series back
         else:
-            current_value = safe_df_scalar_access(self.df_IBDownloaded, StockDate, bar_size)
+            current_value = safe_df_scalar_access(
+                self.df_IBDownloaded, StockDate, bar_size
+            )
             if current_value is None:  # N.a
                 self.df_IBDownloaded.loc[StockDate, bar_size] = "Yes"
             elif current_value == "TBA":  # [0] N.a
                 self.df_IBDownloaded.loc[StockDate, bar_size] = "Yes"
 
-        self.DownloadedChanges += 1
-        return
-
     def appendDownloadable(
-        self, symbol: str, bar_size: str, EarliestAvailBar: Any, StartDate: str | Any = "", EndDate: str | Any = ""
+        self,
+        symbol: str,
+        bar_size: str,
+        EarliestAvailBar: Any,
+        StartDate: str | Any = "",
+        EndDate: str | Any = "",
     ) -> None:
         SaveMe = False
 
-        # Convert EarliestAvailBar to string if it's a Timestamp
-        if hasattr(EarliestAvailBar, 'strftime') and not isinstance(EarliestAvailBar, str):
-            EarliestAvailBar = EarliestAvailBar.strftime("%Y-%m-%d %H:%M:%S")
-        elif str(type(EarliestAvailBar)).find('Timestamp') >= 0:
-            EarliestAvailBar = str(EarliestAvailBar)
-        elif EarliestAvailBar and not isinstance(EarliestAvailBar, str):
-            EarliestAvailBar = str(EarliestAvailBar)
+        # Normalize inputs
+        earliest_ts = _to_timestamp_or_none(EarliestAvailBar)
+        EarliestAvailBar = safe_datetime_to_string(earliest_ts or EarliestAvailBar)
 
-        # Convert StartDate to proper format
-        if str(type(StartDate)).find('Timestamp') >= 0:
-            # Convert Timestamp to string first, then back to datetime if needed for processing
-            StartDate_str = str(StartDate)
-            if StartDate_str != "":
-                try:
-                    StartDate = datetime.strptime(StartDate_str[:19], "%Y-%m-%d %H:%M:%S")
-                except:
-                    StartDate = pd.Timestamp(StartDate_str)
-        elif isinstance(StartDate, str) and StartDate != "":
-            try:
-                StartDate = datetime.strptime(StartDate, "%Y-%m-%d %H:%M:%S")
-            except:
-                StartDate = datetime.strptime(StartDate, "%Y-%m-%d %H:%M:%S.%f")
-        elif StartDate != "":
-            # Convert to pandas Timestamp if needed for tz_localize
-            StartDate = pd.Timestamp(StartDate)
-
-        # Only tz_localize if it's a pandas Timestamp - more explicit type checking
-        if StartDate != "":
-            # Check if it's actually a pandas Timestamp before calling tz_localize
-            if hasattr(StartDate, 'tz_localize') and hasattr(StartDate, 'tz'):
-                try:
-                    StartDate = StartDate.tz_localize(None)  # type: ignore
-                except (AttributeError, TypeError):
-                    # Fallback for datetime objects
-                    if isinstance(StartDate, datetime) and StartDate.tzinfo is not None:
-                        StartDate = StartDate.replace(tzinfo=None)
-            elif isinstance(StartDate, datetime) and StartDate.tzinfo is not None:
-                StartDate = StartDate.replace(tzinfo=None)
-
-        # Convert EndDate to proper format
-        if str(type(EndDate)).find('Timestamp') >= 0:
-            # Convert Timestamp to string first, then back to datetime if needed for processing
-            EndDate_str = str(EndDate)
-            if EndDate_str != "":
-                try:
-                    EndDate = datetime.strptime(EndDate_str[:19], "%Y-%m-%d %H:%M:%S")
-                except:
-                    EndDate = pd.Timestamp(EndDate_str)
-
-        if isinstance(EndDate, str) and EndDate != "":
-            try:
-                EndDate = datetime.strptime(EndDate, "%Y-%m-%d %H:%M:%S")
-            except:
-                EndDate = datetime.strptime(EndDate, "%Y-%m-%d %H:%M:%S.%f")
-        elif EndDate != "":
-            # Convert to pandas Timestamp if needed for tz_localize
-            EndDate = pd.Timestamp(EndDate)
-
-        # Only tz_localize if it's a pandas Timestamp
-        if EndDate != "":
-            # Check if it's actually a pandas Timestamp before calling tz_localize
-            if hasattr(EndDate, 'tz_localize') and hasattr(EndDate, 'tz'):
-                try:
-                    EndDate = EndDate.tz_localize(None)  # type: ignore
-                except (AttributeError, TypeError):
-                    # Fallback for datetime objects
-                    if isinstance(EndDate, datetime) and EndDate.tzinfo is not None:
-                        EndDate = EndDate.replace(tzinfo=None)
-            elif isinstance(EndDate, datetime) and EndDate.tzinfo is not None:
-                EndDate = EndDate.replace(tzinfo=None)
+        start_ts = _to_timestamp_or_none(StartDate)
+        end_ts = _to_timestamp_or_none(EndDate)
 
         if bar_size + "-StartDate" not in self.df_IBDownloadable.columns:
             self.df_IBDownloadable[bar_size + "-StartDate"] = ""
@@ -1144,42 +1109,48 @@ class requestCheckerCLS:
             self.df_IBDownloadable[bar_size + "-EndDate"] = ""
 
         if symbol not in self.df_IBDownloadable.index:
-            self.df_IBDownloadable.loc[symbol, bar_size + "-StartDate"] = StartDate
-            self.df_IBDownloadable.loc[
-                symbol, bar_size + "-EndDate"
-            ] = EndDate  # only need to check once
+            self.df_IBDownloadable.loc[symbol, bar_size + "-StartDate"] = (
+                start_ts if start_ts is not None else StartDate
+            )
+            self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = (
+                end_ts if end_ts is not None else EndDate
+            )  # only need to check once
             SaveMe = True
         else:
-            start_date_val = safe_df_scalar_access(self.df_IBDownloadable, symbol, bar_size + "-StartDate")
-            if start_date_val is None:
-                self.df_IBDownloadable.loc[symbol, bar_size + "-StartDate"] = StartDate
+            start_date_val = safe_df_scalar_access(
+                self.df_IBDownloadable, symbol, bar_size + "-StartDate"
+            )
+            sd_ts = _to_timestamp_or_none(start_date_val)
+            if sd_ts is None and (start_ts is not None or StartDate != ""):
+                self.df_IBDownloadable.loc[symbol, bar_size + "-StartDate"] = (
+                    start_ts if start_ts is not None else StartDate
+                )
                 SaveMe = True
-            elif start_date_val == "":
-                self.df_IBDownloadable.loc[symbol, bar_size + "-StartDate"] = StartDate
-                SaveMe = True
-            elif start_date_val > StartDate:
-                self.df_IBDownloadable.loc[symbol, bar_size + "-StartDate"] = StartDate
-                SaveMe = True
-
-        end_date_val = safe_df_scalar_access(self.df_IBDownloadable, symbol, bar_size + "-EndDate")
-        if end_date_val is None:
-            self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = EndDate
-            SaveMe = True
-        elif end_date_val == "":
-            self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = EndDate
-            SaveMe = True
-        elif EndDate != "" and hasattr(EndDate, '__add__'):
-            # Only do comparison if EndDate supports addition (not empty string)
-            try:
-                if end_date_val < EndDate + timedelta(milliseconds=1):
-                    self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = EndDate
-                    SaveMe = True
-            except (TypeError, AttributeError):
-                # If comparison fails, just update
-                self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = EndDate
+            elif start_ts is not None and sd_ts is not None and sd_ts > start_ts:
+                self.df_IBDownloadable.loc[symbol, bar_size + "-StartDate"] = start_ts
                 SaveMe = True
 
-        earliest_avail_val = safe_df_scalar_access(self.df_IBDownloadable, symbol, "EarliestAvailBar")
+        end_date_val = safe_df_scalar_access(
+            self.df_IBDownloadable, symbol, bar_size + "-EndDate"
+        )
+        ed_ts = _to_timestamp_or_none(end_date_val)
+        if ed_ts is None and (end_ts is not None or EndDate != ""):
+            self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = (
+                end_ts if end_ts is not None else EndDate
+            )
+            SaveMe = True
+        elif end_ts is not None and ed_ts is not None:
+            if ed_ts < end_ts + timedelta(milliseconds=1):
+                self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = end_ts
+                SaveMe = True
+        elif EndDate != "":
+            # Fallback when types are not comparable
+            self.df_IBDownloadable.loc[symbol, bar_size + "-EndDate"] = EndDate
+            SaveMe = True
+
+        earliest_avail_val = safe_df_scalar_access(
+            self.df_IBDownloadable, symbol, "EarliestAvailBar"
+        )
         if earliest_avail_val is None:
             self.df_IBDownloadable.loc[symbol, "EarliestAvailBar"] = EarliestAvailBar
 
@@ -1187,7 +1158,6 @@ class requestCheckerCLS:
             self.DownloadableChanges += 1
 
         if self.DownloadableChanges >= 100:
-
             self.DownloadableChanges = 0
             self.df_IBDownloadable = self.df_IBDownloadable.sort_values("Stock")
             self.df_IBDownloadable.to_excel(
@@ -1197,7 +1167,9 @@ class requestCheckerCLS:
                 engine="openpyxl",
             )
 
-    def onErrorJR(self, reqId: int, errorId: int, errorStr: str, contract: Any) -> None:  # , contract):
+    def onErrorJR(
+        self, reqId: int, errorId: int, errorStr: str, contract: Any
+    ) -> None:  # , contract):
         # look at errorCode to see if warning or error
         if "pacing violation" in errorStr:
             print("Pacing Violation - Sleep Remaining: ", self.SleepRem())
@@ -1281,8 +1253,9 @@ class requestCheckerCLS:
             except:
                 pass  # in care event loop already running
 
-    def SendRequest(self, timeframe, symbol, endDateTime, WhatToShow):
-
+    def SendRequest(
+        self, timeframe: str, symbol: str, endDateTime: str | Any, WhatToShow: str
+    ) -> None:  # noqa: N802, N803
         # CHECK IF IDENTICAL 15s between identical
         self.ReqTime = perf_counter()
         if (
@@ -1290,7 +1263,6 @@ class requestCheckerCLS:
             and self.endDateTimePrev == endDateTime
             and self.WhatToShowPrev == WhatToShow
         ):  # IDENTICAL
-
             self.SleepTot = max(
                 0, 15 - (self.ReqTime - self.ReqTimePrev)
             )  # Up to 15 seconds between identical
@@ -1310,7 +1282,6 @@ class requestCheckerCLS:
         ]  # remove any older than 10min
         self.allRequests.append(self.ReqTime)
         if len(self.allRequests) > 60:  # 60 requests in 10min limit
-
             self.SleepTot = max(
                 [0, 60 * 10 - (self.ReqTime - self.allRequests[0])]
             )  # 10min minus (diff between now and first)
@@ -1325,13 +1296,12 @@ class requestCheckerCLS:
             ]  # remove any older than 2s
             self.timeframeRequests.append(self.ReqTime)
             if len(self.timeframeRequests) > 6:  # 6 requests in 2sec limit
-
                 self.SleepTot = max(
                     [0, 2 - (self.ReqTime - self.timeframeRequests[0])]
                 )  # 2seconds minus (diff between now and first)
                 self.Sleep_TotalTime("6Requests in 2sec")
 
-    def Save_requestChecks(self):
+    def Save_requestChecks(self) -> None:
         for _ in range(0, 3):
             try:
                 dump(
@@ -1343,7 +1313,7 @@ class requestCheckerCLS:
                 continue
             break
 
-    def On_Exit(self):
+    def On_Exit(self) -> None:
         if self.On_Exit_Run > perf_counter() - 5:  # 5sec ago
             return
 
@@ -1354,7 +1324,7 @@ class requestCheckerCLS:
             save_excel(
                 self.df_IBDownloaded,
                 "G:/Machine Learning/IB Downloaded Stocks.xlsx",
-                index=True
+                index=True,
             )
 
         if self.DownloadableChanges > 0:
@@ -1364,7 +1334,7 @@ class requestCheckerCLS:
             save_excel(
                 self.df_IBDownloadable,
                 "G:/Machine Learning/IB Downloadable Stocks.xlsx",
-                index=True
+                index=True,
             )
 
         if self.FailChanges > 0:
@@ -1374,7 +1344,7 @@ class requestCheckerCLS:
             save_excel(
                 self.df_IBFailed,
                 "G:/Machine Learning/IB Failed Stocks.xlsx",
-                index=True
+                index=True,
             )
 
         self.Save_requestChecks()
@@ -1382,15 +1352,16 @@ class requestCheckerCLS:
         print("Finished Request Exit Checks")
         self.On_Exit_Run = perf_counter()
 
-    def keyboardInterruptHandler(self, signum, frame):
+    def keyboardInterruptHandler(self, signum: int, frame: Any) -> None:
         print("")
         print("Exit flag triggered, will continue until current download finished...")
         self.Sleep_TotalTime()
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         self.exitflag = True
 
-    async def Download_Historical(self, contract, BarObj, forDate=""):
-
+    async def Download_Historical(
+        self, contract: Any, BarObj: "BarCLS" | Any, forDate: str = ""
+    ) -> None:  # noqa: N802, N803
         # Wait for availability
         while self.Downloading:  # Already downloading
             Waiting2Download = max(self.SleepRem(), 0.1)
@@ -1467,15 +1438,19 @@ class requestCheckerCLS:
                 StartTimeStr = datetime.strftime(datetime.now(), "%Y-%m-%d") + "T08:00"
             EndTimeStr = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M")  # Now
         else:  # Historical Data
-            if isinstance(forDate, str):
-                DateStr = forDate
-                forDate = datetime.strptime(forDate, "%Y-%m-%d")
-            else:
-                DateStr = datetime.strftime(forDate, "%Y-%m-%d")  # Yesterday
+            # Normalize input date once (accepts str/datetime/Timestamp)
+            DateStr = _date_key_str(forDate)
+            fd_ts = _to_timestamp_or_none(DateStr)
+            if fd_ts is None:
+                # As a last resort, try parsing raw input
+                fd_ts = _to_timestamp_or_none(forDate)
+            if fd_ts is None:
+                # Fallback to today if parsing fails (keeps previous behavior resilient)
+                fd_ts = pd.Timestamp.today()
 
             if BarObj.MultipleDays:  # to download then
                 StartTimeStr = (
-                    datetime.strftime(forDate - timedelta(400), "%Y-%m-%d") + "T00:00"
+                    datetime.strftime(fd_ts - timedelta(400), "%Y-%m-%d") + "T00:00"
                 )  # at least 400 days for forDate to get enough bars
                 EndTimeStr = DateStr + "T23:59"
             else:
@@ -1515,9 +1490,7 @@ class requestCheckerCLS:
                 prev_df = prev_df.set_index(
                     "date"
                 )  # drop the integer index, and set to date like the bars_df
-                StartTime = (
-                    prev_df.index.max()
-                )  # Start time to download is from the last of the previous saved. df['date'].max()
+                StartTime = prev_df.index.max()  # Start time to download is from the last of the previous saved. df['date'].max()
                 StartTime = pd.Timestamp(StartTime)
             else:
                 # Not programed to continue on where left off if not over multiple days
@@ -1577,7 +1550,6 @@ class requestCheckerCLS:
             EndTime = EndTime.tz_localize(tz="US/Eastern")  # Localise
 
         while EndTime > StartTime or StartTime == "":
-
             IntervalReq = BarObj.IntervalReq
             if IntervalReq == 0:
                 self.Downloading = False
@@ -1756,7 +1728,6 @@ class requestCheckerCLS:
         if (
             len(df) > 0
         ):  # then something was downloaded. Otherwise the prev_df is untouched.
-
             # Sort and clean the dataframe a little from merges
             if "tick" in BarObj.BarSize:
                 # there are multiple lines for each second. Need to keep the order.
@@ -1773,7 +1744,11 @@ class requestCheckerCLS:
             # df.to_excel(IB_Download_Loc(contract.symbol, BarObj.BarSize, StartTime,'.xlsx'), sheet_name='Sheet1',engine='openpyxl') #, index=True)
             # df.to_csv(IB_Download_Loc(contract.symbol, BarObj.BarSize, StartTime,'.csv')) #index is date, so save with index....
 
-            df.to_feather(IB_Download_Loc(contract.symbol, BarObj.BarSize, safe_date_to_string(StartTime)))
+            df.to_feather(
+                IB_Download_Loc(
+                    contract.symbol, BarObj.BarSize, safe_date_to_string(StartTime)
+                )
+            )
             self.appendDownloadable(
                 contract.symbol,
                 BarObj.BarSize,
@@ -1852,17 +1827,24 @@ class MarketDepthCls:
         ticks = self.ticker.domTicks
 
         for tick in ticks:
-            self.df_Ticks = pd.concat([
-                self.df_Ticks,
-                pd.DataFrame([{
-                    "Recieved": tick.time,
-                    "position": tick.position,
-                    "Operation": tick.operation,
-                    "price": tick.price,
-                    "size": tick.size,
-                    "marketMaker": tick.marketMaker,
-                }])
-            ], ignore_index=True)
+            self.df_Ticks = pd.concat(
+                [
+                    self.df_Ticks,
+                    pd.DataFrame(
+                        [
+                            {
+                                "Recieved": tick.time,
+                                "position": tick.position,
+                                "Operation": tick.operation,
+                                "price": tick.price,
+                                "size": tick.size,
+                                "marketMaker": tick.marketMaker,
+                            }
+                        ]
+                    ),
+                ],
+                ignore_index=True,
+            )
         if self.timeLast + 5 > perf_counter():
             return
         self.timeLast = perf_counter()
@@ -1943,7 +1925,6 @@ class TickByTickCls:
         self.df = pd.DataFrame()
 
     def onTickerUpdate(self, ticker):
-
         print(self.df)
 
     def cancel(self):
@@ -1991,7 +1972,9 @@ async def InitiateTWS(LiveMode=False, clientId=1, use_gateway=True):
     except Exception as e:
         print(e)
         if use_gateway:
-            error_msg = "Is IB Gateway running? Check Gateway configuration and API settings"
+            error_msg = (
+                "Is IB Gateway running? Check Gateway configuration and API settings"
+            )
         else:
             error_msg = "Is TWS open in Live or Demo? Is ReadOnly off. Enable sockets"
 
@@ -2009,7 +1992,6 @@ async def InitiateTWS(LiveMode=False, clientId=1, use_gateway=True):
 
 
 def Initiate_Auto_Reconnect():
-
     import logging
 
     from ib_async.client import Client
@@ -2097,7 +2079,6 @@ def TrainList_LoadSave(LoadSave, TrainType="Test", df=None):
 
 
 def Stock_Downloads_Load(Req, contract, BarSize, forDate):
-
     if forDate == "":
         df_uncleaned = Req.Download_Historical(
             contract=contract, BarSize="1 sec", forDate=""
@@ -2122,14 +2103,13 @@ def Stock_Downloads_Load(Req, contract, BarSize, forDate):
 
 
 def IB_Download_Loc(Stock_Code, BarObj, DateStr="", fileExt=".ftr"):
-
     if "." not in fileExt:
         fileExt = "." + fileExt
 
     # Convert DateStr if it's a Timestamp
-    if str(type(DateStr)).find('Timestamp') >= 0:
+    if str(type(DateStr)).find("Timestamp") >= 0:
         DateStr = str(DateStr)
-    elif hasattr(DateStr, 'strftime') and not isinstance(DateStr, str):
+    elif hasattr(DateStr, "strftime") and not isinstance(DateStr, str):
         DateStr = DateStr.strftime("%Y-%m-%d %H:%M:%S")
 
     if BarObj.BarType == 0:  # Tick
@@ -2280,7 +2260,6 @@ def IB_Train_Loc(
 
 
 def IB_Scalar(scalarType, scalarWhat, LoadScalar=True, BarObj=None, FeatureStr=None):
-
     Loc = LocG + "/Scalars/"
     MP.LocExist(Loc)
 
@@ -2344,5 +2323,4 @@ def SaveExcel_ForReview(df, StrName=""):
 
 
 if __name__ == "__main__":
-
     MP.SendTxt(f"Completed {__name__}")
