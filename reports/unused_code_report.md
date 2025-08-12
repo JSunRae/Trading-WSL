@@ -1,0 +1,44 @@
+# Unused Code Report
+Generated: 2025-08-12 23:08:03
+
+- `_load_future` in `src/api.py` — never executed
+- `_load_req_mkt_depth` in `src/api.py` — never executed
+- `_load_req_tbd` in `src/api.py` — never executed
+- `_load_get_ib` in `src/api.py` — never executed
+- `_load_close_ib` in `src/api.py` — never executed
+- `_load_ib_unavailable_error` in `src/api.py` — never executed
+- `_load_rate_limiter` in `src/api.py` — never executed
+- `_load_gather_bounded` in `src/api.py` — never executed
+- `_load_with_retry` in `src/api.py` — never executed
+- `_load_bar_row` in `src/api.py` — never executed
+- `_load_bar_size` in `src/api.py` — never executed
+- `_load_market_snapshot` in `src/api.py` — never executed
+- `_load_tick_record` in `src/api.py` — never executed
+- `_load_tick_type` in `src/api.py` — never executed
+- `_load_what_to_show` in `src/api.py` — never executed
+- `setup_trading_system` in `src/core/__init__.py` — never executed
+- `ConfigManager.get_backup_path` in `src/core/config.py` — never executed
+- `ConfigManager.is_paper_trading` in `src/core/config.py` — never executed
+- `ConfigManager.get_ib_port` in `src/core/config.py` — never executed
+- `reload_config` in `src/core/config.py` — never executed
+- `get_data_path` in `src/core/config.py` — never executed
+- `is_paper_trading` in `src/core/config.py` — never executed
+- `get_ib_connection_config` in `src/core/config.py` — never executed
+- `migrate_legacy_dataframe_operations` in `src/core/dataframe_safety.py` — never executed
+- `BaseRepository.save` in `src/data/data_manager.py` — never executed
+- `BaseRepository.load` in `src/data/data_manager.py` — never executed
+- `BaseRepository.exists` in `src/data/data_manager.py` — never executed
+- `BaseRepository.delete` in `src/data/data_manager.py` — never executed
+- `ExcelRepository.delete` in `src/data/data_manager.py` — never executed
+- `SignalExecution.is_complete` in `src/execution/ml_signal_executor.py` — never executed
+- `SignalExecution.was_successful` in `src/execution/ml_signal_executor.py` — never executed
+- `MLSignalExecutor._notify_signal_status_handlers` in `src/execution/ml_signal_executor.py` — never executed
+- `MLSignalExecutor.save_execution_log` in `src/execution/ml_signal_executor.py` — never executed
+- `create_ml_signal_executor` in `src/execution/ml_signal_executor.py` — never executed
+- `ModelPerformanceReport.generate_summary` in `src/monitoring/ml_performance_monitor.py` — never executed
+- `MLPerformanceMonitor.start_monitoring` in `src/monitoring/ml_performance_monitor.py` — never executed
+- `MLPerformanceMonitor.stop_monitoring` in `src/monitoring/ml_performance_monitor.py` — never executed
+- `MLPerformanceMonitor._monitor_loop` in `src/monitoring/ml_performance_monitor.py` — never executed
+- `MLPerformanceMonitor._check_alert_conditions` in `src/monitoring/ml_performance_monitor.py` — never executed
+- `MLPerformanceMonitor.add_alert_handler` in `src/monitoring/ml_performance_monitor.py` — never executed
+- `create_ml_performance_monitor` in `src/monitoring/ml_performance_monitor.py` — never executed

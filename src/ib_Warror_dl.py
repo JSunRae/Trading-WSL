@@ -17,10 +17,14 @@ try:
     # Try relative import first (when used as package)
     from . import MasterPy as MP
     from . import MasterPy_Trading as MPT
+    from .services import data_management_service as DM
+    from .services.path_service import IB_Download_Loc as PSLoc
 except ImportError:
     # Fall back to absolute import (when used as script)
     import MasterPy as MP
     import MasterPy_Trading as MPT
+    from src.services import data_management_service as DM
+    from src.services.path_service import IB_Download_Loc as PSLoc
 from time import perf_counter
 
 
@@ -32,13 +36,14 @@ class AvTimeCLS:
     def Interval_start(self):
         self.Interval_Start = perf_counter()
 
-    def Interval_end(self, ReturnTimings=True):
+    def Interval_end(self, return_timings: bool = True) -> str | None:
         self.Interval_End = perf_counter()
         self.Count += 1
 
-        if ReturnTimings and round(self.Interval_End - self.Interval_Start) > 0:
+        if return_timings and round(self.Interval_End - self.Interval_Start) > 0:
             m, s = divmod(round(self.Interval_End - self.Interval_Start), 60)
             return f"Took: {m:0.0f}:{s:02.0f}min. {self.Timings_Str()} {self.Timings_Str()}"
+        return None
 
     def Timings_Str(self):
         m_AV, s_Av = divmod(
@@ -60,7 +65,7 @@ class WarriorListCLS:
         SkipStocks=["", "TSLA", "GME"],
         BarSizes=["30 mins", "1 secs", "1 min", "ticks"],
     ):
-        self.WarriorList = MPT.WarriorList("Load")
+        self.WarriorList = DM.WarriorList("Load")
 
         # Check if WarriorList was loaded successfully
         if self.WarriorList is None:
@@ -208,7 +213,7 @@ def Update_Test(Req, StartRow=0, OnlyStock=None, SkipStocks=None, BarSizes=None)
 def Update_Warrior_Main(
     Req, StartRow, BarSizes=["30 mins", "1 secs", "1 min", "ticks"], OnlyStock=None
 ):
-    WarriorList = MPT.WarriorList("Load")
+    WarriorList = DM.WarriorList("Load")
 
     # Check if WarriorList was loaded successfully
     if WarriorList is None:
@@ -326,7 +331,7 @@ def Update_Warrior_Main(
 
 
 def Update_Warrior_30Min(Req, StartRow, BarSizes=["30 mins"], OnlyStock=None):
-    WarriorList = MPT.WarriorList("Load")
+    WarriorList = DM.WarriorList("Load")
 
     # Check if WarriorList was loaded successfully
     if WarriorList is None:
@@ -410,7 +415,7 @@ def Update_Warrior_30Min(Req, StartRow, BarSizes=["30 mins"], OnlyStock=None):
 def Update_Downloaded(
     Req, StartRow, BarSizes=["30 mins", "1 secs", "1 min", "ticks"], OnlyStock=None
 ):
-    WarriorList = MPT.WarriorList("Load")
+    WarriorList = DM.WarriorList("Load")
 
     # Check if WarriorList was loaded successfully
     if WarriorList is None:
@@ -472,16 +477,14 @@ def Update_Downloaded(
                         contract.symbol, BarSize, forDate=TadeDayStp
                     ):
                         continue
-                    if os.path.exists(
-                        MPT.IB_Download_Loc(contract.symbol, BarSize, trade_date_str)
-                    ):
+                    if os.path.exists(PSLoc(contract.symbol, BarSize, trade_date_str)):
                         Req.appendDownloaded(
                             contract.symbol, BarSize, forDate=TadeDayStp
                         )
 
 
 def Create_Warrior_TrainList(StartRow):
-    WarriorList = MPT.WarriorList("Load")
+    WarriorList = DM.WarriorList("Load")
 
     # Check if WarriorList was loaded successfully
     if WarriorList is None:
@@ -490,7 +493,7 @@ def Create_Warrior_TrainList(StartRow):
         )
         return
 
-    TrainList = MPT.TrainList_LoadSave("Load", TrainType="Warrior")
+    TrainList = DM.TrainList_LoadSave("Load", TrainType="Warrior")
 
     # Check if TrainList was loaded successfully
     if TrainList is None:
@@ -535,15 +538,13 @@ def Create_Warrior_TrainList(StartRow):
             contract = Stock(StockCode, "SMART", "USD")
 
             if os.path.exists(
-                MPT.IB_Download_Loc(contract.symbol, "1 secs", DateStr)
-            ) and os.path.exists(
-                MPT.IB_Download_Loc(contract.symbol, "1 min", DateStr)
-            ):
+                PSLoc(contract.symbol, "1 secs", DateStr)
+            ) and os.path.exists(PSLoc(contract.symbol, "1 min", DateStr)):
                 i += 1
                 TrainList.loc[i, "Stock"] = StockCode
                 TrainList.loc[i, "DateStr"] = DateStr
 
-    MPT.TrainList_LoadSave("Save", TrainType="Warrior", df=TrainList)
+    DM.TrainList_LoadSave("Save", TrainType="Warrior", df=TrainList)
 
 
 if __name__ == "__main__":

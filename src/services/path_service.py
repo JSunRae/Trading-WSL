@@ -68,9 +68,14 @@ class PathService:
             try:
                 # Use config data paths if available
                 data_paths = self.config.data_paths
-                self.base_path = str(data_paths.base_path)
-                self.downloads_path = str(data_paths.base_path / "IBDownloads")
-                self.stocks_path = str(data_paths.base_path / "Stocks")
+                # Mirror legacy LocG: base_path + "Machine Learning" with trailing slash
+                base = str(data_paths.base_path / "Machine Learning")
+                if not base.endswith(("/", "\\")):
+                    base += "/"
+                self.base_path = base
+                # Build child paths via string concat to keep separators consistent with legacy
+                self.downloads_path = self.base_path + "IBDownloads/"
+                self.stocks_path = self.base_path + "Stocks/"
                 return
             except Exception as e:
                 print(f"Warning: Could not get config paths: {e}")
@@ -160,8 +165,10 @@ class PathService:
 
         ensure_directory_exists(location)
 
-        # Handle date string formatting
-        bar_type = getattr(bar_config, "bar_type", 0)
+        # Handle date string formatting (support legacy BarType as well)
+        bar_type = getattr(bar_config, "bar_type", None)
+        if bar_type is None:
+            bar_type = getattr(bar_config, "BarType", 0)
         if bar_type <= 2:  # ticks, seconds, 1-minute need date strings
             if date_str == "":
                 handle_error(__name__, "ticks need start and end string")
@@ -181,7 +188,27 @@ class PathService:
         if not file_ext.startswith("."):
             file_ext = "." + file_ext
 
-        bar_str = getattr(bar_config, "bar_str", "_Unknown")
+        # Prefer legacy BarStr; fall back to bar_str; last resort map from BarSize text
+        bar_str = getattr(bar_config, "BarStr", None)
+        if bar_str is None:
+            bar_str = getattr(bar_config, "bar_str", None)
+        if bar_str is None:
+            bs_val = getattr(bar_config, "BarSize", getattr(bar_config, "bar_size", ""))
+            s = bs_val.lower() if isinstance(bs_val, str) else ""
+            if "tick" in s:
+                bar_str = "_Tick"
+            elif "sec" in s:
+                bar_str = "_1s"
+            elif "30" in s and "min" in s:
+                bar_str = "_30m"
+            elif "min" in s:
+                bar_str = "_1m"
+            elif "hour" in s or "1 hour" in s:
+                bar_str = "_1h"
+            elif "day" in s or "1 day" in s or s == "1d":
+                bar_str = "_1d"
+            else:
+                bar_str = "_Unknown"
         filename = (
             f"{stock_code}{bar_str}{norm_suffix}_{self.version}{date_str}{file_ext}"
         )

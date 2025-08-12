@@ -1,59 +1,28 @@
+from __future__ import annotations
+
+import asyncio
 import os  # sent text, check files
+import signal
 import sys
 import time
-from datetime import date, datetime, timedelta
+from atexit import register as atexit_register
+from datetime import datetime, timedelta
 from pathlib import (
     Path,
 )  # Apple / and windows \
 from time import perf_counter
 from typing import Any
 
+import ib_async
 import pandas as pd
 import pytz
 from joblib import dump, load  # type: ignore[import-untyped]  # Missing stubs
 
 # Import typed pandas helpers
-from src.data.pandas_helpers import (  # type: ignore[import-not-found]  # Local module
+from src.data.pandas_helpers import (
     fillna_typed,
-    load_excel,
-    save_excel,
-    sort_index_typed,
-    sort_values_typed,
-)
-from src.types.project_types import (
-    HasStrftime,  # type: ignore[import-not-found]  # Local module
 )
 
-try:
-    import pandas_market_calendars as market_cal  # type: ignore[import-untyped]  # Missing stubs
-except ImportError:
-    # Optional dependency for market calendar functionality
-    market_cal = None
-    print(
-        "Note: pandas_market_calendars not available. Market calendar features disabled."
-    )
-
-try:
-    import sys
-
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from src.types.project_types import (
-        BarSize,
-        HasSymbol,
-        Series,
-        Symbol,
-    )
-except ImportError:
-    # Fallback types if project_types is not available
-    from typing import Any
-
-    Symbol = str  # type: ignore[misc]  # Fallback type
-    BarSize = str  # type: ignore[misc]  # Fallback type
-    HasSymbol = Any  # type: ignore[misc]  # Fallback type
-    DataFrame = Any  # type: ignore
-    Series = Any  # type: ignore
-
-sys.path.append("..")
 try:
     # Try relative import first (when used as package)
     from . import MasterPy as MP
@@ -67,44 +36,25 @@ try:
 except ImportError:
     from src.core.config import get_config
 
-import asyncio
-import signal
-from atexit import register as atexit_register
+# (imports moved to top to satisfy linters)
 
-import ib_async
-
+# Global version and base path (config-aware, with safe fallbacks)
 Version = "V1"
-if sys.platform == "win32":
-    LocLocal = "C:\\Users\\Jason\\OneDrive\\Documents\\Python Files\\"
-    LocG = "G:\\Machine Learning\\"
-    LocG_Backup = "F:\\T7 Backup\\Machine Learning\\"
-    LocDownloads = "D:\\Downloads\\"
-    StockListLoc = "G:\\Machine Learning\\IB_StockList.ftr"
-else:
-    # Set default paths for non-Windows systems
-    LocLocal = os.path.expanduser("~/Documents/Python Files/")
-    LocG = os.path.expanduser("~/Machine Learning/")
-    LocG_Backup = os.path.expanduser("~/T7 Backup/Machine Learning/")
-    LocDownloads = os.path.expanduser("~/Downloads/")
-    StockListLoc = os.path.expanduser("~/Machine Learning/IB_StockList.ftr")
+try:
+    _config = get_config()
+except Exception:
+    _config = None
 
-###############################################################################
-#       Helper Functions for Type Safety
-###############################################################################
-
-
-def _to_timestamp_or_same(value: Any) -> Any:
-    """Convert value to pandas Timestamp when possible, otherwise return as-is.
-
-    Avoids scattered isinstance checks; safe for str, datetime, pd.Timestamp.
-    Leaves empty string/None untouched.
-    """
-    if value in (None, ""):
-        return value
+if _config is not None:
     try:
-        return pd.Timestamp(value)
+        # Use configured base path and ensure trailing slash for concatenation below
+        LocG = str(_config.data_paths.base_path / "Machine Learning")
+        if not LocG.endswith("/"):
+            LocG += "/"
     except Exception:
-        return value
+        LocG = os.path.expanduser("~/Machine Learning/")
+else:
+    LocG = os.path.expanduser("~/Machine Learning/")
 
 
 def _to_timestamp_or_none(value: Any):
@@ -594,27 +544,23 @@ class BarCLS:
                 + self.Duration_Letter
             )
         else:
-            # Convert inputs to pandas Timestamps when possible (no isinstance checks)
-            try:
-                StartTime = _to_timestamp_or_same(StartTime)
-                EndTime = _to_timestamp_or_same(EndTime)
-
-                # Calculate the difference using pandas timedelta
-                time_diff = EndTime - StartTime
-                if self.delta_letter == "D":
-                    Interval_Needed = int(time_diff.days)
-                elif self.delta_letter == "H":
-                    Interval_Needed = int(time_diff.total_seconds() / 3600)
-                elif self.delta_letter == "M":
-                    Interval_Needed = int(time_diff.total_seconds() / 60)
-                elif self.delta_letter == "S":
-                    Interval_Needed = int(time_diff.total_seconds())
-                else:
-                    Interval_Needed = int(time_diff.total_seconds())
-            except (ValueError, TypeError) as e:
-                print(f"Warning: Error converting times in get_intervalReq: {e}")
-                # Use default interval if conversion fails
+            # Convert inputs strictly to pandas Timestamps; fallback to default if invalid
+            start_ts = _to_timestamp_or_none(StartTime)
+            end_ts = _to_timestamp_or_none(EndTime)
+            if start_ts is None or end_ts is None:
                 Interval_Needed = self.Interval_Max_Allowed
+            else:
+                time_diff = end_ts - start_ts
+                if self.delta_letter == "D":
+                    Interval_Needed = max(int(time_diff.days), 0)
+                elif self.delta_letter == "H":
+                    Interval_Needed = max(int(time_diff.total_seconds() / 3600), 0)
+                elif self.delta_letter == "M":
+                    Interval_Needed = max(int(time_diff.total_seconds() / 60), 0)
+                elif self.delta_letter == "S":
+                    Interval_Needed = max(int(time_diff.total_seconds()), 0)
+                else:
+                    Interval_Needed = max(int(time_diff.total_seconds()), 0)
             # IE to pull the max allowed, or just what needed to reach starttime
             IntervalReq = (
                 str(
@@ -672,18 +618,35 @@ class Market_InfoCLS:
         return self.calandar.is_open_now(self.Market_schedule)
 
     def get_TradeDates(
-        self, forDate: datetime, Bar: "BarCLS" | Any, daysWanted: int = 3
-    ):  # noqa: N803
+        self, forDate: datetime, Bar: BarCLS | Any | None = None, daysWanted: int = 3
+    ) -> list[str]:  # noqa: N803
+        """Return recent trade dates.
+
+        - If Bar is None, assume minute bars for multi-day sequences.
+        - When market schedule is unavailable, fall back to weekday-based dates.
+        - When schedule is available and minute bars, return timezone-naive datetimes from schedule.
+        """
+        is_minute = False
+        if Bar is None:
+            is_minute = True
+        else:
+            try:
+                # Prefer integer bar type codes if available
+                is_minute = getattr(Bar, "BarType", None) == 2 or (
+                    isinstance(Bar, str) and "min" in Bar.lower()
+                )
+            except Exception:
+                is_minute = False
+
         if self.Market_schedule is None:
-            # Fallback: generate simple date list
+            # Fallback: generate simple date list based on weekdays
             from datetime import timedelta
 
-            if Bar.BarType == "1 min":
+            if is_minute:
                 dates: list[str] = []
                 current_date = forDate
                 for _ in range(daysWanted):
-                    # Simple weekday check (skip weekends)
-                    while current_date.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                    while current_date.weekday() >= 5:  # Skip weekends
                         current_date -= timedelta(days=1)
                     dates.append(current_date.strftime("%Y-%m-%d"))
                     current_date -= timedelta(days=1)
@@ -691,10 +654,10 @@ class Market_InfoCLS:
             else:
                 return [forDate.strftime("%Y-%m-%d")]
 
-        if Bar.BarType == "1 min":
+        if is_minute:
             OpenDates = self.Market_schedule[: forDate.strftime("%Y-%m-%d")]
-            TradeDates = OpenDates[-daysWanted:]["market_close"]
-            TradeDates = TradeDates.dt.tz_localize(None).tolist()
+            trade_dt = OpenDates[-daysWanted:]["market_close"].dt.tz_localize(None)
+            TradeDates = [dt.strftime("%Y-%m-%d") for dt in trade_dt]
         else:
             TradeDates = [forDate.strftime("%Y-%m-%d")]
 
@@ -832,15 +795,21 @@ class requestCheckerCLS:
     def get_LastTradeDay(self, forDate: datetime):  # noqa: N803
         return self.NYSE.get_LastTradeDay(forDate)
 
-    def get_TradeDates(self, forDate: datetime, daysWanted: int | None = None):  # noqa: N803
-        return self.NYSE.get_TradeDates(forDate, daysWanted)
+    def get_TradeDates(
+        self,
+        forDate: datetime,
+        Bar: BarCLS | Any | None = None,
+        daysWanted: int | None = None,
+    ) -> list[str]:  # noqa: N803
+        # Backward-compatible shim: existing callers omit Bar; default to minute behavior
+        return self.NYSE.get_TradeDates(forDate, Bar, daysWanted or 3)
 
     def appendFailed(
         self,
-        symbol: Symbol,
+        symbol: SymbolT,
         NonExistant: bool = True,
         EarliestAvailBar: str = "",
-        BarSize: BarSize = "",  # type: ignore
+        BarSize: str | None = None,
         forDate: str = "",
         comment: str = "",
     ) -> None:
@@ -862,9 +831,8 @@ class requestCheckerCLS:
 
         forDate = safe_datetime_to_string(forDate)
 
-        if (
-            BarSize == "" and comment != ""
-        ):  # this was an error capture. Only add comment
+        # Comment-only capture (no bar size provided)
+        if (BarSize is None) and comment != "":
             for i in range(10):
                 if (
                     "Comment" + str(i) not in self.df_IBFailed.columns
@@ -905,25 +873,28 @@ class requestCheckerCLS:
                             EarliestAvailBar
                         )
 
-                if BarSize + "-LatestFailed" not in self.df_IBFailed.columns:
-                    self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = forDate
+                # Require a concrete bar size to record failure details
+                if BarSize is None:
+                    MP.ErrorCapture(
+                        __name__,
+                        "BarSize must be provided when NonExistant is False",
+                        60,
+                        False,
+                    )
+                    return
+
+                col = f"{BarSize}-LatestFailed"
+                if col not in self.df_IBFailed.columns:
+                    self.df_IBFailed.loc[symbol, col] = forDate
                 else:
                     try:
-                        latest_failed = self.df_IBFailed.at[
-                            symbol, BarSize + "-LatestFailed"
-                        ]
+                        latest_failed = self.df_IBFailed.at[symbol, col]
                         if pd.isnull(latest_failed):
-                            self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = (
-                                forDate
-                            )
+                            self.df_IBFailed.loc[symbol, col] = forDate
                         elif latest_failed > forDate:
-                            self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = (
-                                forDate
-                            )
+                            self.df_IBFailed.loc[symbol, col] = forDate
                     except (KeyError, IndexError):
-                        self.df_IBFailed.loc[symbol, BarSize + "-LatestFailed"] = (
-                            forDate
-                        )
+                        self.df_IBFailed.loc[symbol, col] = forDate
 
         if SaveMe:
             self.FailChanges += 1
@@ -938,7 +909,9 @@ class requestCheckerCLS:
                 engine="openpyxl",
             )
 
-    def is_failed(self, symbol: Symbol, BarSize: BarSize, forDate: str = "") -> bool:  # type: ignore
+    def is_failed(
+        self, symbol: SymbolT, BarSize: str | BarSizeT, forDate: str = ""
+    ) -> bool:
         # df_IBFailed is always initialized; no None-check needed
 
         if symbol not in self.df_IBFailed.index:  # Doesn't exist
@@ -946,10 +919,11 @@ class requestCheckerCLS:
         elif safe_df_scalar_check(self.df_IBFailed, symbol, "NonExistant", "Yes"):
             return True
         else:
-            latest_failed = safe_df_scalar_access(
-                self.df_IBFailed, symbol, BarSize + "-LatestFailed"
-            )
+            # Always construct the failure column name from a string
+            bar_key = f"{str(BarSize)}-LatestFailed"
+            latest_failed = safe_df_scalar_access(self.df_IBFailed, symbol, bar_key)
             lf_ts = _to_timestamp_or_none(latest_failed)
+            # Accept str/datetime/Timestamp for forDate
             fd_ts = _to_timestamp_or_none(forDate)
             if lf_ts is None or fd_ts is None:
                 return False
@@ -977,7 +951,7 @@ class requestCheckerCLS:
         return ts
 
     def avail2Download(
-        self, symbol: Symbol, bar_size: BarSize, forDate: str = ""
+        self, symbol: SymbolT, bar_size: BarSizeT, forDate: str = ""
     ) -> bool:
         # df_IBFailed is always initialized; no None-check needed
 
@@ -1074,9 +1048,10 @@ class requestCheckerCLS:
             self.df_IBDownloaded.loc[StockDate, "Date"] = (
                 forDate  # immutable, should save itself.
             )
-            self.df_IBDownloaded.loc[StockDate, :] = fillna_typed(
-                self.df_IBDownloaded.loc[StockDate, :], "TBA"
-            ).iloc[0]  # Get the Series back
+            # Force 2D selection so type is DataFrame for fillna_typed
+            _row_df = self.df_IBDownloaded.loc[[StockDate], :]
+            _row_df = fillna_typed(_row_df, "TBA")
+            self.df_IBDownloaded.loc[[StockDate], :] = _row_df
         else:
             current_value = safe_df_scalar_access(
                 self.df_IBDownloaded, StockDate, bar_size
@@ -1249,9 +1224,60 @@ class requestCheckerCLS:
                 )
 
             try:
+                # Prefer non-blocking sleep when possible; if event loop context, this may be awaited elsewhere
                 self.ib.sleep(self.SleepTot)
-            except:
-                pass  # in care event loop already running
+            except Exception:
+                pass
+
+    async def aSendRequest(
+        self, timeframe: str, symbol: str, endDateTime: str | Any, WhatToShow: str
+    ) -> None:
+        """Async-safe variant of SendRequest that avoids blocking sleeps."""
+        self.ReqTime = perf_counter()
+        if (
+            self.symbolPrev == symbol
+            and self.endDateTimePrev == endDateTime
+            and self.WhatToShowPrev == WhatToShow
+        ):
+            self.SleepTot = max(0, 15 - (self.ReqTime - self.ReqTimePrev))
+            if self.SleepTot > 0:
+                untilTime = datetime.now() + timedelta(seconds=self.SleepTot)
+                untilTime = untilTime.strftime("%I:%M:%S %p")
+                m, s = divmod(round(self.SleepTot), 60)
+                slept_m, slept_s = divmod(round(self.TotalSlept + self.SleepTot), 60)
+                print(
+                    f"Sleeping Identical Call: {m}:{s:02}min until {untilTime}: Total: {slept_m}:{slept_s:02}min",
+                    end="\r",
+                )
+                await asyncio.sleep(self.SleepTot)
+        else:
+            self.ReqTimePrev = self.ReqTime
+            self.symbolPrev = symbol
+            self.endDateTimePrev = endDateTime
+            self.WhatToShowPrev = WhatToShow
+
+        # 60 requests in 10 minutes
+        self.ReqTime = perf_counter()
+        self.TimeOut = self.ReqTime - 10 * 60
+        self.allRequests = [x for x in self.allRequests if x >= (self.TimeOut)]
+        self.allRequests.append(self.ReqTime)
+        if len(self.allRequests) > 60:
+            self.SleepTot = max(0, 60 * 10 - (self.ReqTime - self.allRequests[0]))
+            if self.SleepTot > 0:
+                await asyncio.sleep(self.SleepTot)
+
+        # 6 requests in 2 seconds for second bars
+        if "sec" in timeframe.lower():
+            self.ReqTime = perf_counter()
+            self.TimeOut = self.ReqTime - 2
+            self.timeframeRequests = [
+                x for x in self.timeframeRequests if x >= (self.TimeOut)
+            ]
+            self.timeframeRequests.append(self.ReqTime)
+            if len(self.timeframeRequests) > 6:
+                self.SleepTot = max(0, 2 - (self.ReqTime - self.timeframeRequests[0]))
+                if self.SleepTot > 0:
+                    await asyncio.sleep(self.SleepTot)
 
     def SendRequest(
         self, timeframe: str, symbol: str, endDateTime: str | Any, WhatToShow: str
@@ -1359,14 +1385,14 @@ class requestCheckerCLS:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         self.exitflag = True
 
-    async def Download_Historical(
-        self, contract: Any, BarObj: "BarCLS" | Any, forDate: str = ""
-    ) -> None:  # noqa: N802, N803
+    async def _download_historical_async(
+        self, contract: Any, BarObj: BarCLS | Any, forDate: str = ""
+    ) -> Any:  # noqa: N802, N803
         # Wait for availability
-        while self.Downloading:  # Already downloading
-            Waiting2Download = max(self.SleepRem(), 0.1)
-            print("Download Pause", Waiting2Download)
-            self.ib.sleep(Waiting2Download)
+        while self.Downloading:
+            waiting = max(self.SleepRem(), 0.1)
+            print("Download Pause", waiting)
+            await asyncio.sleep(waiting)
 
         if self.exitflag:
             self.Sleep_TotalTime(FinishedSleeping=False)
@@ -1374,134 +1400,74 @@ class requestCheckerCLS:
 
         self.Downloading = True
 
-        #########################################################################################################################################
-        # Set limits, and features of the bar type
-        #########################################################################################################################################
-        """if 'tick' in BarSize:
-            Interval_Max_Allowed = 1000
-            BarsReq = 1000
-            MultipleDays = False
-        elif 'sec' in BarSize:
-            Interval_Max_Allowed = 2000#max interval is apparently 1800, but 2000 seems to be working.
-            MergeAskBidTrades = True
-            BarsReq = 60*30 #30min worth
-            delta_letter = 's'
-            Duration_Letter = ' S'
-            Interval_mFactor = 1 #Same delta to duration
-            MultipleDays = False
-        elif 'min' in BarSize:
-            if '30' in BarSize:
-                Interval_Max_Allowed = 2000#24*2*28 #1month
-                MergeAskBidTrades = False
-                BarsReq = 5000 #Average bars in 365 days, 5000 from 'TWS Stats 30min 365 days.xlsx'
-                delta_letter = 'h'
-                Duration_Letter = ' D' #TWS request in x durations
-                Interval_mFactor = 1/(2*24) #Hours to Days
-                MultipleDays = True
-            else:
-                Interval_Max_Allowed = 2000#60*24 #1day
-                MergeAskBidTrades = True
-                BarsReq = 60*8 #8hours 1 trading day
-                delta_letter = 'm'
-                Duration_Letter = ' S' #TWS request in x durations
-                Interval_mFactor = 60 #Minutes to Seconds
-                MultipleDays = False
-        elif 'hour' in BarSize:
-            Interval_Max_Allowed = 2000
-            MergeAskBidTrades = False
-            BarsReq = 2500 #Average bars in 365 days
-            delta_letter = 'h'
-            Duration_Letter = ' D' #TWS request in x durations
-            Interval_mFactor = 1/24 #Hours to Days
-            MultipleDays = True
-        elif 'day' in BarSize:
-            Interval_Max_Allowed = 2000
-            MergeAskBidTrades = False
-            BarsReq = 10*365 #10 years? Probably never need this.
-            delta_letter = 'D'
-            Duration_Letter = ' D' #TWS request in x durations
-            Interval_mFactor = 1 #Same delta to duration
-            MultipleDays = True
-        else:
-            MP.ErrorCapture(__name__,'Bar Size not correct: '+BarSize, 60)"""
-
-        #########################################################################################################################################
         # Determine Start and End of download required
-        #########################################################################################################################################
         if forDate == "":  # For now (live trading or testing)
-            if BarObj.MultipleDays:  # to download then
+            if BarObj.MultipleDays:
                 StartTimeStr = (
                     datetime.strftime(datetime.today() - timedelta(400), "%Y-%m-%d")
                     + "T00:00"
-                )  # at least 400 days ago to get enough bars
+                )
             else:
                 StartTimeStr = datetime.strftime(datetime.now(), "%Y-%m-%d") + "T08:00"
-            EndTimeStr = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M")  # Now
-        else:  # Historical Data
+            EndTimeStr = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M")
+        else:
             # Normalize input date once (accepts str/datetime/Timestamp)
             DateStr = _date_key_str(forDate)
-            fd_ts = _to_timestamp_or_none(DateStr)
-            if fd_ts is None:
-                # As a last resort, try parsing raw input
-                fd_ts = _to_timestamp_or_none(forDate)
-            if fd_ts is None:
-                # Fallback to today if parsing fails (keeps previous behavior resilient)
-                fd_ts = pd.Timestamp.today()
+            fd_ts = (
+                _to_timestamp_or_none(DateStr)
+                or _to_timestamp_or_none(forDate)
+                or pd.Timestamp.today()
+            )
 
-            if BarObj.MultipleDays:  # to download then
+            if BarObj.MultipleDays:
                 StartTimeStr = (
                     datetime.strftime(fd_ts - timedelta(400), "%Y-%m-%d") + "T00:00"
-                )  # at least 400 days for forDate to get enough bars
+                )
                 EndTimeStr = DateStr + "T23:59"
             else:
-                if "tick" in BarObj.BarSize:
-                    StartTimeStr = DateStr + "T09:00"
-                else:
-                    StartTimeStr = DateStr + "T08:00"
-
+                StartTimeStr = DateStr + (
+                    "T09:00" if "tick" in BarObj.BarSize else "T08:00"
+                )
                 if "tick" in BarObj.BarSize:
                     EndTimeStr = DateStr + "T10:30"
                 elif "sec" in BarObj.BarSize:
                     EndTimeStr = DateStr + "T12:00"
                 elif "min" in BarObj.BarSize:
                     EndTimeStr = DateStr + "T16:00"
+                else:
+                    EndTimeStr = DateStr + "T23:59"
 
-        EndTime = pd.Timestamp(EndTimeStr).tz_localize(
-            tz="US/Eastern"
-        )  # Localise from wherever
+        EndTime: pd.Timestamp = pd.Timestamp(EndTimeStr).tz_localize("US/Eastern")
+        StartTime = pd.Timestamp(StartTimeStr)
 
         if not self.NYSE.is_Market_Open():
-            LastTradeDay = self.NYSE.get_LastTradeDay(EndTime).tz_localize(
-                tz="US/Eastern"
-            )
+            LastTradeDay = pd.Timestamp(
+                self.NYSE.get_LastTradeDay(EndTime)
+            ).tz_localize("US/Eastern")
             if LastTradeDay < EndTime:
                 EndTime = LastTradeDay
 
-        #########################################################################################################################################
         # Get the start time from previous save, or set it.
-        #########################################################################################################################################
-        if os.path.exists(
-            IB_Download_Loc(contract.symbol, BarObj.BarSize, EndTimeStr)
-        ):  # Start time is the last in previous save
-            prev_df = pd.read_feather(
-                IB_Download_Loc(contract.symbol, BarObj.BarSize, StartTimeStr)
-            )
+        _path_end: Path = IB_Download_Loc(contract.symbol, BarObj, EndTimeStr)
+        if _path_end.exists():
+            _path_start: Path = IB_Download_Loc(contract.symbol, BarObj, StartTimeStr)
+            prev_df = pd.read_feather(str(_path_start))
             if BarObj.MultipleDays:
-                prev_df = prev_df.set_index(
-                    "date"
-                )  # drop the integer index, and set to date like the bars_df
-                StartTime = prev_df.index.max()  # Start time to download is from the last of the previous saved. df['date'].max()
-                StartTime = pd.Timestamp(StartTime)
+                prev_df = prev_df.set_index("date")
+                StartTime = pd.Timestamp(prev_df.index.max())
             else:
-                # Not programed to continue on where left off if not over multiple days
                 self.Downloading = False
-                EarliestAvailBar = self.getEarliestAvailBar(contract)
+                EarliestAvailBar = await self.getEarliestAvailBar(contract)
                 if "time" in prev_df.columns:
-                    StartTime = prev_df["time"].min()
-                    EndTime = prev_df["time"].max()
+                    _st = prev_df["time"].min()
+                    _et = prev_df["time"].max()
+                    StartTime = pd.Timestamp(_st)
+                    EndTime = pd.Timestamp(_et)
                 elif "date" in prev_df.columns:
-                    StartTime = prev_df["date"].min()
-                    EndTime = prev_df["date"].max()
+                    _st = prev_df["date"].min()
+                    _et = prev_df["date"].max()
+                    StartTime = pd.Timestamp(_st)
+                    EndTime = pd.Timestamp(_et)
                 else:
                     MP.ErrorCapture_ReturnAns(
                         __name__, "Not sure what date/time columns to use", 180, False
@@ -1517,155 +1483,111 @@ class requestCheckerCLS:
                 )
                 return prev_df
 
-            if StartTime >= (
-                datetime.today().date() - pd.tseries.offsets.BDay(1)
-            ):  # already downloaded
-                # datetime.strftime(date.today()- timedelta(1),'%Y-%m-%d'):
+            if StartTime >= (datetime.today().date() - pd.tseries.offsets.BDay(1)):
                 self.Downloading = False
                 return
+        else:
+            StartTime = pd.Timestamp(StartTimeStr)
+            prev_df = "Doesnt exist"  # type: ignore[assignment]
 
-        else:  # Start time is the default
-            StartTime = pd.Timestamp(
-                StartTimeStr
-            )  # , tz=TimeZoneStr) .tz_localize(tz='US/Eastern') #Localise from wherever
-            prev_df = "Doesnt exist"
+        EarliestAvailBar = await self.getEarliestAvailBar(contract)
+        StartTime = max(StartTime, EarliestAvailBar)
 
-        EarliestAvailBar = self.getEarliestAvailBar(contract)
-        StartTime = max(
-            StartTime, EarliestAvailBar
-        )  # only go as back as needed or exists (max)
-
-        #########################################################################################################################################
         # Loop until completely downloaded
-        #########################################################################################################################################
-
-        # The final dataframe everything will merge into.
         df = pd.DataFrame()
-        # Save Time Arrays
-        self.Save_requestChecks
+        self.Save_requestChecks()
 
-        if StartTime.tz == None:
-            StartTime = StartTime.tz_localize(tz="US/Eastern")  # Localise
-        if EndTime.tz == None:
-            EndTime = EndTime.tz_localize(tz="US/Eastern")  # Localise
+        if StartTime.tz is None:
+            StartTime = StartTime.tz_localize("US/Eastern")
+        if EndTime.tz is None:
+            EndTime = EndTime.tz_localize("US/Eastern")
 
         while EndTime > StartTime or StartTime == "":
             IntervalReq = BarObj.IntervalReq
             if IntervalReq == 0:
                 self.Downloading = False
-                break  # return #Finished Downloading
-            """if 'tick' in BarSize:
-                IntervalReq = 1000
-            elif StartTime == '':
-                IntervalReq = str(int(min([Interval_Max_Allowed, BarsReq])*Interval_mFactor))+Duration_Letter
-            else:
-                Interval_Needed = int((EndTime - StartTime)/timedelta64(1, delta_letter))
-                IntervalReq = str(int(min([Interval_Max_Allowed, Interval_Needed])*Interval_mFactor))+Duration_Letter
-                #IntervalReqOld = str(int(min([Interval_Max_Allowed, Interval_Needed])/2/24))+Duration_Letter
+                break
 
-                if IntervalReq == '0 D' or IntervalReq == '1 S':
-                    self.Downloading = False
-                    break #return #Finished Downloading
-                if IntervalReq == '60 S' and BarSize == '1 min':
-                    self.Downloading = False
-                    break #return #Finished Downloading"""
-
-            ######################################################################################################################################
             # Request Downloads
-            ######################################################################################################################################
-            Endtime_Input = EndTime.tz_localize(None)
+            Endtime_Input: datetime = EndTime.tz_localize(None).to_pydatetime()
 
             if "tick" in BarObj.BarSize:
-                self.SendRequest(
+                await self.aSendRequest(
                     BarObj.BarSize, contract.symbol, Endtime_Input, "TRADES"
-                )  # pd.to_datetime(EndTime)
+                )
                 bars = self.ib.reqHistoricalTicks(
                     contract,
                     startDateTime=None,
                     endDateTime=Endtime_Input,
-                    numberOfTicks=IntervalReq,  # no startDateTime as its one OR the other. #pd.to_datetime(EndTime)
+                    numberOfTicks=IntervalReq,
                     whatToShow="TRADES",
                     useRth=False,
-                )  # inc outside hours, False then show all data
+                )
                 self.ReqDict[self.ib.client._reqIdSeq] = [
                     contract.symbol,
                     "tick",
                     EndTime,
                 ]
-
                 if not bars:
-                    break  # While loop
-
-                bars_df = ib_async.util.df(bars)  # .set_index('time')
+                    break
+                bars_df = ib_util.df(bars)
 
             elif BarObj.MergeAskBidTrades:
-                bars_df = pd.DataFrame()
+                bars_df: pd.DataFrame = pd.DataFrame()
                 for AskBidTrade in ["ASK", "BID", "TRADES"]:
-                    self.SendRequest(
+                    await self.aSendRequest(
                         BarObj.BarSize, contract.symbol, Endtime_Input, AskBidTrade
-                    )  # pd.to_datetime(EndTime)
+                    )
                     bars = await self.ib.reqHistoricalDataAsync(
                         contract,
                         endDateTime=Endtime_Input,
-                        durationStr=IntervalReq,  # pd.to_datetime(EndTime)
+                        durationStr=IntervalReq,
                         barSizeSetting=BarObj.BarSize,
                         whatToShow=AskBidTrade,
                         useRTH=False,
-                    )  # inc outside hours False then show all data
+                    )
                     self.ReqDict[self.ib.client._reqIdSeq] = [
                         contract.symbol,
                         BarObj.BarSize,
                         EndTime,
                     ]
-
                     if not bars:
-                        break  # While loop. Finished downloading.
-
-                    # Merge ASK, BID, and TRADES
-                    df_AB = ib_async.util.df(bars)
-                    if df_AB is None:
-                        break  # While loop - no data returned
-                    df_AB = df_AB.set_index("date")
-                    df_AB = df_AB.add_prefix(AskBidTrade + "_")
-                    bars_df = pd.concat(
-                        [bars_df, df_AB], axis=1, sort=True
-                    )  # pd.concat([bars_df,df], join='inner',verify_integrity=True,sort=True) # merge
+                        break
+                    df_AB = ib_util.df(bars)
+                    df_AB = df_AB.set_index("date").add_prefix(AskBidTrade + "_")
+                    bars_df = pd.concat([bars_df, df_AB], axis=1, sort=True)
             else:
-                self.SendRequest(
+                await self.aSendRequest(
                     BarObj.BarSize, contract.symbol, Endtime_Input, "TRADES"
                 )
                 bars = await self.ib.reqHistoricalDataAsync(
                     contract,
                     endDateTime=Endtime_Input,
-                    durationStr=IntervalReq,  # pd.to_datetime(EndTime)
+                    durationStr=IntervalReq,
                     barSizeSetting=BarObj.BarSize,
                     whatToShow="TRADES",
                     useRTH=False,
-                )  # inc outside hours
+                )
                 self.ReqDict[self.ib.client._reqIdSeq] = [
                     contract.symbol,
                     BarObj.BarSize,
                     EndTime,
                 ]
                 if not bars:
-                    break  # While loop
-                bars_df = ib_async.util.df(bars)
-                if bars_df is None:
-                    break  # While loop - no data returned
+                    break
+                bars_df = ib_util.df(bars)
                 bars_df = bars_df.set_index("date")
 
-            if bars_df is None or len(bars_df) == 0:
-                break  # While loop. Finished.
+            if len(bars_df) == 0:
+                break
 
-            # Check if volumes changed from lots of 100 to shares
+            # Volume sanity check
             for col in bars_df.columns:
                 if "vol" in col:
                     df_filtered = bars_df[bars_df[col] > 0]
                     if df_filtered.shape[0] > 0:
-                        df_filtered_mod = df_filtered[df_filtered[col] % 100 == 0]
-                        if (
-                            df_filtered.shape[0] == df_filtered_mod.shape[0]
-                        ):  # =bars_df.shape[0]:
+                        df_mod = df_filtered[df_filtered[col] % 100 == 0]
+                        if df_filtered.shape[0] == df_mod.shape[0]:
                             print(bars_df)
                             MP.ErrorCapture(
                                 __name__,
@@ -1676,15 +1598,14 @@ class requestCheckerCLS:
                             )
 
             # Combine from each loop
-            df = pd.concat([df, bars_df])  # , verify_integrity=True,sort=True)
+            df = pd.concat([df, bars_df])
 
             # Check if finished
             if "tick" in BarObj.BarSize:
-                EndTime = df["time"].min()
-                EndTime = EndTime.astimezone(tz=pytz.timezone("US/Eastern"))
+                EndTime = df["time"].min().astimezone(tz=pytz.timezone("US/Eastern"))
             else:
-                EndTime = df.index.min()
-                EndTime = EndTime.tz_localize("US/Eastern")
+                _minidx = pd.Timestamp(df.index.min())
+                EndTime = _minidx.tz_localize("US/Eastern")
 
             if not EndTime == EndTime:  # nan
                 self.Downloading = False
@@ -1692,32 +1613,26 @@ class requestCheckerCLS:
                     contract.symbol,
                     NonExistant=BarObj.MultipleDays,
                     EarliestAvailBar=safe_date_to_string(EarliestAvailBar),
-                )  # if multiple days failed, then non-existant also true
-                return "Failed"  # End requesting
-            if (
-                StartTime == "" and len(df) >= BarObj.BarsReq
-            ):  # no start/end specified but have enough bars for ML
-                break  # while loop
+                )
+                return "Failed"
 
-        #########################################################################################################################################
+            if StartTime == "" and len(df) >= BarObj.BarsReq:
+                break
+
         # Save and Return
-        #########################################################################################################################################
-        self.Save_requestChecks()  # Save Time Arrays
-        self.Downloading = False  # Ending no matter what
+        self.Save_requestChecks()
+        self.Downloading = False
         self.Sleep_TotalTime(FinishedSleeping=True)
 
         # Merge files if two files
-        if not isinstance(prev_df, str) and len(df) > 0:  # previous file to merge with.
-            if prev_df.index.max() >= df.index.min():  # there is an overlap in grabbing
-                df = pd.concat(
-                    [prev_df, df], verify_integrity=False, sort=True
-                )  # There is overlap, we already know this hence verify =false
+        if not isinstance(prev_df, str) and len(df) > 0:
+            if prev_df.index.max() >= df.index.min():
+                df = pd.concat([prev_df, df], verify_integrity=False, sort=True)
                 df = df[~df.index.duplicated(keep="first")]
             else:
                 df = pd.concat([prev_df, df], verify_integrity=True, sort=True)
 
-            # Check for errors
-            if df.isnull().values.any():  # if null values save a check file
+            if df.isnull().values.any():
                 SaveExcel_ForReview(
                     df,
                     StrName=contract.symbol + "_" + BarObj.BarSize + "_" + EndTimeStr,
@@ -1725,30 +1640,24 @@ class requestCheckerCLS:
                 MP.ErrorCapture_ReturnAns(__name__, "Found null values", 60, True)
 
         # if more downloaded
-        if (
-            len(df) > 0
-        ):  # then something was downloaded. Otherwise the prev_df is untouched.
-            # Sort and clean the dataframe a little from merges
+        if len(df) > 0:
             if "tick" in BarObj.BarSize:
-                # there are multiple lines for each second. Need to keep the order.
-                df = df.reset_index()
-                df = df.sort_values(["time", "index"], ascending=[True, True])
-                df = df.reset_index()
-                df = df.rename(columns={"index": "idx"})
-                df = df.drop(columns=["level_0"])
+                df = df.reset_index().sort_values(
+                    ["time", "index"], ascending=[True, True]
+                )
+                df = (
+                    df.reset_index()
+                    .rename(columns={"index": "idx"})
+                    .drop(columns=["level_0"])
+                )
                 df["tickAttribLast"] = df["tickAttribLast"].astype(str)
             else:
-                df = df.sort_values("date")
-                df = df.reset_index()
+                df = df.sort_values("date").reset_index()
 
-            # df.to_excel(IB_Download_Loc(contract.symbol, BarObj.BarSize, StartTime,'.xlsx'), sheet_name='Sheet1',engine='openpyxl') #, index=True)
-            # df.to_csv(IB_Download_Loc(contract.symbol, BarObj.BarSize, StartTime,'.csv')) #index is date, so save with index....
-
-            df.to_feather(
-                IB_Download_Loc(
-                    contract.symbol, BarObj.BarSize, safe_date_to_string(StartTime)
-                )
+            _out_path: Path = IB_Download_Loc(
+                contract.symbol, BarObj, safe_date_to_string(StartTime)
             )
+            df.to_feather(str(_out_path))
             self.appendDownloadable(
                 contract.symbol,
                 BarObj.BarSize,
@@ -1761,27 +1670,53 @@ class requestCheckerCLS:
             )
             return df
 
-        elif not isinstance(prev_df, str):  # prev exists but nothing new downloaded
-            # self.appendDownloadable(contract.symbol, BarSize, EarliestAvailBar=EarliestAvailBar, StartDate=prev_df.index.min(), EndDate=prev_df.index.max())
+        elif not isinstance(prev_df, str):
             self.appendDownloaded(
                 contract.symbol, bar_size=BarObj.BarSize, forDate=forDate
             )
-        else:  # no previous and no download
+        else:
             self.appendFailed(
                 contract.symbol,
                 NonExistant=BarObj.MultipleDays,
                 EarliestAvailBar=safe_date_to_string(EarliestAvailBar),
                 BarSize=BarObj.BarSize,
                 forDate=safe_date_to_string(forDate),
-            )  # if multiple days failed, then non-existant also true
+            )
             return
+
+    def Download_Historical(
+        self, contract: Any, BarSize: str, forDate: str = ""
+    ) -> Any:  # noqa: N802, N803
+        """Backward-compatible synchronous wrapper.
+        Accepts original BarSize string, constructs BarObj, and runs the async implementation.
+        """
+        BarObj = BarCLS(BarSize)
+        coro = self._download_historical_async(contract, BarObj, forDate)
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Use compat util.run if available to run coroutine
+                try:
+                    if hasattr(ib_util, "run"):
+                        return ib_util.run(coro)  # type: ignore[arg-type]
+                except Exception:
+                    pass
+                # Fallback: schedule and warn; cannot block current loop
+                print(
+                    "Warning: event loop is running; cannot block synchronously; returning None"
+                )
+                return None
+            else:
+                return loop.run_until_complete(coro)
+        except RuntimeError:
+            return asyncio.run(coro)
 
 
 ###############################################################################
 #       Subscription Functions
 ###############################################################################
 class MarketDepthCls:
-    def __init__(self, ib, contract):
+    def __init__(self, ib: IBProto, contract: Any):
         self.ib = ib  # ib_async.IB()
         self.timeLast = perf_counter()
         self.timeLastsaved = perf_counter()
@@ -1912,7 +1847,7 @@ class MarketDepthCls:
 
 
 class TickByTickCls:
-    def __init__(self, ib, contract):
+    def __init__(self, ib: IBProto, contract: Any):
         self.ib = ib  # ib_async.IB()
 
         self.contract = contract
@@ -1935,7 +1870,9 @@ class TickByTickCls:
 ###############################################################################
 #       Core Functions
 ###############################################################################
-async def InitiateTWS(LiveMode=False, clientId=1, use_gateway=True):
+async def InitiateTWS(
+    LiveMode: bool = False, clientId: int = 1, use_gateway: bool = True
+):
     # launches Interactive Brokers Gateway/TWS and returns the IB() class ib
     # launches the requestCheckerCLS class and returns it Req
 
@@ -1964,7 +1901,12 @@ async def InitiateTWS(LiveMode=False, clientId=1, use_gateway=True):
 
     # Note: Gateway doesn't need setConnectOptions like TWS
     if not use_gateway:
-        ib.client.setConnectOptions("+PACEAPI")  # TWS Pacing Throttling
+        # TWS pacing throttling; guard for clients without this attribute
+        try:
+            if hasattr(ib, "client") and hasattr(ib.client, "setConnectOptions"):
+                ib.client.setConnectOptions("+PACEAPI")
+        except Exception:
+            pass
 
     try:
         await ib.connectAsync("127.0.0.1", Code, clientId)
@@ -2102,220 +2044,74 @@ def Stock_Downloads_Load(Req, contract, BarSize, forDate):
 ###############################################################################
 
 
-def IB_Download_Loc(Stock_Code, BarObj, DateStr="", fileExt=".ftr"):
-    if "." not in fileExt:
-        fileExt = "." + fileExt
-
-    # Convert DateStr if it's a Timestamp
-    if str(type(DateStr)).find("Timestamp") >= 0:
-        DateStr = str(DateStr)
-    elif hasattr(DateStr, "strftime") and not isinstance(DateStr, str):
-        DateStr = DateStr.strftime("%Y-%m-%d %H:%M:%S")
-
-    if BarObj.BarType == 0:  # Tick
-        BarStr = "_Tick"
-    elif BarObj.BarType == 1:  # 1 Second
-        BarStr = "_1s"
-    elif BarObj.BarType == 2:  # 1 Min
-        BarStr = "_1M"
-    elif BarObj.BarType == 3:  # 30 Min
-        BarStr = "_30M"
-    elif BarObj.BarType == 4:  # 1 Hour
-        BarStr = "_1Hour"  # no underscore as no date string
-    elif BarObj.BarType == 5:  # 1 Day
-        BarStr = "_1D"  # no underscore as no date string
-    else:
-        MP.ErrorCapture(__name__, "Timeframe must be day/hour/minute/second/tick")
-
-    if BarObj.BarType <= 2:  # then need a start date and end date string in file name
-        if DateStr == "":
-            MP.ErrorCapture(__name__, "need start and end string")
-
-        if isinstance(DateStr, (date, datetime)):
-            DateStr = "_" + DateStr.strftime("%Y-%m-%d")
-        else:
-            DateStr = (
-                "_" + str(DateStr)[:10]
-            )  # Start to 10th letter incase of format YYYY-MM-DDTHH:MM:SS
-
-    else:  # then dont need a date string, as it is forever*
-        DateStr = ""
-
-    if "." not in fileExt:
-        fileExt = "." + fileExt
-
-    LocPathNew = Path(
-        LocG + "IBDownloads\\" + Stock_Code + "_USUSD" + BarStr + DateStr + fileExt
-    )  # DD.MM.YYYY
-
-    return LocPathNew
+def IB_Download_Loc(Stock_Code, BarObj, DateStr="", fileExt=".ftr") -> Path:
+    # Delegate to centralized path service for consistent path building
+    try:
+        from .services.path_service import IB_Download_Loc as _svc
+    except ImportError:
+        from src.services.path_service import IB_Download_Loc as _svc
+    return _svc(Stock_Code, BarObj, DateStr, fileExt)
 
 
 def IB_Df_Loc(
     StockCode, BarObj, DateStr, Normalised: bool, fileExt=".ftr", CreateCxFile=False
 ):
-    if CreateCxFile:
-        Loc = LocG + "/CxData - "
-        if fileExt != ".xlsx":
-            MP.ErrorCapture(
-                __name__, "This should be a xlsx file if its a Chech file", 60, True
-            )
-    else:
-        Loc = LocG + "Stocks/" + StockCode + "/Dataframes/"
-    MP.LocExist(Loc)
-
-    if BarObj.BarType <= 2:
-        if DateStr == "":
-            MP.ErrorCapture(__name__, "ticks need start and end string")
-
-        if isinstance(DateStr, date):
-            DateStr = "_" + DateStr.strftime("%Y-%m-%d")
-        else:
-            DateStr = (
-                "_" + DateStr[:10]
-            )  # Start to 10th letter incase of format YYYY-MM-DDTHH:MM:SS
-
-    else:  # then dont need a date string, as it is forever*
-        DateStr = ""
-
-    if Normalised:
-        Norm_df = "_NORM"
-    elif not Normalised:
-        Norm_df = "_df"
-
-    if "." not in fileExt:
-        fileExt = "." + fileExt
-
-    FileName = StockCode + BarObj.BarStr + Norm_df + "_" + Version + DateStr + fileExt
-
-    return Path(Loc + FileName)
+    """Delegate to centralized PathService for consistent path building."""
+    try:
+        from .services.path_service import IB_Df_Loc as _svc
+    except ImportError:
+        from src.services.path_service import IB_Df_Loc as _svc
+    return _svc(StockCode, BarObj, DateStr, Normalised, fileExt, CreateCxFile)
 
 
 def IB_L2_Loc(
     StockCode, StartStr, EndStr, Normalised: bool, fileExt=".ftr", CreateCxFile=False
 ):
-    if CreateCxFile:
-        Loc = LocG + "/CxData - "
-        if fileExt != ".xlsx":
-            MP.ErrorCapture(
-                __name__, "This should be a xlsx file if its a Chech file", 60, True
-            )
-    else:
-        Loc = LocG + "Stocks/" + StockCode + "/Dataframes/"
-    MP.LocExist(Loc)
-
-    if isinstance(StartStr, date):
-        StartStr = "_" + StartStr.strftime("%Y-%m-%d %H:%M:%S")
-    if isinstance(EndStr, date):
-        EndStr = "_" + EndStr.strftime("%H:%M:%S")
-
-    if Normalised:
-        Norm_df = "_NORM"
-    elif not Normalised:
-        Norm_df = "_df"
-
-    if "." not in fileExt:
-        fileExt = "." + fileExt
-
-    FileName = (
-        StockCode
-        + "_L2_"
-        + Norm_df
-        + "_"
-        + Version
-        + StartStr
-        + " to "
-        + EndStr
-        + fileExt
-    )
-
-    return Path(Loc + FileName)
+    # Delegate to centralized service
+    try:
+        from .services.path_service import IB_L2_Loc as _svc
+    except ImportError:
+        from src.services.path_service import IB_L2_Loc as _svc
+    return _svc(StockCode, StartStr, EndStr, Normalised, fileExt, CreateCxFile)
 
 
 def IB_Train_Loc(
     StockCode, DateStr, TrainXorY=""
 ):  # TrainX is Features, TrainY is Labels
-    if "y" in TrainXorY.lower() or "label" in TrainXorY.lower():
-        TrainXorY = "TrainY"
-    elif "x" in TrainXorY.lower() or "feature" in TrainXorY.lower():
-        TrainXorY = "TrainX"
-    else:
-        MP.ErrorCapture(__name__, "Could not determine if it is a Feature or Label")
-
-    Loc = LocG + "Stocks/" + StockCode + "/Dataframes/"
-    MP.LocExist(Loc)
-
-    FileName = (
-        StockCode
-        + "_1s_"
-        + TrainXorY
-        + "_"
-        + Version
-        + "_"
-        + DateStr.strftime("%Y%m%d")
-        + ".ftr"
-    )
-
-    return Path(Loc + FileName)
+    try:
+        from .services.path_service import IB_Train_Loc as _svc
+    except ImportError:
+        from src.services.path_service import IB_Train_Loc as _svc
+    return _svc(StockCode, DateStr, TrainXorY)
 
 
 def IB_Scalar(scalarType, scalarWhat, LoadScalar=True, BarObj=None, FeatureStr=None):
-    Loc = LocG + "/Scalars/"
-    MP.LocExist(Loc)
-
-    if "st" in scalarType.lower():
-        scalarType = "Std"
-    elif "min" in scalarType.lower():
-        scalarType = "MinMax"
-    else:
-        MP.ErrorCapture(__name__, "Scalar type needs to be Standard or Min Max.")
-
-    if FeatureStr != None:
-        scalarFor = "Fr"
-        if "float" in scalarWhat[0].lower():
-            scalarWhat = "float_"
-        elif "outstanding" in scalarWhat[0].lower():
-            scalarWhat = "outstanding-shares_"
-        elif "short" in scalarWhat[0].lower():
-            scalarWhat = "shares-short_"
-        elif "volume" in scalarWhat[0].lower():
-            scalarWhat = "av-volume"
-        else:
-            MP.ErrorCapture(__name__, "Scalar type needs to be for Prices or Volumes")
-    elif BarObj != None:
-        scalarFor = BarObj.BarStr
-        if scalarWhat[0].lower() == "p":
-            scalarWhat = "prices"
-        elif scalarWhat[0].lower() == "v":
-            scalarWhat = "volumes"
-        else:
-            MP.ErrorCapture(__name__, "Scalar type needs to be for Prices or Volumes")
-    else:
-        MP.ErrorCapture(__name__, "Scalar needs a BarObf or a FeatureStr")
-
-    FileName = f"scaler_{scalarType}{scalarFor}_{scalarWhat}.bin"
-
-    if LoadScalar:
-        return load(Path(Loc + FileName))  # Scalar
-    else:
-        return Path(Loc + FileName)  # Path
+    """Delegate to PathService.get_scalar_location for unified scalar paths/loading."""
+    service = get_path_service()
+    return service.get_scalar_location(
+        scalarType,
+        scalarWhat,
+        bar_config=BarObj,
+        feature_str=FeatureStr,
+        load_scalar=LoadScalar,
+    )
 
 
 def SaveExcel_ForReview(df, StrName=""):
     if StrName == "":
         StrName = "For Review"
 
-    path = f"G:/Machine Learning/Temp-{StrName}.xlsx"
-    count = 1
-    while os.path.exists(path):
-        count += 1
-        path = f"G:/Machine Learning/Temp-{StrName}-{count}.xlsx"
+    try:
+        from .services.path_service import get_path_service as _get_ps
+    except ImportError:
+        from src.services.path_service import get_path_service as _get_ps
+    service = _get_ps()
+    path_obj = service.get_excel_review_location(StrName)
+    path = str(path_obj)
 
     for col in df.columns:
-        if (
-            "datetime64[ns," in df[col].dtype.name
-        ):  # if there is no comma then it is localised already
-            if df[col].dtype._tz is not None:
+        if "datetime64[ns," in df[col].dtype.name:
+            if getattr(df[col].dtype, "_tz", None) is not None:
                 df[col] = df[col].dt.tz_convert("America/New_York")
                 df[col] = df[col].dt.tz_localize(None)
 

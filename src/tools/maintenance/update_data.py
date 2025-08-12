@@ -25,6 +25,7 @@ sys.path.insert(0, src_dir)
 try:
     import click
     from tqdm import tqdm
+
     CLICK_AVAILABLE = True
 except ImportError:
     CLICK_AVAILABLE = False
@@ -40,40 +41,40 @@ INPUT_SCHEMA = {
             "type": "array",
             "items": {"type": "string"},
             "default": ["AAPL", "MSFT", "TSLA"],
-            "description": "List of stock symbols to update (empty for warrior list)"
+            "description": "List of stock symbols to update (empty for warrior list)",
         },
         "timeframes": {
             "type": "array",
             "items": {"type": "string"},
             "default": ["1 min", "30 mins"],
-            "description": "List of timeframes for data updates"
+            "description": "List of timeframes for data updates",
         },
         "start_date": {
             "type": "string",
             "default": "",
-            "description": "Start date for data updates (YYYY-MM-DD, empty for auto)"
+            "description": "Start date for data updates (YYYY-MM-DD, empty for auto)",
         },
         "end_date": {
             "type": "string",
             "default": "",
-            "description": "End date for data updates (YYYY-MM-DD, empty for today)"
+            "description": "End date for data updates (YYYY-MM-DD, empty for today)",
         },
         "use_warrior_list": {
             "type": "boolean",
             "default": False,
-            "description": "Use complete warrior list of symbols"
+            "description": "Use complete warrior list of symbols",
         },
         "dry_run": {
             "type": "boolean",
             "default": False,
-            "description": "Show what would be updated without downloading"
+            "description": "Show what would be updated without downloading",
         },
         "resume_interrupted": {
             "type": "boolean",
             "default": True,
-            "description": "Resume interrupted downloads"
-        }
-    }
+            "description": "Resume interrupted downloads",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -90,8 +91,8 @@ OUTPUT_SCHEMA = {
                 "successful_downloads": {"type": "integer"},
                 "failed_downloads": {"type": "integer"},
                 "duration_seconds": {"type": "number"},
-                "data_size_mb": {"type": "number"}
-            }
+                "data_size_mb": {"type": "number"},
+            },
         },
         "symbol_details": {
             "type": "array",
@@ -100,13 +101,16 @@ OUTPUT_SCHEMA = {
                 "properties": {
                     "symbol": {"type": "string"},
                     "status": {"type": "string"},
-                    "timeframes_updated": {"type": "array", "items": {"type": "string"}},
+                    "timeframes_updated": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
                     "rows_downloaded": {"type": "integer"},
                     "file_size_mb": {"type": "number"},
                     "processing_time_seconds": {"type": "number"},
-                    "error_message": {"type": "string"}
-                }
-            }
+                    "error_message": {"type": "string"},
+                },
+            },
         },
         "data_validation": {
             "type": "object",
@@ -114,8 +118,8 @@ OUTPUT_SCHEMA = {
                 "integrity_checks_passed": {"type": "integer"},
                 "integrity_checks_failed": {"type": "integer"},
                 "data_quality_score": {"type": "number"},
-                "missing_data_gaps": {"type": "array", "items": {"type": "string"}}
-            }
+                "missing_data_gaps": {"type": "array", "items": {"type": "string"}},
+            },
         },
         "connection_status": {
             "type": "object",
@@ -123,20 +127,20 @@ OUTPUT_SCHEMA = {
                 "ib_connection_successful": {"type": "boolean"},
                 "connection_time_ms": {"type": "number"},
                 "api_rate_limit_hit": {"type": "boolean"},
-                "reconnection_attempts": {"type": "integer"}
-            }
+                "reconnection_attempts": {"type": "integer"},
+            },
         },
         "errors": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "List of errors encountered during update"
+            "description": "List of errors encountered during update",
         },
         "recommendations": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommendations for optimizing data updates"
-        }
-    }
+            "description": "Recommendations for optimizing data updates",
+        },
+    },
 }
 
 
@@ -278,7 +282,9 @@ class DataUpdateManager:
         """Get list of symbols to update."""
         try:
             if list_name == "warrior":
-                warrior_list = MPT.WarriorList("Load")
+                from src.services import data_management_service as DM
+
+                warrior_list = DM.WarriorList("Load")
                 symbols = set()
 
                 for _, row in warrior_list.iterrows():
@@ -529,7 +535,7 @@ def main() -> dict[str, Any]:
             "successful_downloads": 18,
             "failed_downloads": 6,
             "duration_seconds": 145.7,
-            "data_size_mb": 85.3
+            "data_size_mb": 85.3,
         },
         "symbol_details": [
             {
@@ -539,7 +545,7 @@ def main() -> dict[str, Any]:
                 "rows_downloaded": 12500,
                 "file_size_mb": 18.4,
                 "processing_time_seconds": 22.3,
-                "error_message": ""
+                "error_message": "",
             },
             {
                 "symbol": "MSFT",
@@ -548,7 +554,7 @@ def main() -> dict[str, Any]:
                 "rows_downloaded": 11800,
                 "file_size_mb": 16.7,
                 "processing_time_seconds": 20.1,
-                "error_message": ""
+                "error_message": "",
             },
             {
                 "symbol": "TSLA",
@@ -557,7 +563,7 @@ def main() -> dict[str, Any]:
                 "rows_downloaded": 8900,
                 "file_size_mb": 12.2,
                 "processing_time_seconds": 18.5,
-                "error_message": ""
+                "error_message": "",
             },
             {
                 "symbol": "NVDA",
@@ -566,7 +572,7 @@ def main() -> dict[str, Any]:
                 "rows_downloaded": 0,
                 "file_size_mb": 0.0,
                 "processing_time_seconds": 5.2,
-                "error_message": "API rate limit exceeded"
+                "error_message": "API rate limit exceeded",
             },
             {
                 "symbol": "AMD",
@@ -575,7 +581,7 @@ def main() -> dict[str, Any]:
                 "rows_downloaded": 0,
                 "file_size_mb": 0.0,
                 "processing_time_seconds": 3.8,
-                "error_message": "Contract not found"
+                "error_message": "Contract not found",
             },
             {
                 "symbol": "META",
@@ -584,8 +590,8 @@ def main() -> dict[str, Any]:
                 "rows_downloaded": 0,
                 "file_size_mb": 0.0,
                 "processing_time_seconds": 0.1,
-                "error_message": "Data already up to date"
-            }
+                "error_message": "Data already up to date",
+            },
         ],
         "data_validation": {
             "integrity_checks_passed": 18,
@@ -593,19 +599,19 @@ def main() -> dict[str, Any]:
             "data_quality_score": 92.5,
             "missing_data_gaps": [
                 "AAPL 2025-08-10 14:30-14:45 (market close)",
-                "TSLA 2025-08-09 09:30-09:32 (opening gap)"
-            ]
+                "TSLA 2025-08-09 09:30-09:32 (opening gap)",
+            ],
         },
         "connection_status": {
             "ib_connection_successful": True,
             "connection_time_ms": 1250,
             "api_rate_limit_hit": True,
-            "reconnection_attempts": 1
+            "reconnection_attempts": 1,
         },
         "errors": [
             "API rate limit exceeded for NVDA download",
             "Contract not found for AMD symbol",
-            "Network timeout during TSLA 30 mins download"
+            "Network timeout during TSLA 30 mins download",
         ],
         "recommendations": [
             "Implement exponential backoff for API rate limits",
@@ -613,14 +619,16 @@ def main() -> dict[str, Any]:
             "Use data validation pipeline for integrity checks",
             "Set up monitoring for connection stability",
             "Consider multiple data sources for redundancy",
-            "Archive historical data older than 1 year"
-        ]
+            "Archive historical data older than 1 year",
+        ],
     }
 
     if not CLICK_AVAILABLE:
         logger.warning("Click library not available - using mock data")
         result["errors"].append("Click and tqdm libraries not available")
-        result["recommendations"].append("Install click and tqdm for full functionality")
+        result["recommendations"].append(
+            "Install click and tqdm for full functionality"
+        )
 
     try:
         # Try to run actual data update if available
@@ -630,7 +638,7 @@ def main() -> dict[str, Any]:
         manager = DataUpdateManager(log_level="INFO")
 
         # Test connection capability
-        if hasattr(manager, 'connect_to_ib'):
+        if hasattr(manager, "connect_to_ib"):
             connection_test = manager.connect_to_ib()
             result["connection_status"]["ib_connection_successful"] = connection_test
             logger.info(f"IB connection test: {connection_test}")
@@ -640,7 +648,9 @@ def main() -> dict[str, Any]:
         result["errors"].append(f"Data update system not fully available: {str(e)}")
 
     end_time = datetime.now()
-    result["update_summary"]["duration_seconds"] = (end_time - start_time).total_seconds()
+    result["update_summary"]["duration_seconds"] = (
+        end_time - start_time
+    ).total_seconds()
 
     logger.info("Enhanced data update system analysis completed successfully")
     return result
@@ -656,11 +666,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Enhanced Data Update System - Improved interface for updating historical market data",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Enhanced Data Update System - Improved interface for updating historical market data",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
