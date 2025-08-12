@@ -6,6 +6,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/pip",
       "args": ["install", "-e", ".[dev]"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\pip.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -20,6 +23,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "pytest", "tests/"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "test",
       "presentation": {
         "echo": true,
@@ -40,6 +46,9 @@
         "--cov=src",
         "--cov-report=term-missing"
       ],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "test",
       "presentation": {
         "echo": true,
@@ -54,6 +63,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "ruff", "check", "src/", "tests/", "examples/"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -68,6 +80,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "ruff", "format", "src/", "tests/", "examples/"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -82,6 +97,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "mypy", "src/"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -96,6 +114,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/ib_Main.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -110,6 +131,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/tools/run_trading_fully_automated.py", "--symbols", "AAPL"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -124,6 +148,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/tools/setup/setup_automated_trading.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -138,6 +165,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/tools/setup/setup_ib_gateway.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -152,6 +182,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/tools/analysis/script_inventory_analyzer.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -166,6 +199,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/tools/analysis/analyze_scripts.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -180,6 +216,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/tools/analysis/system_check_analysis.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -194,6 +233,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["src/tools/analysis/validate_ml_structure.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -225,6 +267,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "ruff", "check", "src/", "tests/", "examples/"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
@@ -239,6 +284,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "ruff", "format", "src/", "tests/", "examples/"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
       "group": "build",
       "presentation": {
         "echo": true,
