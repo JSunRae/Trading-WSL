@@ -86,5 +86,20 @@
 - Next: T6
 
 ### Update 2025-08-12T15:54:08+02:00
+
 - Completed: README path fixes for WSL and script paths
-- Results: Adjusted commands to quote workspace path, use src/tools/* entry points
+- Results: Adjusted commands to quote workspace path, use src/tools/\* entry points
+
+### Update 2025-08-12T16:05:00+02:00
+
+- Completed: Git initialized and hygiene set up
+- Results: `git init -b main`; .gitignore present; .pre-commit-config.yaml present
+- Completed: Version, commit, and tag
+- Results: version=0.10.0; commit created; tag v0.10.0 annotated
+- Completed: VS Code tasks locked to venv
+- Results: describe:all now uses ${workspaceFolder}/.venv/bin/python
+- Completed: CI guard verified
+- Results: .github/workflows/ci.yml enforces pytest -W error with --cov-branch --cov-fail-under=80, ruff, pyright
+- Remote: not configured (skipped push)
+- Artifacts: htmlcov/, coverage.xml, coverage.json, reports/coverage_analysis.json
+- Final Metrics: line=80.36%, branch=64.08%; tests passed previously under venv
