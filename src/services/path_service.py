@@ -1,0 +1,464 @@
+"""
+Path Service
+
+This service handles all file path generation and location management,
+extracted from the monolithic MasterPy_Trading.py file.
+Provides centralized path management with platform-specific handling.
+"""
+
+import os
+import sys
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any
+
+try:
+    from ..core.config import get_config
+    from ..core.error_handler import get_error_handler
+
+    config_manager = get_config()
+    error_handler = get_error_handler()
+except ImportError:
+    config_manager = None
+    error_handler = None
+
+# Version constant for compatibility
+VERSION = "V1"
+
+# Global location for compatibility during transition
+if sys.platform == "win32":
+    LOC_G = "G:/Machine Learning/"
+else:
+    LOC_G = os.path.expanduser("~/Machine Learning/")
+
+
+def handle_error(module: str, message: str, duration: int = 60) -> None:
+    """Fallback error handling for transition period"""
+    if error_handler:
+        try:
+            from ..core.error_handler import TradingSystemError
+
+            error = TradingSystemError(message)
+            error_handler.handle_error(error, {"module": module, "duration": duration})
+        except:
+            print(f"ERROR [{module}]: {message}")
+    else:
+        print(f"ERROR [{module}]: {message}")
+
+
+def ensure_directory_exists(location: str) -> None:
+    """Ensure directory exists, create if necessary"""
+    try:
+        os.makedirs(location, exist_ok=True)
+    except Exception as e:
+        print(f"Warning: Could not create directory {location}: {e}")
+
+
+class PathService:
+    """Service for managing file paths and locations"""
+
+    def __init__(self):
+        self.config = config_manager
+        self.version = VERSION
+        self._setup_base_paths()
+
+    def _setup_base_paths(self):
+        """Setup base paths based on configuration or platform"""
+        if self.config:
+            try:
+                # Use config data paths if available
+                data_paths = self.config.data_paths
+                self.base_path = str(data_paths.base_path)
+                self.downloads_path = str(data_paths.base_path / "IBDownloads")
+                self.stocks_path = str(data_paths.base_path / "Stocks")
+                return
+            except Exception as e:
+                print(f"Warning: Could not get config paths: {e}")
+
+        # Fallback to platform-specific paths
+        if sys.platform == "win32":
+            self.base_path = "G:\\Machine Learning\\"
+            self.downloads_path = self.base_path + "IBDownloads\\"
+            self.stocks_path = self.base_path + "Stocks\\"
+        else:
+            self.base_path = os.path.expanduser("~/Machine Learning/")
+            self.downloads_path = self.base_path + "IBDownloads/"
+            self.stocks_path = self.base_path + "Stocks/"
+
+    def get_ib_download_location(
+        self,
+        stock_code: str,
+        bar_config: Any,
+        date_str: str | datetime | date = "",
+        file_ext: str = ".ftr",
+    ) -> Path:
+        """Get Interactive Brokers download file location"""
+        if not file_ext.startswith("."):
+            file_ext = "." + file_ext
+
+        # Handle different date string formats
+        if hasattr(date_str, "strftime") and callable(
+            getattr(date_str, "strftime", None)
+        ):
+            date_str = date_str.strftime("%Y-%m-%d %H:%M:%S")
+        elif hasattr(date_str, "__class__") and "Timestamp" in str(type(date_str)):
+            date_str = str(date_str)
+
+        # Determine bar string based on bar type
+        bar_type_map = {
+            0: "_Tick",
+            1: "_1s",
+            2: "_1M",
+            3: "_30M",
+            4: "_1Hour",
+            5: "_1D",
+        }
+
+        bar_type = getattr(bar_config, "bar_type", 0)
+        if bar_type in bar_type_map:
+            bar_str = bar_type_map[bar_type]
+        else:
+            handle_error(__name__, "Timeframe must be day/hour/minute/second/tick")
+            bar_str = "_Unknown"
+
+        # Handle date string formatting for filename
+        if bar_type <= 2:  # ticks, seconds, 1-minute need date strings
+            if date_str == "":
+                handle_error(__name__, "need start and end string")
+                date_str = ""
+            else:
+                if isinstance(date_str, (date, datetime)):
+                    date_str = "_" + date_str.strftime("%Y-%m-%d")
+                else:
+                    date_str = "_" + str(date_str)[:10]
+        else:
+            date_str = ""
+
+        filename = f"{stock_code}_USUSD{bar_str}{date_str}{file_ext}"
+        ensure_directory_exists(self.downloads_path)
+
+        return Path(self.downloads_path + filename)
+
+    def get_dataframe_location(
+        self,
+        stock_code: str,
+        bar_config: Any,
+        date_str: str | datetime | date,
+        normalised: bool,
+        file_ext: str = ".ftr",
+        create_cx_file: bool = False,
+    ) -> Path:
+        """Get dataframe file location"""
+        if create_cx_file:
+            location = self.base_path + "CxData - "
+            if file_ext != ".xlsx":
+                handle_error(
+                    __name__, "This should be a xlsx file if its a Check file", 60
+                )
+        else:
+            location = self.stocks_path + stock_code + "/Dataframes/"
+
+        ensure_directory_exists(location)
+
+        # Handle date string formatting
+        bar_type = getattr(bar_config, "bar_type", 0)
+        if bar_type <= 2:  # ticks, seconds, 1-minute need date strings
+            if date_str == "":
+                handle_error(__name__, "ticks need start and end string")
+                date_str = ""
+            else:
+                if isinstance(date_str, date):
+                    date_str = "_" + date_str.strftime("%Y-%m-%d")
+                else:
+                    date_str = "_" + str(date_str)[:10]
+        else:
+            date_str = ""
+
+        # Normalization suffix
+        norm_suffix = "_NORM" if normalised else "_df"
+
+        # File extension handling
+        if not file_ext.startswith("."):
+            file_ext = "." + file_ext
+
+        bar_str = getattr(bar_config, "bar_str", "_Unknown")
+        filename = (
+            f"{stock_code}{bar_str}{norm_suffix}_{self.version}{date_str}{file_ext}"
+        )
+
+        return Path(location + filename)
+
+    def get_level2_location(
+        self,
+        stock_code: str,
+        start_str: str | datetime | date,
+        end_str: str | datetime | date,
+        normalised: bool,
+        file_ext: str = ".ftr",
+        create_cx_file: bool = False,
+    ) -> Path:
+        """Get Level 2 market depth file location"""
+        if create_cx_file:
+            location = self.base_path + "CxData - "
+            if file_ext != ".xlsx":
+                handle_error(
+                    __name__, "This should be a xlsx file if its a Check file", 60
+                )
+        else:
+            location = self.stocks_path + stock_code + "/Dataframes/"
+
+        ensure_directory_exists(location)
+
+        # Format start and end strings
+        if isinstance(start_str, date):
+            start_str = "_" + start_str.strftime("%Y-%m-%d %H:%M:%S")
+        elif not isinstance(start_str, str):
+            start_str = "_" + str(start_str)
+
+        if isinstance(end_str, date):
+            end_str = "_" + end_str.strftime("%H:%M:%S")
+        elif not isinstance(end_str, str):
+            end_str = "_" + str(end_str)
+
+        # Normalization suffix
+        norm_suffix = "_NORM" if normalised else "_df"
+
+        # File extension handling
+        if not file_ext.startswith("."):
+            file_ext = "." + file_ext
+
+        filename = f"{stock_code}_L2_{norm_suffix}_{self.version}{start_str} to {end_str}{file_ext}"
+
+        return Path(location + filename)
+
+    def get_training_location(
+        self, stock_code: str, date_str: str | datetime | date, train_type: str = ""
+    ) -> Path:
+        """Get training data file location"""
+        # Determine if features or labels
+        train_type_lower = train_type.lower()
+        if "y" in train_type_lower or "label" in train_type_lower:
+            train_type = "TrainY"
+        elif "x" in train_type_lower or "feature" in train_type_lower:
+            train_type = "TrainX"
+        else:
+            handle_error(__name__, "Could not determine if it is a Feature or Label")
+            train_type = "TrainUnknown"
+
+        location = self.stocks_path + stock_code + "/Dataframes/"
+        ensure_directory_exists(location)
+
+        # Format date string
+        if hasattr(date_str, "strftime") and callable(
+            getattr(date_str, "strftime", None)
+        ):
+            date_formatted = date_str.strftime("%Y%m%d")
+        else:
+            date_formatted = (
+                str(date_str).replace("-", "").replace(" ", "").replace(":", "")[:8]
+            )
+
+        filename = f"{stock_code}_1s_{train_type}_{self.version}_{date_formatted}.ftr"
+
+        return Path(location + filename)
+
+    def get_scalar_location(
+        self,
+        scalar_type: str,
+        scalar_what: str,
+        bar_config: Any | None = None,
+        feature_str: str | None = None,
+        load_scalar: bool = True,
+    ) -> Path | Any:
+        """Get scalar file location or load scalar"""
+        location = self.base_path + "Scalars/"
+        ensure_directory_exists(location)
+
+        # Normalize scalar type
+        if "st" in scalar_type.lower():
+            scalar_type = "Std"
+        elif "min" in scalar_type.lower():
+            scalar_type = "MinMax"
+        else:
+            handle_error(__name__, "Scalar type needs to be Standard or Min Max.")
+            scalar_type = "Unknown"
+
+        # Determine scalar context
+        if feature_str is not None:
+            scalar_for = "Fr"
+            if "float" in scalar_what.lower():
+                scalar_what = "float_"
+            elif "outstanding" in scalar_what.lower():
+                scalar_what = "outstanding-shares_"
+            elif "short" in scalar_what.lower():
+                scalar_what = "shares-short_"
+            elif "volume" in scalar_what.lower():
+                scalar_what = "av-volume"
+            else:
+                handle_error(__name__, "Scalar type needs to be for Prices or Volumes")
+        elif bar_config is not None:
+            scalar_for = getattr(bar_config, "bar_str", "_Unknown")
+            if scalar_what.lower().startswith("p"):
+                scalar_what = "prices"
+            elif scalar_what.lower().startswith("v"):
+                scalar_what = "volumes"
+            else:
+                handle_error(__name__, "Scalar type needs to be for Prices or Volumes")
+        else:
+            handle_error(__name__, "Scalar needs a BarObj or a FeatureStr")
+            scalar_for = "Unknown"
+
+        filename = f"scaler_{scalar_type}{scalar_for}_{scalar_what}.bin"
+        file_path = Path(location + filename)
+
+        if load_scalar:
+            try:
+                from joblib import load
+
+                return load(file_path)
+            except Exception as e:
+                handle_error(__name__, f"Could not load scalar from {file_path}: {e}")
+                return None
+        else:
+            return file_path
+
+    def get_excel_review_location(self, name: str = "") -> Path:
+        """Get location for Excel review files"""
+        if name == "":
+            name = "For Review"
+
+        base_path = self.base_path + f"Temp-{name}.xlsx"
+        path = base_path
+        count = 1
+
+        while os.path.exists(path):
+            count += 1
+            path = self.base_path + f"Temp-{name}-{count}.xlsx"
+
+        return Path(path)
+
+    def get_warrior_trading_location(self) -> Path:
+        """Get Warrior Trading Excel file location"""
+        return Path("./Warrior/WarriorTrading_Trades.xlsx")
+
+    def get_train_list_location(self, train_type: str = "Test") -> Path:
+        """Get training list Excel file location"""
+        return Path(self.base_path + f"Train_List-{train_type}.xlsx")
+
+    def get_ib_status_files(self) -> dict:
+        """Get Interactive Brokers status file locations"""
+        return {
+            "failed": Path(self.base_path + "IB Failed Stocks.xlsx"),
+            "downloadable": Path(self.base_path + "IB Downloadable Stocks.xlsx"),
+            "downloaded": Path(self.base_path + "IB Downloaded Stocks.xlsx"),
+        }
+
+    def get_request_checker_location(self) -> Path:
+        """Get request checker binary file location"""
+        return Path("./Files/requestChecker.bin")
+
+    def validate_path(self, path: str | Path) -> bool:
+        """Validate if path is accessible"""
+        try:
+            path_obj = Path(path)
+            return path_obj.parent.exists() or path_obj.exists()
+        except Exception:
+            return False
+
+    def create_directory_structure(self, stock_code: str) -> None:
+        """Create complete directory structure for a stock"""
+        base_dir = self.stocks_path + stock_code
+        directories = [
+            base_dir,
+            base_dir + "/Dataframes",
+            base_dir + "/Models",
+            base_dir + "/Analysis",
+            base_dir + "/Reports",
+        ]
+
+        for directory in directories:
+            ensure_directory_exists(directory)
+
+    def get_path_summary(self) -> dict:
+        """Get summary of all configured paths"""
+        return {
+            "base_path": self.base_path,
+            "downloads_path": self.downloads_path,
+            "stocks_path": self.stocks_path,
+            "version": self.version,
+            "platform": sys.platform,
+            "config_available": self.config is not None,
+        }
+
+
+# Backward compatibility functions
+def IB_Download_Loc(
+    stock_code: str, bar_obj: Any, date_str: str = "", file_ext: str = ".ftr"
+) -> Path:
+    """Backward compatibility function for IB download location"""
+    service = get_path_service()
+    return service.get_ib_download_location(stock_code, bar_obj, date_str, file_ext)
+
+
+def IB_Df_Loc(
+    stock_code: str,
+    bar_obj: Any,
+    date_str: str,
+    normalised: bool,
+    file_ext: str = ".ftr",
+    create_cx_file: bool = False,
+) -> Path:
+    """Backward compatibility function for dataframe location"""
+    service = get_path_service()
+    return service.get_dataframe_location(
+        stock_code, bar_obj, date_str, normalised, file_ext, create_cx_file
+    )
+
+
+def IB_L2_Loc(
+    stock_code: str,
+    start_str: str | datetime | date,
+    end_str: str | datetime | date,
+    normalised: bool,
+    file_ext: str = ".ftr",
+    create_cx_file: bool = False,
+) -> Path:
+    """Backward compatibility function for Level 2 location"""
+    service = get_path_service()
+    return service.get_level2_location(
+        stock_code, start_str, end_str, normalised, file_ext, create_cx_file
+    )
+
+
+def IB_Train_Loc(
+    stock_code: str, date_str: str | datetime | date, train_type: str = ""
+) -> Path:
+    """Backward compatibility function for training location"""
+    service = get_path_service()
+    return service.get_training_location(stock_code, date_str, train_type)
+
+
+def IB_Scalar(
+    scalar_type: str,
+    scalar_what: str,
+    load_scalar: bool = True,
+    bar_obj: Any | None = None,
+    feature_str: str | None = None,
+) -> Path | Any:
+    """Backward compatibility function for scalar location"""
+    service = get_path_service()
+    return service.get_scalar_location(
+        scalar_type, scalar_what, bar_obj, feature_str, load_scalar
+    )
+
+
+# Singleton service instance
+_path_service = None
+
+
+def get_path_service() -> PathService:
+    """Get singleton path service"""
+    global _path_service
+    if _path_service is None:
+        _path_service = PathService()
+    return _path_service

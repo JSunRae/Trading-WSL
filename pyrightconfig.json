@@ -1,0 +1,39 @@
+{
+  "exclude": [
+    ".venv",
+    ".tox",
+    "build",
+    "dist",
+    "**/original_files/**",
+    "archive/**",
+    "src/Ib_Manual_Attempt.py",
+    "src/MasterPy.py",
+    "src/MasterPy_Trading.py",
+    "async_migration_demo.py",
+    "example_*.py",
+    "detect_sync_leftovers.py"
+  ],
+  "include": ["src/**", "tests/**", "*.py"],
+  "extraPaths": [".", "typings"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "strict",
+  "stubPath": "stubs",
+  "executionEnvironments": [
+    { "root": "src", "typeCheckingMode": "strict" },
+    { "root": "services", "typeCheckingMode": "strict" },
+    { "root": "ib_client.py", "typeCheckingMode": "strict" },
+    { "root": "contract_factories.py", "typeCheckingMode": "strict" },
+    { "root": "ib_requests.py", "typeCheckingMode": "strict" },
+    { "root": "project_types.py", "typeCheckingMode": "strict" },
+    { "root": "async_utils.py", "typeCheckingMode": "strict" },
+    { "root": "scripts", "typeCheckingMode": "basic" },
+    { "root": "tests", "typeCheckingMode": "basic" },
+    { "root": "examples", "typeCheckingMode": "basic" }
+  ],
+  "reportUnknownMemberType": "warning",
+  "reportUnknownArgumentType": "warning",
+  "reportUnknownParameterType": "warning",
+  "reportUnknownVariableType": "warning",
+  "reportAny": "warning"
+}

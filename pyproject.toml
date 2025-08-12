@@ -1,0 +1,197 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading"
+version = "0.10.0"
+description = "Interactive Brokers Trading System with Real-time Data Processing"
+authors = [
+    {name = "Jason Rae", email = "your.email@example.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["trading", "interactive-brokers", "finance", "algorithmic-trading"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    # Core runtime dependencies (IB integration now optional via [ibkr] extra)
+    "pandas>=1.5.0",
+    "numpy>=1.21.0",
+    "pandas-market-calendars>=4.0.0",
+    "pytz>=2022.1",
+    "joblib>=1.1.0",
+    "asyncio-mqtt>=0.11.0",
+    "PyQt5>=5.15.0",
+    "beautifulsoup4>=4.11.0",
+    "requests>=2.28.0",
+    "openpyxl>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=22.0.0",
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+    "pyright>=1.1.350",
+    "isort>=5.10.0",
+    "pre-commit>=3.0.0",
+    "pip-audit>=2.6.0",
+    "safety>=2.3.0",
+    "types-requests>=2.31.0",
+    "types-setuptools>=68.0.0",
+    "pandas-stubs>=2.0.0",
+    "types-python-dateutil>=2.8.19",
+    "types-pytz>=2023.3.0",
+    "types-beautifulsoup4>=4.12.0",
+    "types-openpyxl>=3.1.0",
+]
+
+# Install Interactive Brokers integration only when needed:
+#   pip install .[ibkr]
+ibkr = [
+    "ib_async>=2.0.0",
+]
+
+windows = [
+    "pywin32>=304",
+    "win32com>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/trading-project"
+Repository = "https://github.com/yourusername/trading-project"
+Documentation = "https://github.com/yourusername/trading-project/docs"
+"Bug Tracker" = "https://github.com/yourusername/trading-project/issues"
+
+[project.scripts]
+trading-main = "src.ib_main:main"
+trading-trader = "src.ib_trader:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+# Global settings
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+# Linter configuration
+select = ["E", "F", "I", "UP", "B", "NPY", "PTH", "C90", "N", "W"]
+ignore = ["E501", "B008", "N999"]
+
+# Per-file ignores moved under lint section
+per-file-ignores = {"tests/*" = ["N802", "N806"], "__init__.py" = ["F401"], "src/Ib_Manual_Attempt.py" = ["E402", "N802", "N803", "N806", "N816", "N817", "E712", "UP031"], "scripts/*" = ["N999", "E402"]}
+
+exclude = [
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    "venv",
+    "build",
+    "dist"
+]
+
+[tool.ruff.format]
+# Formatter configuration
+quote-style = "double"
+docstring-code-format = true
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+# Import sorting configuration
+known-first-party = ["src", "tests"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+exclude = [
+    "venv/",
+    "build/",
+    "dist/",
+    "tests/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "ib_async.*",
+    "ibapi.*",
+    "pandas_market_calendars.*",
+    "PyQt5.*",
+    "tkinter.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Re-enabled coverage reporting (quiet mode) per request
+addopts = "-q --cov=src --cov-report=term-missing --cov-fail-under=10 -W error::pytest.PytestReturnNotNoneWarning"
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "requires_ib: tests that need Interactive Brokers dependencies (ib_async)",
+]
+
+[tool.pyright]
+# Python type checking configuration
+include = ["src", "tests", "*.py"]
+exclude = [
+    ".venv",
+    ".tox",
+    "build",
+    "dist",
+    "**/original_files/**",
+    "archive/**",
+    "src/Ib_Manual_Attempt.py",
+    "src/MasterPy.py",
+    "src/MasterPy_Trading.py"
+]
+extraPaths = [".", "src", "src/data", "typings"]
+stubPath = "stubs"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "strict"
+useLibraryCodeForTypes = true
+autoSearchPaths = true
+
+[tool.pyright.diagnosticSeverityOverrides]
+reportMissingTypeStubs = "warning"
+reportUnknownMemberType = "warning"
+reportUnknownArgumentType = "warning"
+reportUnknownParameterType = "warning"
+reportUnknownVariableType = "warning"
+reportAny = "warning"

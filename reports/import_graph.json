@@ -1,0 +1,635 @@
+{
+  "nodes": [
+    {
+      "id": "analyze_scripts.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli",
+        "cli"
+      ]
+    },
+    {
+      "id": "async_utils.py",
+      "role_tags": [
+        "utils"
+      ]
+    },
+    {
+      "id": "async_utils_new.py",
+      "role_tags": [
+        "utils"
+      ]
+    },
+    {
+      "id": "contract_factories.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "ib_client.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "ib_requests.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "pandas_helpers.py",
+      "role_tags": [
+        "utils"
+      ]
+    },
+    {
+      "id": "project_types.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "quick_start.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "run_trading_fully_automated.py",
+      "role_tags": [
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/demo_stock_split_integration.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/integration_examples.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/architecture_demo.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/critical_issues_summary.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/final_success_report.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/migrate_excel_to_parquet.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/run_data_update.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/scan_data.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/senior_architect_review.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/system_analysis.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/maintenance/update_data.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/migration_guide.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/phase2_progress_demo.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/quick_start.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "scripts/setup/fix_hardcoded_paths.py",
+      "role_tags": [
+        "tool"
+      ]
+    },
+    {
+      "id": "scripts/setup/setup_critical_fixes.py",
+      "role_tags": [
+        "tool"
+      ]
+    },
+    {
+      "id": "scripts/verify_setup.py",
+      "role_tags": [
+        "tool",
+        "tool",
+        "cli"
+      ]
+    },
+    {
+      "id": "setup_automated_trading.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "setup_ib_gateway.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/Ib_Manual_Attempt.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/MasterPy.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/MasterPy_Trading.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/api.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/automation/headless_gateway.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/core/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/core/config.py",
+      "role_tags": [
+        "config"
+      ]
+    },
+    {
+      "id": "src/core/connection_pool.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/core/dataframe_safety.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/core/error_handler.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/core/integrated_error_handling.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/core/modern_trading_core.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/core/performance.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/core/retry_manager.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/data/__init__.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/data/analyze_depth.py",
+      "role_tags": [
+        "data_io",
+        "cli"
+      ]
+    },
+    {
+      "id": "src/data/data_manager.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/data/parquet_repository.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/data/record_depth.py",
+      "role_tags": [
+        "data_io",
+        "cli"
+      ]
+    },
+    {
+      "id": "src/domain/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/domain/interfaces.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/domain/ml_types.py",
+      "role_tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "src/execution/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/execution/ml_signal_executor.py",
+      "role_tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "src/ib_Main.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/ib_Trader.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/ib_Warror_dl.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/integrations/ml_data_integrity.py",
+      "role_tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "src/lib/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/lib/ib_async_wrapper.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/lib/ib_insync_compat.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/migration_helper.py",
+      "role_tags": [
+        "utils"
+      ]
+    },
+    {
+      "id": "src/monitoring/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/monitoring/ml_performance_monitor.py",
+      "role_tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "src/notifications.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/risk/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/risk/ml_risk_manager.py",
+      "role_tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "src/services/__init__.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/bar_configuration_service.py",
+      "role_tags": [
+        "config"
+      ]
+    },
+    {
+      "id": "src/services/contract_manager_service.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/data_management_service.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/data_persistence_service.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/historical_data/__init__.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/historical_data/availability_checker.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/historical_data/download_tracker.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/historical_data/historical_data_service.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/historical_data/test_historical_service.py",
+      "role_tags": [
+        "test"
+      ]
+    },
+    {
+      "id": "src/services/historical_data_service.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/market_calendar_service.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/market_data/__init__.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/market_data/integration_example.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/market_data/market_data_service.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/market_data/test_service.py",
+      "role_tags": [
+        "test"
+      ]
+    },
+    {
+      "id": "src/services/market_data/types.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/market_data_service.py",
+      "role_tags": [
+        "data_io"
+      ]
+    },
+    {
+      "id": "src/services/market_info_service.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/ml_order_management_service.py",
+      "role_tags": [
+        "model"
+      ]
+    },
+    {
+      "id": "src/services/order_management_service.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/path_service.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/request_manager_service.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/service_manager.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/services/stock_split_detection_service.py",
+      "role_tags": [
+        "service"
+      ]
+    },
+    {
+      "id": "src/types/__init__.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "src/utils/data_utils.py",
+      "role_tags": [
+        "utils"
+      ]
+    },
+    {
+      "id": "src/utils/exit_handler.py",
+      "role_tags": [
+        "utils"
+      ]
+    },
+    {
+      "id": "system_check_analysis.py",
+      "role_tags": [
+        "unknown"
+      ]
+    },
+    {
+      "id": "test_ib_async_stubs.py",
+      "role_tags": [
+        "test"
+      ]
+    },
+    {
+      "id": "test_ml_imports.py",
+      "role_tags": [
+        "test"
+      ]
+    },
+    {
+      "id": "validate_ml_structure.py",
+      "role_tags": [
+        "model"
+      ]
+    }
+  ],
+  "edges": [],
+  "cycles": []
+}

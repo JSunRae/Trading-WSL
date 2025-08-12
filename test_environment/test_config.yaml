@@ -1,0 +1,8 @@
+
+# Test configuration for critical fixes validation
+environment: testing
+data_paths:
+  base_path: ./test_data
+  downloads: ./test_data/downloads
+  failed_stocks: ./test_data/failed_stocks.xlsx
+        

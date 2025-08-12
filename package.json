@@ -1,0 +1,20 @@
+{
+  "name": "trading",
+  "version": "1.0.0",
+  "description": "**NOTE:** This is the **only README.md** file. All documentation updates must go here. Do not create new readme or guide files.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

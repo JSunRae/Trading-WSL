@@ -1,0 +1,775 @@
+[
+  {
+    "current_path": "analyze_scripts.py",
+    "target_path": "scripts/analyze_scripts.py",
+    "confidence": 0.9,
+    "rationale": "Executable tool/CLI script",
+    "blockers": []
+  },
+  {
+    "current_path": "async_utils.py",
+    "target_path": "src/utils/async_utils.py",
+    "confidence": 0.8,
+    "rationale": "Utility module",
+    "blockers": []
+  },
+  {
+    "current_path": "async_utils_new.py",
+    "target_path": "src/utils/async_utils_new.py",
+    "confidence": 0.8,
+    "rationale": "Utility module",
+    "blockers": []
+  },
+  {
+    "current_path": "contract_factories.py",
+    "target_path": "src/contract_factories.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "ib_client.py",
+    "target_path": "src/ib_client.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "ib_requests.py",
+    "target_path": "src/ib_requests.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "pandas_helpers.py",
+    "target_path": "src/utils/pandas_helpers.py",
+    "confidence": 0.8,
+    "rationale": "Utility module",
+    "blockers": []
+  },
+  {
+    "current_path": "project_types.py",
+    "target_path": "src/project_types.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "quick_start.py",
+    "target_path": "src/quick_start.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "run_trading_fully_automated.py",
+    "target_path": "src/tools/run_trading_fully_automated.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/demo_stock_split_integration.py",
+    "target_path": "src/tools/demo_stock_split_integration.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/integration_examples.py",
+    "target_path": "src/tools/integration_examples.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/maintenance/architecture_demo.py",
+    "target_path": "src/tools/architecture_demo.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/maintenance/critical_issues_summary.py",
+    "target_path": "src/tools/critical_issues_summary.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/maintenance/final_success_report.py",
+    "target_path": "src/tools/final_success_report.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/maintenance/migrate_excel_to_parquet.py",
+    "target_path": "src/tools/migrate_excel_to_parquet.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/maintenance/run_data_update.py",
+    "target_path": "src/tools/run_data_update.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/maintenance/scan_data.py",
+    "target_path": "src/tools/scan_data.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/maintenance/senior_architect_review.py",
+    "target_path": "src/tools/senior_architect_review.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/maintenance/system_analysis.py",
+    "target_path": "src/tools/system_analysis.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/maintenance/update_data.py",
+    "target_path": "src/tools/update_data.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/migration_guide.py",
+    "target_path": "src/tools/migration_guide.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/phase2_progress_demo.py",
+    "target_path": "src/tools/phase2_progress_demo.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/quick_start.py",
+    "target_path": "src/tools/quick_start.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/setup/fix_hardcoded_paths.py",
+    "target_path": "src/tools/fix_hardcoded_paths.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "scripts/setup/setup_critical_fixes.py",
+    "target_path": "src/tools/setup_critical_fixes.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "scripts/verify_setup.py",
+    "target_path": "src/tools/verify_setup.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "setup_automated_trading.py",
+    "target_path": "src/setup_automated_trading.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "setup_ib_gateway.py",
+    "target_path": "src/setup_ib_gateway.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/Ib_Manual_Attempt.py",
+    "target_path": "src/Ib_Manual_Attempt.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/MasterPy.py",
+    "target_path": "src/MasterPy.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/MasterPy_Trading.py",
+    "target_path": "src/MasterPy_Trading.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/api.py",
+    "target_path": "src/api.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/automation/headless_gateway.py",
+    "target_path": "src/headless_gateway.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/core/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/core/config.py",
+    "target_path": "src/config/config.py",
+    "confidence": 0.8,
+    "rationale": "Configuration module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/core/connection_pool.py",
+    "target_path": "src/connection_pool.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/core/dataframe_safety.py",
+    "target_path": "src/data/dataframe_safety.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/core/error_handler.py",
+    "target_path": "src/error_handler.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/core/integrated_error_handling.py",
+    "target_path": "src/integrated_error_handling.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/core/modern_trading_core.py",
+    "target_path": "src/modern_trading_core.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/core/performance.py",
+    "target_path": "src/performance.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/core/retry_manager.py",
+    "target_path": "src/retry_manager.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/data/__init__.py",
+    "target_path": "src/data/__init__.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": []
+  },
+  {
+    "current_path": "src/data/analyze_depth.py",
+    "target_path": "src/tools/analyze_depth.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/data/data_manager.py",
+    "target_path": "src/data/data_manager.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": []
+  },
+  {
+    "current_path": "src/data/parquet_repository.py",
+    "target_path": "src/data/parquet_repository.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/data/record_depth.py",
+    "target_path": "src/tools/record_depth.py",
+    "confidence": 0.7,
+    "rationale": "Tool module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/domain/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/domain/interfaces.py",
+    "target_path": "src/interfaces.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/domain/ml_types.py",
+    "target_path": "src/models/ml_types.py",
+    "confidence": 0.8,
+    "rationale": "ML/data model",
+    "blockers": []
+  },
+  {
+    "current_path": "src/execution/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/execution/ml_signal_executor.py",
+    "target_path": "src/models/ml_signal_executor.py",
+    "confidence": 0.8,
+    "rationale": "ML/data model",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/ib_Main.py",
+    "target_path": "src/ib_Main.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/ib_Trader.py",
+    "target_path": "src/ib_Trader.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/ib_Warror_dl.py",
+    "target_path": "src/ib_Warror_dl.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/integrations/ml_data_integrity.py",
+    "target_path": "src/models/ml_data_integrity.py",
+    "confidence": 0.8,
+    "rationale": "ML/data model",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/lib/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/lib/ib_async_wrapper.py",
+    "target_path": "src/ib_async_wrapper.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/lib/ib_insync_compat.py",
+    "target_path": "src/ib_insync_compat.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/migration_helper.py",
+    "target_path": "src/utils/migration_helper.py",
+    "confidence": 0.8,
+    "rationale": "Utility module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/monitoring/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/monitoring/ml_performance_monitor.py",
+    "target_path": "src/models/ml_performance_monitor.py",
+    "confidence": 0.8,
+    "rationale": "ML/data model",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/notifications.py",
+    "target_path": "src/notifications.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/risk/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/risk/ml_risk_manager.py",
+    "target_path": "src/models/ml_risk_manager.py",
+    "confidence": 0.8,
+    "rationale": "ML/data model",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/__init__.py",
+    "target_path": "src/services/__init__.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/services/bar_configuration_service.py",
+    "target_path": "src/config/bar_configuration_service.py",
+    "confidence": 0.8,
+    "rationale": "Configuration module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/contract_manager_service.py",
+    "target_path": "src/services/contract_manager_service.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/data_management_service.py",
+    "target_path": "src/data/data_management_service.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": []
+  },
+  {
+    "current_path": "src/services/data_persistence_service.py",
+    "target_path": "src/data/data_persistence_service.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/historical_data/__init__.py",
+    "target_path": "src/data/__init__.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": []
+  },
+  {
+    "current_path": "src/services/historical_data/availability_checker.py",
+    "target_path": "src/data/availability_checker.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/historical_data/download_tracker.py",
+    "target_path": "src/data/download_tracker.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/historical_data/historical_data_service.py",
+    "target_path": "src/data/historical_data_service.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/historical_data/test_historical_service.py",
+    "target_path": "tests/test_historical_service.py",
+    "confidence": 0.95,
+    "rationale": "Test file",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/historical_data_service.py",
+    "target_path": "src/data/historical_data_service.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/market_calendar_service.py",
+    "target_path": "src/services/market_calendar_service.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/market_data/__init__.py",
+    "target_path": "src/data/__init__.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": []
+  },
+  {
+    "current_path": "src/services/market_data/integration_example.py",
+    "target_path": "src/data/integration_example.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/market_data/market_data_service.py",
+    "target_path": "src/data/market_data_service.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/market_data/test_service.py",
+    "target_path": "tests/test_service.py",
+    "confidence": 0.95,
+    "rationale": "Test file",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/market_data/types.py",
+    "target_path": "src/data/types.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": []
+  },
+  {
+    "current_path": "src/services/market_data_service.py",
+    "target_path": "src/data/market_data_service.py",
+    "confidence": 0.8,
+    "rationale": "Data processing",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/market_info_service.py",
+    "target_path": "src/services/market_info_service.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/services/ml_order_management_service.py",
+    "target_path": "src/models/ml_order_management_service.py",
+    "confidence": 0.8,
+    "rationale": "ML/data model",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/order_management_service.py",
+    "target_path": "src/services/order_management_service.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/path_service.py",
+    "target_path": "src/services/path_service.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/services/request_manager_service.py",
+    "target_path": "src/services/request_manager_service.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/service_manager.py",
+    "target_path": "src/services/service_manager.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/services/stock_split_detection_service.py",
+    "target_path": "src/services/stock_split_detection_service.py",
+    "confidence": 0.8,
+    "rationale": "Service module",
+    "blockers": [
+      "internal_dependencies"
+    ]
+  },
+  {
+    "current_path": "src/types/__init__.py",
+    "target_path": "src/__init__.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "src/utils/data_utils.py",
+    "target_path": "src/utils/data_utils.py",
+    "confidence": 0.8,
+    "rationale": "Utility module",
+    "blockers": []
+  },
+  {
+    "current_path": "src/utils/exit_handler.py",
+    "target_path": "src/utils/exit_handler.py",
+    "confidence": 0.8,
+    "rationale": "Utility module",
+    "blockers": []
+  },
+  {
+    "current_path": "system_check_analysis.py",
+    "target_path": "src/system_check_analysis.py",
+    "confidence": 0.5,
+    "rationale": "Default placement",
+    "blockers": []
+  },
+  {
+    "current_path": "test_ib_async_stubs.py",
+    "target_path": "tests/test_ib_async_stubs.py",
+    "confidence": 0.95,
+    "rationale": "Test file",
+    "blockers": []
+  },
+  {
+    "current_path": "test_ml_imports.py",
+    "target_path": "tests/test_ml_imports.py",
+    "confidence": 0.95,
+    "rationale": "Test file",
+    "blockers": []
+  },
+  {
+    "current_path": "validate_ml_structure.py",
+    "target_path": "src/models/validate_ml_structure.py",
+    "confidence": 0.8,
+    "rationale": "ML/data model",
+    "blockers": []
+  }
+]

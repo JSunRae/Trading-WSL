@@ -1,0 +1,212 @@
+{
+  "summary": {
+    "lines_total": 1655,
+    "lines_missed": 325,
+    "line_coverage_pct": 80.36,
+    "branches_total": 348,
+    "branches_missed": 125,
+    "branch_coverage_pct": 64.08
+  },
+  "modules": [
+    {
+      "module": "src/__init__.py",
+      "lines_total": 2,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/api.py",
+      "lines_total": 115,
+      "lines_missed": 15,
+      "line_coverage_pct": 87.0,
+      "branches_total": 2,
+      "branches_missed": 0,
+      "branch_coverage_pct": 100.0
+    },
+    {
+      "module": "src/core/__init__.py",
+      "lines_total": 11,
+      "lines_missed": 4,
+      "line_coverage_pct": 63.6,
+      "branches_total": 2,
+      "branches_missed": 2,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/core/config.py",
+      "lines_total": 142,
+      "lines_missed": 20,
+      "line_coverage_pct": 85.9,
+      "branches_total": 28,
+      "branches_missed": 5,
+      "branch_coverage_pct": 82.1
+    },
+    {
+      "module": "src/core/dataframe_safety.py",
+      "lines_total": 211,
+      "lines_missed": 72,
+      "line_coverage_pct": 65.9,
+      "branches_total": 70,
+      "branches_missed": 22,
+      "branch_coverage_pct": 68.6
+    },
+    {
+      "module": "src/data/__init__.py",
+      "lines_total": 8,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/data/data_manager.py",
+      "lines_total": 321,
+      "lines_missed": 80,
+      "line_coverage_pct": 75.1,
+      "branches_total": 74,
+      "branches_missed": 36,
+      "branch_coverage_pct": 51.4
+    },
+    {
+      "module": "src/data/record_depth.py",
+      "lines_total": 0,
+      "lines_missed": 0,
+      "line_coverage_pct": 0.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/domain/__init__.py",
+      "lines_total": 2,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/domain/ml_types.py",
+      "lines_total": 129,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/domain/ports.py",
+      "lines_total": 10,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 4,
+      "branches_missed": 2,
+      "branch_coverage_pct": 50.0
+    },
+    {
+      "module": "src/execution/__init__.py",
+      "lines_total": 2,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/execution/ml_signal_executor.py",
+      "lines_total": 351,
+      "lines_missed": 67,
+      "line_coverage_pct": 80.9,
+      "branches_total": 86,
+      "branches_missed": 21,
+      "branch_coverage_pct": 75.6
+    },
+    {
+      "module": "src/lib/__init__.py",
+      "lines_total": 3,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/monitoring/__init__.py",
+      "lines_total": 2,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/monitoring/ml_performance_monitor.py",
+      "lines_total": 344,
+      "lines_missed": 67,
+      "line_coverage_pct": 80.5,
+      "branches_total": 82,
+      "branches_missed": 37,
+      "branch_coverage_pct": 54.9
+    },
+    {
+      "module": "src/risk/__init__.py",
+      "lines_total": 2,
+      "lines_missed": 0,
+      "line_coverage_pct": 100.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    }
+  ],
+  "lowest_modules": [
+    {
+      "module": "src/data/record_depth.py",
+      "lines_total": 0,
+      "lines_missed": 0,
+      "line_coverage_pct": 0.0,
+      "branches_total": 0,
+      "branches_missed": 0,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/core/__init__.py",
+      "lines_total": 11,
+      "lines_missed": 4,
+      "line_coverage_pct": 63.6,
+      "branches_total": 2,
+      "branches_missed": 2,
+      "branch_coverage_pct": 0.0
+    },
+    {
+      "module": "src/core/dataframe_safety.py",
+      "lines_total": 211,
+      "lines_missed": 72,
+      "line_coverage_pct": 65.9,
+      "branches_total": 70,
+      "branches_missed": 22,
+      "branch_coverage_pct": 68.6
+    },
+    {
+      "module": "src/data/data_manager.py",
+      "lines_total": 321,
+      "lines_missed": 80,
+      "line_coverage_pct": 75.1,
+      "branches_total": 74,
+      "branches_missed": 36,
+      "branch_coverage_pct": 51.4
+    },
+    {
+      "module": "src/monitoring/ml_performance_monitor.py",
+      "lines_total": 344,
+      "lines_missed": 67,
+      "line_coverage_pct": 80.5,
+      "branches_total": 82,
+      "branches_missed": 37,
+      "branch_coverage_pct": 54.9
+    }
+  ]
+}

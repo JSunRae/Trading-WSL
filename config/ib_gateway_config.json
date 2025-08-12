@@ -1,0 +1,30 @@
+{
+  "ib_gateway": {
+    "paper_trading": {
+      "host": "127.0.0.1",
+      "port": 4002,
+      "client_id": 1,
+      "timeout": 30,
+      "enabled": true
+    },
+    "live_trading": {
+      "host": "127.0.0.1",
+      "port": 4001,
+      "client_id": 2,
+      "timeout": 30,
+      "enabled": false
+    }
+  },
+  "connection_settings": {
+    "auto_reconnect": true,
+    "max_reconnect_attempts": 5,
+    "reconnect_delay": 30,
+    "heartbeat_interval": 60
+  },
+  "api_settings": {
+    "request_pacing": true,
+    "max_requests_per_minute": 60,
+    "enable_logging": true,
+    "log_level": "INFO"
+  }
+}
