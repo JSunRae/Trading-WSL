@@ -57,9 +57,7 @@ sequenceDiagram
 
 ```bash
 # 1. Clone and setup environment
-git clone <repository-url>
-cd Trading
-python -m venv .venv
+cd "/home/jrae/wsl projects/Trading"
 source .venv/bin/activate  # Linux/Mac
 
 # 2. One-command setup (installs everything)
@@ -396,6 +394,99 @@ python ib_migration_demo.py
 ```
 
 ## 📦 **Installation & Setup**
+
+## 🛠️ Centralized Configuration (.env)
+
+All filesystem paths, filenames, and environment-dependent settings are centralized through `src/core/config.py`. Override defaults via a project root `.env`. Missing keys fall back to safe defaults so the project still runs with zero config.
+
+Example `.env`:
+
+```
+ML_BASE_PATH=~/Machine\ Learning
+ML_BACKUP_PATH=~/Machine\ Learning/backups
+LOGS_PATH=./logs
+TEMP_PATH=./temp
+CONFIG_PATH=./config
+IB_FAILED_STOCKS_FILENAME=IB Failed Stocks.xlsx
+IB_DOWNLOADABLE_STOCKS_FILENAME=IB Downloadable Stocks.xlsx
+IB_DOWNLOADED_STOCKS_FILENAME=IB Downloaded Stocks.xlsx
+WARRIOR_TRADES_FILENAME=WarriorTrading_Trades.xlsx
+TRAIN_LIST_PREFIX=Train_List-
+IB_DOWNLOADS_DIRNAME=IBDownloads
+LEVEL2_DIRNAME=Level2
+REQUEST_CHECKER_BIN=Files/requestChecker.bin
+IB_HOST=127.0.0.1
+IB_PORT=4002
+IB_CLIENT_ID=1
+IB_PAPER=1
+```
+
+Usage:
+
+```python
+from src.core.config import get_config
+cfg = get_config()
+failed = cfg.get_data_file_path("ib_failed_stocks")
+warrior = cfg.get_data_file_path("warrior_trading_trades")
+train = cfg.get_data_file_path("train_list", symbol="Test")
+checker = cfg.get_special_file("request_checker_bin")
+```
+
+See `docs/migration_paths_log.md` for full migration details.
+
+## 🛠️ Centralized Configuration (.env)
+
+All filesystem paths, filenames, and environment-dependent settings are now centralized through `src/core/config.py`. Override defaults via a project root `.env` file (same directory as `pyproject.toml`). If a variable is omitted, a safe default is used so the project still runs out-of-the-box.
+
+Example `.env` snippet:
+
+```
+# Base paths
+ML_BASE_PATH=~/Machine\ Learning
+ML_BACKUP_PATH=~/Machine\ Learning/backups
+LOGS_PATH=./logs
+TEMP_PATH=./temp
+CONFIG_PATH=./config
+
+# Filenames
+IB_FAILED_STOCKS_FILENAME=IB Failed Stocks.xlsx
+IB_DOWNLOADABLE_STOCKS_FILENAME=IB Downloadable Stocks.xlsx
+IB_DOWNLOADED_STOCKS_FILENAME=IB Downloaded Stocks.xlsx
+WARRIOR_TRADES_FILENAME=WarriorTrading_Trades.xlsx
+TRAIN_LIST_PREFIX=Train_List-
+
+# Subdirectories (relative to ML_BASE_PATH/"Machine Learning")
+IB_DOWNLOADS_DIRNAME=IBDownloads
+LEVEL2_DIRNAME=Level2
+
+# Special files
+REQUEST_CHECKER_BIN=Files/requestChecker.bin
+
+# IB connection
+IB_HOST=127.0.0.1
+IB_PORT=4002
+IB_CLIENT_ID=1
+IB_PAPER=1
+```
+
+Access examples:
+
+```python
+from src.core.config import get_config
+cfg = get_config()
+failed = cfg.get_data_file_path("ib_failed_stocks")
+warrior = cfg.get_data_file_path("warrior_trading_trades")
+train_list = cfg.get_data_file_path("train_list", symbol="Test")
+checker = cfg.get_special_file("request_checker_bin")
+```
+
+Benefits:
+
+- Single source of truth – no scattered hardcoded path strings.
+- Easy portability between machines / OS via `.env` tweak.
+- Backward compatibility – legacy helpers delegate to config layer.
+
+See `docs/migration_paths_log.md` for a full migration summary.
 
 ### **Interactive Brokers Integration: Optional Dependency**
 

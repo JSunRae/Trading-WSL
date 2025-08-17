@@ -2,7 +2,7 @@
 
 \_Copilot Chat & Copilot Agents mus- **Tests**: test scripts should be organised and go in the test folder. We want an organised test suite that is easy to navigate.
 
-- **Activate Environment**: Always activate the project's Python environment before running, testing, or installing packages. Assume `.venv` unless otherwise specified.
+- **Activate Environment**: work in the active environment `source .venv/bin/activate`
 
 - **Describe-first**: Before calling a tool, run it with `--describe` and plan arguments using the returned schema. Fail fast if JSON is invalid.follow every rule below when generating code or documentation here.\_
 

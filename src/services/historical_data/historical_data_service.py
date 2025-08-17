@@ -77,11 +77,14 @@ class HistoricalDataService:
     def _load_request_timing(self):
         """Load saved request timing data"""
         try:
-            request_file = Path("./Files/requestChecker.bin")
+            try:
+                request_file = self.config.get_special_file("request_checker_bin")
+            except Exception:
+                request_file = Path("./Files/requestChecker.bin")
             if request_file.exists():
                 from joblib import load
 
-                self.timeframe_requests, self.request_times = load(request_file)
+                self.timeframe_requests, self.request_times = load(str(request_file))
 
                 # Adjust timing based on file age
                 file_age = time.time() - request_file.stat().st_mtime
@@ -111,12 +114,15 @@ class HistoricalDataService:
         try:
             from joblib import dump
 
-            request_file = Path("./Files/requestChecker.bin")
+            try:
+                request_file = self.config.get_special_file("request_checker_bin")
+            except Exception:
+                request_file = Path("./Files/requestChecker.bin")
             request_file.parent.mkdir(parents=True, exist_ok=True)
 
             dump(
                 [self.timeframe_requests, self.request_times],
-                request_file,
+                str(request_file),
                 compress=True,
             )
         except Exception as e:

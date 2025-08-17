@@ -26,10 +26,15 @@ except ImportError:
 VERSION = "V1"
 
 # Global location for compatibility during transition
-if sys.platform == "win32":
-    LOC_G = "G:/Machine Learning/"
+if config_manager is not None:
+    try:
+        LOC_G = str(config_manager.data_paths.base_path)
+        if not LOC_G.endswith("/"):
+            LOC_G += "/"
+    except Exception:
+        LOC_G = str(Path.home() / "Machine Learning/")
 else:
-    LOC_G = os.path.expanduser("~/Machine Learning/")
+    LOC_G = str(Path.home() / "Machine Learning/")
 
 
 def handle_error(module: str, message: str, duration: int = 60) -> None:
@@ -66,29 +71,23 @@ class PathService:
         """Setup base paths based on configuration or platform"""
         if self.config:
             try:
-                # Use config data paths if available
                 data_paths = self.config.data_paths
-                # Mirror legacy LocG: base_path + "Machine Learning" with trailing slash
-                base = str(data_paths.base_path / "Machine Learning")
+                base = str(data_paths.base_path)
                 if not base.endswith(("/", "\\")):
                     base += "/"
                 self.base_path = base
-                # Build child paths via string concat to keep separators consistent with legacy
-                self.downloads_path = self.base_path + "IBDownloads/"
+                self.downloads_path = (
+                    self.base_path + self.config.get_env("IB_DOWNLOADS_DIRNAME") + "/"
+                )
                 self.stocks_path = self.base_path + "Stocks/"
                 return
             except Exception as e:
                 print(f"Warning: Could not get config paths: {e}")
 
-        # Fallback to platform-specific paths
-        if sys.platform == "win32":
-            self.base_path = "G:\\Machine Learning\\"
-            self.downloads_path = self.base_path + "IBDownloads\\"
-            self.stocks_path = self.base_path + "Stocks\\"
-        else:
-            self.base_path = os.path.expanduser("~/Machine Learning/")
-            self.downloads_path = self.base_path + "IBDownloads/"
-            self.stocks_path = self.base_path + "Stocks/"
+        # Fallback to user home path only (remove Windows drive hardcode)
+        self.base_path = str(Path.home() / "Machine Learning/")
+        self.downloads_path = self.base_path + "IBDownloads/"
+        self.stocks_path = self.base_path + "Stocks/"
 
     def get_ib_download_location(
         self,
@@ -365,15 +364,27 @@ class PathService:
         return Path(path)
 
     def get_warrior_trading_location(self) -> Path:
-        """Get Warrior Trading Excel file location"""
+        """Get Warrior Trading Excel file location (centralized)"""
+        if self.config:
+            return self.config.get_data_file_path("warrior_trading_trades")
         return Path("./Warrior/WarriorTrading_Trades.xlsx")
 
     def get_train_list_location(self, train_type: str = "Test") -> Path:
-        """Get training list Excel file location"""
+        """Get training list Excel file location (centralized)"""
+        if self.config:
+            return self.config.get_data_file_path("train_list", symbol=train_type)
         return Path(self.base_path + f"Train_List-{train_type}.xlsx")
 
     def get_ib_status_files(self) -> dict:
-        """Get Interactive Brokers status file locations"""
+        """Get Interactive Brokers status file locations (centralized)"""
+        if self.config:
+            return {
+                "failed": self.config.get_data_file_path("ib_failed_stocks"),
+                "downloadable": self.config.get_data_file_path(
+                    "ib_downloadable_stocks"
+                ),
+                "downloaded": self.config.get_data_file_path("ib_downloaded_stocks"),
+            }
         return {
             "failed": Path(self.base_path + "IB Failed Stocks.xlsx"),
             "downloadable": Path(self.base_path + "IB Downloadable Stocks.xlsx"),
@@ -381,7 +392,12 @@ class PathService:
         }
 
     def get_request_checker_location(self) -> Path:
-        """Get request checker binary file location"""
+        """Get request checker binary file location (centralized)"""
+        if self.config:
+            try:
+                return self.config.get_special_file("request_checker_bin")
+            except Exception:
+                return Path("./Files/requestChecker.bin")
         return Path("./Files/requestChecker.bin")
 
     def validate_path(self, path: str | Path) -> bool:

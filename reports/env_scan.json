@@ -1,0 +1,119 @@
+{
+  "scan_timestamp": "2025-08-16T00:00:00Z",
+  "patterns_searched": [
+    "([A-Za-z]:\\\\|[A-Za-z]:/|/home/|~/|\\\\\\\\|/mnt/|/var/|/tmp/|Machine\\s+Learning|\\.xlsx|\\.csv|\\.parquet|\\.feather|requestChecker\\.bin)",
+    "127\\.0\\.0\\.1|localhost|4001|4002|7496|7497"
+  ],
+  "findings": {
+    "hardcoded_paths": [
+      {
+        "file": "src/MasterPy_Trading.py",
+        "type": "ML_BASE_PATH",
+        "literals": [
+          "G:\\\\Machine Learning\\\\",
+          "os.path.expanduser(\"~/Machine Learning/\")",
+          "str(_config.data_paths.base_path / \"Machine Learning\")"
+        ]
+      },
+      {
+        "file": "src/services/path_service.py",
+        "type": "ML_BASE_PATH",
+        "literals": [
+          "str(Path.home() / \"Machine Learning/\")",
+          "str(config_manager.data_paths.base_path / \"Machine Learning/\")"
+        ]
+      },
+      {
+        "file": "src/services/data_persistence_service.py",
+        "type": "ML_BASE_PATH",
+        "literals": ["os.path.expanduser(\"~/Machine Learning/\")"]
+      },
+      {
+        "file": "src/services/data_management_service.py",
+        "type": "ML_BASE_PATH",
+        "literals": ["Path.home() / \"Machine Learning\""]
+      }
+    ],
+    "excel_files": [
+      {
+        "file": "src/MasterPy_Trading.py",
+        "literals": [
+          "IB Failed Stocks.xlsx",
+          "IB Downloadable Stocks.xlsx",
+          "IB Downloaded Stocks.xlsx",
+          "WarriorTrading_Trades.xlsx",
+          "Train_List-{TrainType}.xlsx"
+        ]
+      },
+      {
+        "file": "src/services/path_service.py",
+        "literals": [
+          "IB Failed Stocks.xlsx",
+          "IB Downloadable Stocks.xlsx",
+          "IB Downloaded Stocks.xlsx",
+          "Train_List-{train_type}.xlsx",
+          "WarriorTrading_Trades.xlsx"
+        ]
+      },
+      {
+        "file": "src/services/data_persistence_service.py",
+        "literals": [
+          "IB Failed Stocks.xlsx",
+          "IB Downloadable Stocks.xlsx",
+          "IB Downloaded Stocks.xlsx"
+        ]
+      }
+    ],
+    "connection_settings": [
+      {
+        "file": "src/MasterPy_Trading.py",
+        "literals": ["127.0.0.1", "4001", "4002", "7496", "7497"]
+      },
+      {
+        "file": "src/services/request_manager_service.py",
+        "literals": ["127.0.0.1", "7497"]
+      },
+      {
+        "file": "src/core/config.py",
+        "literals": ["127.0.0.1", "7497", "7496"]
+      },
+      {
+        "file": "config/config.json",
+        "literals": ["127.0.0.1", "7497"]
+      },
+      {
+        "file": "config/ib_gateway_config.json",
+        "literals": ["127.0.0.1", "4002", "4001"]
+      }
+    ],
+    "special_files": [
+      {
+        "file": "src/MasterPy_Trading.py",
+        "literals": ["./Files/requestChecker.bin"]
+      },
+      {
+        "file": "src/services/historical_data/historical_data_service.py",
+        "literals": ["./Files/requestChecker.bin"]
+      },
+      {
+        "file": "src/services/path_service.py",
+        "literals": ["./Files/requestChecker.bin"]
+      }
+    ],
+    "temp_paths": [
+      {
+        "file": "src/services/data_persistence_service.py",
+        "literals": [
+          "./data/failed_stocks.csv",
+          "./data/downloadable_stocks.csv",
+          "./data/downloaded_stocks.csv"
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "total_files_with_hardcoded_paths": 15,
+    "total_hardcoded_literals": 87,
+    "migration_priority": "HIGH"
+  }
+}

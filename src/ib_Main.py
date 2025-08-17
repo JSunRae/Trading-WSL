@@ -2,12 +2,11 @@ from sys import path
 
 path.append("..")
 
-from src.infra.contract_factories import stock
-from src.types.project_types import Symbol
 
-import MasterPy_Trading as MPT
-import asyncio
-from typing import Optional
+from src.infra.contract_factories import stock
+from src.services.market_data.depth_service import MarketDepthCls
+from src.types.project_types import Symbol
+from src.utils.ib_connection_helper import get_ib_connection_sync
 
 # from atexit import register as atexit_register
 
@@ -36,12 +35,13 @@ def Add_Level2(symbol: str) -> None:
 
     if CanAdd_Level2:
         contract = stock(Symbol(symbol))
-        Dict_Level2["L2_" + symbol] = MPT.MarketDepthCls(ib, contract)
+        Dict_Level2["L2_" + symbol] = MarketDepthCls(ib, contract)
         print(f"{symbol} added to stream")
     else:
         print(f"{symbol} NOT added to stream")
 
-def Close_Level2(cancel_all: Optional[bool] = None) -> None:
+
+def Close_Level2(cancel_all: bool | None = None) -> None:
     if cancel_all is None:
         user_input = input("Do you want to cancel all?")
         cancel_all = (user_input[0].lower() == "y") if user_input else False
@@ -67,7 +67,7 @@ def Close_Level2(cancel_all: Optional[bool] = None) -> None:
 
 if __name__ == "__main__":
     # TainList = pd.read_csv("./Train List_FINAL.csv", header=0)
-    ib, Req = asyncio.run(MPT.InitiateTWS(LiveMode=False))
+    ib, Req = get_ib_connection_sync(live_mode=False)
     Dict_Level2 = {}
     for symbol in ["PHUN"]:  # , "ANGH", "ATOS"]:  # max 3
         Add_Level2(symbol)

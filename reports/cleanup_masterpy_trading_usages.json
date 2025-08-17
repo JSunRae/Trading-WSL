@@ -1,0 +1,26 @@
+{
+  "symbols": {
+    "BarCLS": { "defined_in": "src/MasterPy_Trading.py", "references": [] },
+    "requestCheckerCLS": {
+      "defined_in": "src/MasterPy_Trading.py",
+      "references": ["adapter only: Download_Historical"]
+    }
+  },
+  "removed_symbols": [
+    "Market_InfoCLS",
+    "MarketDepthCls",
+    "TickByTickCls",
+    "InitiateTWS",
+    "WarriorList",
+    "TrainList_LoadSave",
+    "Stock_Downloads_Load",
+    "IB_Download_Loc",
+    "IB_Df_Loc",
+    "IB_L2_Loc",
+    "IB_Train_Loc",
+    "IB_Scalar",
+    "SaveExcel_ForReview",
+    "pacing & tracking methods (SendRequest, Sleep_TotalTime, append* etc.)"
+  ],
+  "timestamp": "2025-08-17T12:00:00Z"
+}

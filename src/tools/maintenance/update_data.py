@@ -6,9 +6,18 @@ Enhanced Data Update System - Improved interface for updating historical market 
 
 This tool provides modern CLI, progress tracking, and better error handling for market data updates,
 building on existing ib_Warror_dl.py functionality with comprehensive reporting and validation.
-"""
-
-import json
+"                    if start_date:
+                        # Use modern market calendar service to get trade days
+                        end_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                        start_calc = end_date - timedelta(days=30)  # Look back 30 days for 5 trading days
+                        trade_days = self.market_calendar.get_trading_days(start_calc, end_date)
+                        trade_days = trade_days[-5:]  # Get last 5 trading days
+                    else:
+                        # Get recent trading days
+                        today = datetime.now().date()
+                        start_calc = today - timedelta(days=10)  # Look back 10 days for 5 trading days
+                        trade_days = self.market_calendar.get_trading_days(start_calc, today)
+                        trade_days = trade_days[-5:]  # Get last 5 trading daysport json
 import logging
 import os
 import sys
@@ -152,11 +161,13 @@ def import_trading_modules():
         sys.path.insert(0, src_dir)
 
         import ib_Warror_dl
-        import MasterPy_Trading as MPT
         from src.infra.contract_factories import stock
         from src.types.project_types import Symbol
+        from src.utils.ib_connection_helper import get_ib_connection_sync
+        from src.services.market_calendar_service import MarketCalendarService
+        from src.services.historical_data.historical_data_service import HistoricalDataService
 
-        return MPT, ib_Warror_dl, stock, Symbol
+        return get_ib_connection_sync, ib_Warror_dl, stock, Symbol, MarketCalendarService, HistoricalDataService
     except ImportError as e:
         print(f"Import error: {e}")
         print(
@@ -172,7 +183,9 @@ def import_trading_modules():
 
 # Import the modules
 try:
-    MPT, ib_Warror_dl, stock_factory, Symbol = import_trading_modules()
+    get_ib_connection_sync, ib_Warror_dl, stock_factory, Symbol, MarketCalendarService, HistoricalDataService = (
+        import_trading_modules()
+    )
 except SystemExit:
     # Re-raise SystemExit to exit properly
     raise
@@ -186,6 +199,11 @@ class DataUpdateManager:
         self.config = self.load_config()
         self.ib = None
         self.req = None
+
+        # Initialize modern services
+        self.market_calendar = MarketCalendarService()
+        self.historical_service = None  # Will be initialized after connection
+
         self.stats = {
             "total_processed": 0,
             "successful_downloads": 0,
@@ -252,14 +270,15 @@ class DataUpdateManager:
             config = self.config.get("ib_connection", {})
             use_gateway = config.get("use_gateway", True)
 
-            self.ib, self.req = MPT.InitiateTWS(
-                LiveMode=False,
-                clientId=config.get("client_id", 1),
-                use_gateway=use_gateway,
+            self.ib, self.req = get_ib_connection_sync(
+                live_mode=False,
+                client_id=config.get("client_id", 1),
             )
 
             if self.ib and self.req:
                 self.logger.info("Successfully connected to IB Gateway")
+                # Initialize historical service with the IB connection
+                self.historical_service = HistoricalDataService(ib_connection=self.ib)
                 return True
             else:
                 self.logger.error("Failed to connect to IB Gateway")
@@ -339,11 +358,17 @@ class DataUpdateManager:
                 if timeframe == "1 min":
                     # For 1-minute data, get recent trading days
                     if start_date:
-                        trade_days = self.req.get_TradeDates(start_date, daysWanted=5)
+                        # Use modern market calendar service to get trade days
+                        end_date_calc = datetime.strptime(start_date, "%Y-%m-%d").date()
+                        start_calc = end_date_calc - timedelta(days=30)  # Look back 30 days for 5 trading days
+                        trade_days = self.market_calendar.get_trading_days(start_calc, end_date_calc)
+                        trade_days = trade_days[-5:]  # Get last 5 trading days
                     else:
-                        trade_days = self.req.get_TradeDates(
-                            datetime.now().date() - timedelta(days=7), daysWanted=5
-                        )
+                        # Get recent trading days
+                        today = datetime.now().date()
+                        start_calc = today - timedelta(days=10)  # Look back 10 days for 5 trading days
+                        trade_days = self.market_calendar.get_trading_days(start_calc, today)
+                        trade_days = trade_days[-5:]  # Get last 5 trading days
                 else:
                     # For other timeframes, use single date
                     trade_days = [end_date or datetime.now().date()]

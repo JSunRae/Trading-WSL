@@ -146,17 +146,16 @@ def run_warrior_update():
 
     try:
         # Import using importlib for better path resolution
-        MPT = import_module_from_path(
-            "MasterPy_Trading", src_dir / "MasterPy_Trading.py"
-        )
+        # Use modern connection + data management services directly
         ib_Warror_dl = import_module_from_path(
             "ib_Warror_dl", src_dir / "ib_Warror_dl.py"
         )
+        from src.utils.ib_connection_helper import get_ib_connection_sync
 
         logger.info("Starting Warrior List data update...")
 
-        # Initialize connection
-        ib, req = MPT.InitiateTWS(LiveMode=False)
+    # Initialize connection
+    ib, req = get_ib_connection_sync(live_mode=False)
 
         if not ib or not req:
             logger.error("Failed to connect to Interactive Brokers")
@@ -184,17 +183,15 @@ def run_recent_update():
 
     try:
         # Import using importlib for better path resolution
-        MPT = import_module_from_path(
-            "MasterPy_Trading", src_dir / "MasterPy_Trading.py"
-        )
         ib_Warror_dl = import_module_from_path(
             "ib_Warror_dl", src_dir / "ib_Warror_dl.py"
         )
+        from src.utils.ib_connection_helper import get_ib_connection_sync
 
         logger.info("Starting recent data update (30min timeframe)...")
 
-        # Initialize connection
-        ib, req = MPT.InitiateTWS(LiveMode=False)
+    # Initialize connection
+    ib, req = get_ib_connection_sync(live_mode=False)
 
         if not ib or not req:
             logger.error("Failed to connect to Interactive Brokers")
@@ -221,17 +218,15 @@ def check_existing_data():
 
     try:
         # Import using importlib for better path resolution
-        MPT = import_module_from_path(
-            "MasterPy_Trading", src_dir / "MasterPy_Trading.py"
-        )
         ib_Warror_dl = import_module_from_path(
             "ib_Warror_dl", src_dir / "ib_Warror_dl.py"
         )
+        from src.utils.ib_connection_helper import get_ib_connection_sync
 
         logger.info("Checking existing downloaded data...")
 
-        # Initialize connection (not actually needed for this check)
-        ib, req = MPT.InitiateTWS(LiveMode=False)
+    # Initialize connection (not actually needed for this check)
+    ib, req = get_ib_connection_sync(live_mode=False)
 
         if req:
             # This function updates the downloaded list based on existing files

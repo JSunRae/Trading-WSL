@@ -103,11 +103,13 @@ class RequestManagerService:
 
     def _load_request_history(self) -> None:
         """Load request history from disk for pacing calculations."""
-        history_file = "./Files/requestChecker.bin"
+        from src.core.config import get_config as _gc
+
+        history_file = _gc().get_special_file("request_checker_bin")
 
         if os.path.exists(history_file):
             try:
-                self.timeframe_requests, self.all_requests = load(history_file)
+                self.timeframe_requests, self.all_requests = load(str(history_file))
 
                 # Adjust times based on file age
                 file_age = time.time() - os.path.getmtime(history_file)
@@ -337,7 +339,7 @@ class RequestManagerService:
             try:
                 dump(
                     [self.timeframe_requests, self.all_requests],
-                    "./Files/requestChecker.bin",
+                    str(get_config().get_special_file("request_checker_bin")),
                     compress=True,
                 )
                 break

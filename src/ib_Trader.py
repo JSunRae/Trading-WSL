@@ -21,11 +21,11 @@ from ib_async import Stock
 try:
     # Try relative import first (when used as package)
     from . import MasterPy as MP
-    from . import MasterPy_Trading as MPT
+    from .utils.ib_connection_helper import get_ib_connection_sync
 except ImportError:
     # Fall back to absolute import (when used as script)
     import MasterPy as MP
-    import MasterPy_Trading as MPT
+    from src.utils.ib_connection_helper import get_ib_connection_sync
 
 
 class StockWatch:
@@ -222,12 +222,7 @@ def WatchList(ib: Any, contract: Any) -> None:
 
 if __name__ == "__main__":
     # Initialize TWS connection - returns tuple (ib, req)
-    connection = MPT.InitiateTWS(LiveMode=False)
-    if isinstance(connection, tuple):
-        ib, req = connection
-    else:
-        ib = connection
-        req = None
+    ib, req = get_ib_connection_sync(live_mode=False)
 
     contract = Stock("AAPL", "SMART", "USD")
 
@@ -237,7 +232,6 @@ if __name__ == "__main__":
     # Uncommented original lines for reference:
     # Ticker_AllLast = ib.reqTickByTickData(contract, tickType='AllLast', numberOfTicks=0, ignoreSize=False)
     # Ticker_BidAsk = ib.reqTickByTickData(contract, tickType='BidAsk', numberOfTicks=0, ignoreSize=False)
-    # TikBTik = MPT.TickByTickCls(ib, contract)
     # MkDpth = MPT.MarketDepthCls(ib, contract)
 
     print("IB Trader initialized successfully")

@@ -44,7 +44,8 @@
         "pytest",
         "tests/",
         "--cov=src",
-        "--cov-report=term-missing"
+        "--cov-report=term-missing",
+        "--cov-report=json:coverage.json"
       ],
       "windows": {
         "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
@@ -55,6 +56,17 @@
         "reveal": "always",
         "focus": false,
         "panel": "shared"
+      },
+      "problemMatcher": [],
+      "dependsOn": ["Generate Unused Code Report"]
+    },
+    {
+      "label": "Generate Unused Code Report",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["scripts/find_unused_code.py"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
       },
       "problemMatcher": []
     },
@@ -76,9 +88,15 @@
       "problemMatcher": []
     },
     {
-      "label": "Format with Ruff",
-      "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python",
+    "label": "Run Coverage and Report (Windows)",
+    "type": "shell",
+    "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe -m pytest --cov=src --cov-branch --cov-report=json:coverage.json && ${workspaceFolder}\\.venv\\Scripts\\python.exe scripts\\find_unused_code.py",
+    "problemMatcher": []
+    },
+    {
+    "label": "Format with Ruff",
+    "type": "shell",
+    "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "ruff", "format", "src/", "tests/", "examples/"],
       "windows": {
         "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"

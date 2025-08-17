@@ -199,7 +199,7 @@ class MarketInfo:
                 next_day += timedelta(days=1)
             return next_day
 
-    def get_market_hours(self, for_date: datetime | date) -> Optional[tuple]:
+    def get_market_hours(self, for_date: datetime | date) -> tuple | None:
         """Get market open and close times for given date"""
         if self.market_schedule is None:
             # Fallback: standard NYSE hours (9:30 AM - 4:00 PM ET)
@@ -263,7 +263,7 @@ class MarketInfoService:
             print(f"Warning: Could not get market list: {e}")
             return ["NYSE", "NASDAQ", "LSE", "TSX", "ASX"]
 
-    def is_any_market_open(self, markets: Optional[list[str]] = None) -> bool:
+    def is_any_market_open(self, markets: list[str] | None = None) -> bool:
         """Check if any of the specified markets are open"""
         if markets is None:
             markets = ["NYSE", "NASDAQ"]

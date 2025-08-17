@@ -31,9 +31,26 @@ except ImportError:
         class FallbackConfig:
             def __init__(self):
                 self.ib_download_location = "./data/ib_downloads"
-                self.failed_stocks_location = "./data/failed_stocks.csv"
-                self.downloadable_stocks_location = "./data/downloadable_stocks.csv"
-                self.downloaded_stocks_location = "./data/downloaded_stocks.csv"
+                # Use config-compatible fallback paths
+                from pathlib import Path
+
+                data_dir = Path("./data")
+                self.failed_stocks_location = str(data_dir / "failed_stocks.csv")
+                self.downloadable_stocks_location = str(
+                    data_dir / "downloadable_stocks.csv"
+                )
+                self.downloaded_stocks_location = str(
+                    data_dir / "downloaded_stocks.csv"
+                )
+
+            def get_csv_file_path(self, csv_type: str):
+                """Fallback method compatible with main config"""
+                paths = {
+                    "failed_stocks": self.failed_stocks_location,
+                    "downloadable_stocks": self.downloadable_stocks_location,
+                    "downloaded_stocks": self.downloaded_stocks_location,
+                }
+                return Path(paths.get(csv_type, f"./data/{csv_type}.csv"))
 
         return FallbackConfig()
 
@@ -141,24 +158,26 @@ class DataPersistenceService:
             self.config = None
 
         # Set up file paths
-        if self.config:
+        try:
             self.failed_stocks_path = str(
                 self.config.get_data_file_path("ib_failed_stocks")
+                if self.config
+                else get_config().get_data_file_path("ib_failed_stocks")
             )
             self.downloadable_stocks_path = str(
                 self.config.get_data_file_path("ib_downloadable_stocks")
+                if self.config
+                else get_config().get_data_file_path("ib_downloadable_stocks")
             )
             self.downloaded_stocks_path = str(
                 self.config.get_data_file_path("ib_downloaded_stocks")
+                if self.config
+                else get_config().get_data_file_path("ib_downloaded_stocks")
             )
-        else:
-            # Fallback to platform-appropriate paths
-            if sys.platform == "win32":
-                base_path = "G:\\Machine Learning\\"
-            else:
-                base_path = os.path.expanduser("~/Machine Learning/")
-                os.makedirs(base_path, exist_ok=True)
-
+        except Exception:
+            # Last resort minimal fallback (should rarely happen)
+            base_path = os.path.expanduser("~/Machine Learning/")
+            os.makedirs(base_path, exist_ok=True)
             self.failed_stocks_path = os.path.join(base_path, "IB Failed Stocks.xlsx")
             self.downloadable_stocks_path = os.path.join(
                 base_path, "IB Downloadable Stocks.xlsx"

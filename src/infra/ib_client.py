@@ -49,7 +49,22 @@ async def get_ib() -> IB:
     async with _lock:
         if _ib is None:
             _ib = globals()["RealIB"]()  # type: ignore[call-arg]
-            await _ib.connectAsync("127.0.0.1", 7497, clientId=1)  # type: ignore[attr-defined]
+
+            # Use config for connection parameters
+            try:
+                from ..core.config import get_config
+
+                config = get_config()
+                host = config.ib_connection.host
+                port = config.ib_connection.port
+                client_id = config.ib_connection.client_id
+            except Exception:
+                # Fallback to defaults
+                host = "127.0.0.1"
+                port = 7497
+                client_id = 1
+
+            await _ib.connectAsync(host, port, clientId=client_id)  # type: ignore[attr-defined]
     assert _ib is not None  # narrow for type checker
     return _ib
 

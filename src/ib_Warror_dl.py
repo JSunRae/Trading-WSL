@@ -16,15 +16,15 @@ path.append("..")
 try:
     # Try relative import first (when used as package)
     from . import MasterPy as MP
-    from . import MasterPy_Trading as MPT
     from .services import data_management_service as DM
     from .services.path_service import IB_Download_Loc as PSLoc
+    from .utils.ib_connection_helper import get_ib_connection_sync
 except ImportError:
     # Fall back to absolute import (when used as script)
     import MasterPy as MP
-    import MasterPy_Trading as MPT
     from src.services import data_management_service as DM
     from src.services.path_service import IB_Download_Loc as PSLoc
+    from src.utils.ib_connection_helper import get_ib_connection_sync
 from time import perf_counter
 
 
@@ -548,7 +548,7 @@ def Create_Warrior_TrainList(StartRow):
 
 
 if __name__ == "__main__":
-    ib, Req = MPT.InitiateTWS(LiveMode=False)
+    ib, Req = get_ib_connection_sync(live_mode=False)
     # Update_Downloaded(Req, StartRow=0)
 
     Update_Test(Req, StartRow=0, OnlyStock=None, SkipStocks=None, BarSizes=None)

@@ -143,18 +143,19 @@ class ExcelManager:
         if path_service:
             return path_service.get_excel_review_location(name)
 
-        # Fallback path generation
-        base_path = (
-            "G:/Machine Learning/"
-            if os.name == "nt"
-            else os.path.expanduser("~/Machine Learning/")
-        )
-        path = base_path + f"Temp-{name}.xlsx"
+        # Centralized path using config manager
+        try:
+            from ..core.config import get_config
+
+            base_path = get_config().data_paths.base_path
+        except Exception:
+            base_path = Path.home() / "Machine Learning"
+        path = str(base_path / f"Temp-{name}.xlsx")
         count = 1
 
         while os.path.exists(path):
             count += 1
-            path = base_path + f"Temp-{name}-{count}.xlsx"
+            path = str(base_path / f"Temp-{name}-{count}.xlsx")
 
         return Path(path)
 
@@ -269,7 +270,12 @@ class DataManager:
         self, operation: str, df: pd.DataFrame | None = None
     ) -> pd.DataFrame | None:
         """Handle Warrior Trading list operations"""
-        warrior_path = Path("./Warrior/WarriorTrading_Trades.xlsx")
+        try:
+            from ..core.config import get_config as _gc
+
+            warrior_path = _gc().get_data_file_path("warrior_trading_trades")
+        except Exception:
+            warrior_path = Path("./Warrior/WarriorTrading_Trades.xlsx")
 
         if operation.lower() == "load":
             return self.load_dataframe(warrior_path, sheet_name=0, header=0)
@@ -278,9 +284,10 @@ class DataManager:
                 handle_error(__name__, "DataFrame is None, cannot save Warrior list")
                 return None
 
-            # Also save to machine learning directory
-            ml_path = "G:/Machine Learning/WarriorTrading_Trades.xlsx"
-            success = self.save_dataframe(df, ml_path, sheet_name="Sheet1", index=False)
+            # Save using centralized path (warrior_path)
+            success = self.save_dataframe(
+                df, warrior_path, sheet_name="Sheet1", index=False
+            )
             return df if success else None
         else:
             handle_error(
@@ -295,7 +302,13 @@ class DataManager:
         if path_service:
             file_path = path_service.get_train_list_location(train_type)
         else:
-            file_path = Path(f"G:/Machine Learning/Train_List-{train_type}.xlsx")
+            try:
+                from ..core.config import get_config
+
+                base_path = get_config().data_paths.base_path
+            except Exception:
+                base_path = Path.home() / "Machine Learning"
+            file_path = base_path / f"Train_List-{train_type}.xlsx"
 
         if operation.lower() == "load":
             loaded_df = self.load_dataframe(file_path, sheet_name=0, header=0)

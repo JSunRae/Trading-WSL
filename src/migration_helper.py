@@ -20,7 +20,30 @@ class LegacyDataManagerAdapter:
     This allows gradual migration without breaking existing code.
     """
 
-    def __init__(self, host="127.0.0.1", port=7497, clientId=1, ib=None):
+    def __init__(self, host=None, port=None, clientId=None, ib=None):
+        # Issue deprecation warning
+        warnings.warn(
+            "LegacyDataManagerAdapter is deprecated. Use DataManager directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        # Use config for defaults if not provided
+        try:
+            from .core.config import get_config
+
+            config = get_config()
+            if host is None:
+                host = config.ib_connection.host
+            if port is None:
+                port = config.ib_connection.port
+            if clientId is None:
+                clientId = config.ib_connection.client_id
+        except Exception:
+            # Fallback to old defaults
+            host = host or "127.0.0.1"
+            port = port or 7497
+            clientId = clientId or 1
         # Issue deprecation warning
         warnings.warn(
             "LegacyDataManagerAdapter is deprecated. Use DataManager directly.",
