@@ -1,10 +1,62 @@
 #!/usr/bin/env python3
-"""
-@agent.tool architecture_demo
+"""Architecture Demo tool (adds early --describe guard).
 
-Architecture Demo - Showcasing the new trading system architecture
-This demo shows how the new architecture improves upon the old monolithic design with better separation of concerns, error handling, and configuration management.
+Provides a demonstration of the modernized trading system architecture. For the
+test harness, we emit a lightweight schema-compliant description before heavy
+imports when --describe is passed.
 """
+
+from typing import Any
+
+# --- ultra‑early describe guard (keep above heavy imports) ---
+try:  # Local import to avoid adding dependency if helper unavailable
+    from src.tools._cli_helpers import emit_describe_early, print_json  # type: ignore
+except Exception:  # pragma: no cover - minimalist fallback
+    import json as _json
+    import sys as _sys  # type: ignore
+
+    def print_json(d: dict[str, Any]):  # type: ignore
+        _sys.stdout.write(_json.dumps(d, indent=2, sort_keys=True) + "\n")
+        _sys.stdout.flush()
+        return 0
+
+    def emit_describe_early(fn):  # type: ignore
+        import sys as _s
+
+        if any(a == "--describe" for a in _s.argv[1:]):
+            print_json(fn())
+            return True
+        return False
+
+
+def tool_describe() -> dict[str, Any]:
+    return {
+        "name": "architecture_demo",
+        "description": "Showcase of improved modular architecture vs legacy monolith.",
+        "inputs": {
+            "show_configuration_demo": {"type": "bool", "default": True},
+            "show_error_handling_demo": {"type": "bool", "default": True},
+            "show_data_management_demo": {"type": "bool", "default": True},
+            "show_performance_comparison": {"type": "bool", "default": True},
+        },
+        "outputs": {"stdout": "Human-readable demo plus JSON summary when run"},
+        "dependencies": [],
+        "examples": [
+            {
+                "description": "Show description",
+                "command": "python -m src.tools.maintenance.architecture_demo --describe",
+            },
+            {
+                "description": "Run full demo",
+                "command": "python -m src.tools.maintenance.architecture_demo",
+            },
+        ],
+    }
+
+
+if emit_describe_early(tool_describe):  # pragma: no cover
+    raise SystemExit(0)
+# ----------------------------------------------------------------
 
 import json
 import logging
@@ -23,24 +75,24 @@ INPUT_SCHEMA = {
         "show_configuration_demo": {
             "type": "boolean",
             "default": True,
-            "description": "Demonstrate configuration management improvements"
+            "description": "Demonstrate configuration management improvements",
         },
         "show_error_handling_demo": {
             "type": "boolean",
             "default": True,
-            "description": "Demonstrate error handling improvements"
+            "description": "Demonstrate error handling improvements",
         },
         "show_data_management_demo": {
             "type": "boolean",
             "default": True,
-            "description": "Demonstrate data management improvements"
+            "description": "Demonstrate data management improvements",
         },
         "show_performance_comparison": {
             "type": "boolean",
             "default": True,
-            "description": "Show performance comparison between old and new architecture"
-        }
-    }
+            "description": "Show performance comparison between old and new architecture",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -53,27 +105,36 @@ OUTPUT_SCHEMA = {
                     "type": "object",
                     "properties": {
                         "platform_independence": {"type": "boolean"},
-                        "environment_support": {"type": "array", "items": {"type": "string"}},
-                        "config_features": {"type": "array", "items": {"type": "string"}}
-                    }
+                        "environment_support": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "config_features": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
                 },
                 "error_handling_demo": {
                     "type": "object",
                     "properties": {
                         "error_recovery": {"type": "boolean"},
                         "graceful_degradation": {"type": "boolean"},
-                        "error_types_handled": {"type": "array", "items": {"type": "string"}}
-                    }
+                        "error_types_handled": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
                 },
                 "data_management_demo": {
                     "type": "object",
                     "properties": {
                         "safe_operations": {"type": "boolean"},
                         "data_validation": {"type": "boolean"},
-                        "performance_improvement": {"type": "number"}
-                    }
-                }
-            }
+                        "performance_improvement": {"type": "number"},
+                    },
+                },
+            },
         },
         "architecture_benefits": {
             "type": "array",
@@ -82,24 +143,24 @@ OUTPUT_SCHEMA = {
                 "properties": {
                     "category": {"type": "string"},
                     "improvement": {"type": "string"},
-                    "impact": {"type": "string"}
-                }
-            }
+                    "impact": {"type": "string"},
+                },
+            },
         },
         "migration_status": {
             "type": "object",
             "properties": {
                 "components_migrated": {"type": "integer"},
                 "total_components": {"type": "integer"},
-                "completion_percentage": {"type": "number"}
-            }
+                "completion_percentage": {"type": "number"},
+            },
         },
         "next_steps": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommended next steps for architecture improvement"
-        }
-    }
+            "description": "Recommended next steps for architecture improvement",
+        },
+    },
 }
 
 # Set up logging
@@ -120,6 +181,7 @@ try:
     )
     from src.data.data_manager import DataManager
     from src.migration_helper import MigrationHelper, get_migration_status
+
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
     # Graceful degradation - create mock versions
@@ -156,6 +218,7 @@ except ImportError as e:
     def error_context(category: str, operation: str):
         def decorator(func):
             return func
+
         return decorator
 
     def get_migration_status():
@@ -166,12 +229,16 @@ except ImportError as e:
             "recommendations": [
                 "Review IMPROVEMENT_PLAN.md",
                 "Start with configuration management",
-                "Add more unit tests"
-            ]
+                "Add more unit tests",
+            ],
         }
 
     DataManager = MockDataManager
-    Environment = type('Environment', (), {'DEVELOPMENT': 'dev', 'TESTING': 'test', 'PRODUCTION': 'prod'})
+    Environment = type(
+        "Environment",
+        (),
+        {"DEVELOPMENT": "dev", "TESTING": "test", "PRODUCTION": "prod"},
+    )
     DataError = ValueError
     TradingSystemError = RuntimeError
 
@@ -288,7 +355,7 @@ def demo_data_management():
     print("\n📥 Testing download tracking...")
 
     # Simulate some download operations
-    test_data = pd.DataFrame(
+    _test_data = pd.DataFrame(  # noqa: F841 (illustrative example only)
         {
             "timestamp": pd.date_range("2025-07-29", periods=100, freq="1min"),
             "open": [100 + i * 0.1 for i in range(100)],
@@ -420,11 +487,6 @@ def demo_performance_improvements():
 
     for improvement in improvements:
         print(f"  {improvement}")
-
-
-
-
-
 
 
 @error_context("demo", "risky_operation")
@@ -577,8 +639,8 @@ def main() -> dict[str, Any]:
                     "Environment-based configuration",
                     "Platform-independent paths",
                     "Centralized configuration management",
-                    "Fallback mechanisms"
-                ]
+                    "Fallback mechanisms",
+                ],
             },
             "error_handling_demo": {
                 "error_recovery": True,
@@ -587,49 +649,49 @@ def main() -> dict[str, Any]:
                     "DataError",
                     "TradingSystemError",
                     "ConnectionError",
-                    "ConfigurationError"
-                ]
+                    "ConfigurationError",
+                ],
             },
             "data_management_demo": {
                 "safe_operations": True,
                 "data_validation": True,
-                "performance_improvement": 25.0
-            }
+                "performance_improvement": 25.0,
+            },
         },
         "architecture_benefits": [
             {
                 "category": "Configuration",
                 "improvement": "Platform-independent configuration management",
-                "impact": "Eliminates environment-specific deployment issues"
+                "impact": "Eliminates environment-specific deployment issues",
             },
             {
                 "category": "Error Handling",
                 "improvement": "Comprehensive error handling with recovery",
-                "impact": "Improved system stability and user experience"
+                "impact": "Improved system stability and user experience",
             },
             {
                 "category": "Data Management",
                 "improvement": "Safe DataFrame operations with validation",
-                "impact": "Eliminates runtime crashes and data corruption"
+                "impact": "Eliminates runtime crashes and data corruption",
             },
             {
                 "category": "Architecture",
                 "improvement": "Service-oriented modular design",
-                "impact": "Enhanced maintainability and testability"
-            }
+                "impact": "Enhanced maintainability and testability",
+            },
         ],
         "migration_status": {
             "components_migrated": 8,
             "total_components": 12,
-            "completion_percentage": 66.7
+            "completion_percentage": 66.7,
         },
         "next_steps": [
             "Review the improvement plan in IMPROVEMENT_PLAN.md",
             "Start by implementing configuration management",
             "Gradually migrate one service at a time",
             "Add tests for new components",
-            "Monitor and validate improvements"
-        ]
+            "Monitor and validate improvements",
+        ],
     }
 
     try:
@@ -655,11 +717,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Architecture Demo - Showcasing the new trading system architecture",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Architecture Demo - Showcasing the new trading system architecture",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

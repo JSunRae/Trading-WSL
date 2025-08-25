@@ -5,13 +5,73 @@ Analyzes Pyright output and codebase for migration status and type safety
 """
 
 import json
+import sys
 from pathlib import Path
+
+from src.tools._cli_helpers import env_dep, print_json
+
+if "--describe" in sys.argv[1:]:  # pragma: no cover - earliest exit for schema
+    from json import dumps as _d
+
+    print(
+        _d(
+            {
+                "name": "system_check_analysis",
+                "description": "Static summary style system/type check report (legacy, emits text).",
+                "inputs": {
+                    "--describe": {
+                        "type": "flag",
+                        "description": "Show schema JSON and exit",
+                    }
+                },
+                "outputs": {
+                    "stdout": {
+                        "type": "text",
+                        "description": "Human-readable system/type check report or schema JSON",
+                    }
+                },
+                "dependencies": [env_dep("PROJECT_ROOT")],
+                "examples": [
+                    {
+                        "description": "Show schema",
+                        "command": "python -m src.tools.analysis.system_check_analysis --describe",
+                    }
+                ],
+            },
+            indent=2,
+        )
+    )
+    raise SystemExit(0)
+
+
+def describe() -> dict[str, object]:
+    """Machine-readable metadata for --describe."""
+    return {
+        "name": "system_check_analysis",
+        "description": "Static summary style system/type check report (legacy, emits text).",
+        "inputs": {
+            "--describe": {"type": "flag", "description": "Show schema JSON and exit"}
+        },
+        "outputs": {
+            "stdout": {
+                "type": "text",
+                "description": "Human-readable system/type check report or schema JSON",
+            }
+        },
+        "dependencies": [env_dep("PROJECT_ROOT")],
+        "examples": [
+            {
+                "description": "Show schema",
+                "command": "python -m src.tools.analysis.system_check_analysis --describe",
+            }
+        ],
+    }
 
 
 def load_pyright_data():
     """Load Pyright analysis results"""
     try:
-        with open('pyright_output.json') as f:
+        with open("pyright_output.json") as f:
             return json.load(f)
     except:
         # Parse from the previous output
@@ -28,6 +88,7 @@ def load_pyright_data():
         }
         """
         return json.loads(pyright_text)
+
 
 def analyze_type_diagnostics():
     """Analyze Pyright diagnostics"""
@@ -51,11 +112,13 @@ def analyze_type_diagnostics():
         "reportUnknownParameterType": 23,
         "reportMissingTypeStubs": 15,
         "reportMissingImports": 8,
-        "reportUnusedImport": 67
+        "reportUnusedImport": 67,
     }
 
     print("\n🔥 TOP DIAGNOSTIC CODES:")
-    for code, count in sorted(diagnostic_counts.items(), key=lambda x: x[1], reverse=True):
+    for code, count in sorted(
+        diagnostic_counts.items(), key=lambda x: x[1], reverse=True
+    ):
         print(f"  {code}: {count}")
 
     # Hotspot files from analysis
@@ -69,12 +132,13 @@ def analyze_type_diagnostics():
         ("ib_Trader.py", 43),
         ("market_data_service.py", 38),
         ("test_ml_signal_executor.py", 12),
-        ("test_typed_ml_services.py", 7)
+        ("test_typed_ml_services.py", 7),
     ]
 
     print("\n📁 TOP 10 HOTSPOT FILES:")
     for file_name, count in hotspot_files:
         print(f"  {file_name}: {count} issues")
+
 
 def check_async_migration_status():
     """Check async migration status"""
@@ -89,7 +153,7 @@ def check_async_migration_status():
         "src/core/modern_trading_core.py:351 - ib = IB()",
         "src/MasterPy_Trading.py:1968 - ib = ib_async.IB()",
         "src/ib_Trader.py:258 - self.ib = IB()",
-        "src/services/market_data/integration_example.py:34 - ib = ib_insync.IB()"
+        "src/services/market_data/integration_example.py:34 - ib = ib_insync.IB()",
     ]
 
     print("\n🚨 SYNCHRONOUS PATTERNS DETECTED:")
@@ -100,12 +164,13 @@ def check_async_migration_status():
     files_needing_conversion = [
         "src/ib_Trader.py - Multiple sync reqTickByTickData calls",
         "src/MasterPy_Trading.py - Mix of sync/async patterns",
-        "src/core/modern_trading_core.py - Direct IB() instantiation"
+        "src/core/modern_trading_core.py - Direct IB() instantiation",
     ]
 
     print("\n⚠️  FILES NEEDING ASYNC CONVERSION:")
     for file_desc in files_needing_conversion:
         print(f"  {file_desc}")
+
 
 def analyze_type_safety():
     """Analyze type safety coverage"""
@@ -120,7 +185,7 @@ def analyze_type_safety():
         "test_ml_infrastructure_priorities.py - 45+ Unknown type issues",
         "List containers without type parameters (list[Unknown])",
         "Method signatures missing return type annotations",
-        "Service layer Protocol compliance incomplete"
+        "Service layer Protocol compliance incomplete",
     ]
 
     for issue in unknown_type_issues:
@@ -131,11 +196,12 @@ def analyze_type_safety():
         "Created Protocol interfaces (src/domain/interfaces.py)",
         "Unified domain types (src/domain/ml_types.py)",
         "Enhanced API surface (src/api.py)",
-        "Service layer architecture with typed contracts"
+        "Service layer architecture with typed contracts",
     ]
 
     for improvement in improvements:
         print(f"  ✓ {improvement}")
+
 
 def check_stubs_and_externals():
     """Check for missing stubs and external dependencies"""
@@ -157,12 +223,13 @@ def check_stubs_and_externals():
         "ibapi - Interactive Brokers API",
         "ib_async - Async IB wrapper",
         "pandas - Data analysis (some methods)",
-        "numpy - Numerical computing (some methods)"
+        "numpy - Numerical computing (some methods)",
     ]
 
     print("\n⚠️  LIKELY MISSING TYPE STUBS:")
     for stub in missing_stubs:
         print(f"  {stub}")
+
 
 def check_module_resolution():
     """Check module resolution issues"""
@@ -177,12 +244,13 @@ def check_module_resolution():
     potential_issues = [
         "Some test imports may use deep paths instead of API",
         "Configuration modules may have resolution issues",
-        "Legacy file imports may conflict with new structure"
+        "Legacy file imports may conflict with new structure",
     ]
 
     print("\n⚠️  POTENTIAL ISSUES:")
     for issue in potential_issues:
         print(f"  {issue}")
+
 
 def check_public_api():
     """Check public API usage"""
@@ -197,12 +265,13 @@ def check_public_api():
     api_issues = [
         "test_ml_infrastructure_priorities.py - Uses deep imports alongside API imports",
         "Some tests still import from individual service modules",
-        "Legacy test files may not use typed API surface"
+        "Legacy test files may not use typed API surface",
     ]
 
     print("\n⚠️  API USAGE ISSUES:")
     for issue in api_issues:
         print(f"  {issue}")
+
 
 def generate_action_checklist():
     """Generate prioritized action checklist"""
@@ -216,7 +285,7 @@ def generate_action_checklist():
             "action": "Fix MLRiskManager return type annotations",
             "description": "Methods returning Unknown instead of proper types",
             "files": ["src/risk/ml_risk_manager.py"],
-            "estimate": "2-4 hours"
+            "estimate": "2-4 hours",
         },
         {
             "priority": "P0 - Critical",
@@ -224,7 +293,7 @@ def generate_action_checklist():
             "action": "Complete test file API migration",
             "description": "Convert tests to use src.api imports exclusively",
             "files": ["tests/test_ml_infrastructure_priorities.py"],
-            "estimate": "1-2 hours"
+            "estimate": "1-2 hours",
         },
         {
             "priority": "P1 - High",
@@ -232,7 +301,7 @@ def generate_action_checklist():
             "action": "Convert synchronous IB calls to async",
             "description": "Replace sync patterns with await calls",
             "files": ["src/ib_Trader.py", "src/MasterPy_Trading.py"],
-            "estimate": "4-6 hours"
+            "estimate": "4-6 hours",
         },
         {
             "priority": "P1 - High",
@@ -240,7 +309,7 @@ def generate_action_checklist():
             "action": "Add missing type stubs for external libraries",
             "description": "Create stubs for ibapi, ib_async, etc.",
             "files": ["stubs/ibapi.pyi", "stubs/ib_async.pyi"],
-            "estimate": "3-4 hours"
+            "estimate": "3-4 hours",
         },
         {
             "priority": "P2 - Medium",
@@ -248,7 +317,7 @@ def generate_action_checklist():
             "action": "Fix untyped containers and parameters",
             "description": "Add type parameters to list, dict declarations",
             "files": ["Multiple files"],
-            "estimate": "2-3 hours"
+            "estimate": "2-3 hours",
         },
         {
             "priority": "P2 - Medium",
@@ -256,7 +325,7 @@ def generate_action_checklist():
             "action": "Remove unused imports and clean warnings",
             "description": "Clean up 67 unused import warnings",
             "files": ["Multiple test files"],
-            "estimate": "1-2 hours"
+            "estimate": "1-2 hours",
         },
         {
             "priority": "P3 - Low",
@@ -264,8 +333,8 @@ def generate_action_checklist():
             "action": "Consolidate legacy trading files",
             "description": "Migrate or archive old trading implementations",
             "files": ["src/MasterPy_Trading.py", "src/ib_Trader.py"],
-            "estimate": "6-8 hours"
-        }
+            "estimate": "6-8 hours",
+        },
     ]
 
     for i, action in enumerate(actions, 1):
@@ -275,8 +344,11 @@ def generate_action_checklist():
         print(f"   📁 Files: {', '.join(action['files'])}")
         print(f"   ⏱️  Estimate: {action['estimate']}")
 
+
 def main():
-    """Run complete system analysis"""
+    """Run complete system analysis."""
+    if "--describe" in sys.argv[1:]:  # early pure-JSON path
+        return print_json(describe())
     analyze_type_diagnostics()
     check_async_migration_status()
     analyze_type_safety()
@@ -298,5 +370,6 @@ def main():
     print("  Target:  <50 errors, <200 warnings")
     print("  Progress: ~75% complete on type migration")
 
-if __name__ == "__main__":
-    main()
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

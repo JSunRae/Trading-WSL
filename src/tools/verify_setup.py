@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """
-@agent.tool verify_setup
-
 Interactive Brokers Trading System - Setup Verification
 Verifies that the system is properly installed and configured.
+
+Adds standardized --describe JSON output.
 """
 
 import importlib
@@ -13,29 +14,61 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Schema definitions for agent tool pattern
-INPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "skip_ib_test": {"type": "boolean", "default": False, "description": "Skip IB connection test"},
-        "verbose": {"type": "boolean", "default": False, "description": "Enable verbose output"}
-    }
-}
+try:  # optional config import for --describe resilience
+    from src.core.config import get_config  # type: ignore
+except Exception:  # pragma: no cover
 
-OUTPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "success": {"type": "boolean", "description": "Overall verification success"},
-        "checks_passed": {"type": "integer", "description": "Number of checks that passed"},
-        "total_checks": {"type": "integer", "description": "Total number of checks"},
-        "missing_dependencies": {"type": "array", "items": {"type": "string"}, "description": "List of missing dependencies"},
-        "issues": {"type": "array", "items": {"type": "string"}, "description": "List of issues found"},
-        "recommendations": {"type": "array", "items": {"type": "string"}, "description": "Recommended actions"}
+    def get_config():  # type: ignore
+        class C:
+            host = "127.0.0.1"
+            gateway_paper_port = 4002
+            gateway_live_port = 4001
+            paper_port = 7497
+            live_port = 7496
+            client_id = 1
+
+        class Dummy:
+            ib_connection = C()
+
+        return Dummy()
+
+
+def _describe() -> dict[str, Any]:
+    cfg = get_config().ib_connection
+    return {
+        "name": "verify_setup",
+        "description": "Verify installation, dependencies, configuration files, and (optionally) IB connectivity.",
+        "inputs": {
+            "--skip-ib-test": {"type": "flag", "required": False, "default": False},
+            "--verbose": {"type": "flag", "required": False, "default": False},
+            "--describe": {"type": "flag", "required": False, "default": False},
+        },
+        "outputs": {"stdout": "JSON summary of verification checks", "files": []},
+        "dependencies": [
+            "config:IB_HOST",
+            "config:IB_GATEWAY_PAPER_PORT",
+            "config:IB_GATEWAY_LIVE_PORT",
+            "config:IB_PAPER_PORT",
+            "config:IB_LIVE_PORT",
+            "optional:ib_async",
+        ],
+        "examples": [
+            "python -m src.tools.verify_setup --describe",
+            "python -m src.tools.verify_setup --skip-ib-test",
+            "python -m src.tools.verify_setup --verbose",
+        ],
+        "ports": {
+            "gateway_paper": cfg.gateway_paper_port,
+            "gateway_live": cfg.gateway_live_port,
+            "tws_paper": cfg.paper_port,
+            "tws_live": cfg.live_port,
+        },
+        "version": "1.0.0",
     }
-}
+
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +80,9 @@ def check_python_version():
         logger.debug(f"Python {version.major}.{version.minor}.{version.micro} - OK")
         return True
     else:
-        logger.error(f"Python {version.major}.{version.minor}.{version.micro} - Need 3.8+")
+        logger.error(
+            f"Python {version.major}.{version.minor}.{version.micro} - Need 3.8+"
+        )
         return False
 
 
@@ -132,7 +167,12 @@ def check_ib_connection() -> bool:
                 return True
             except Exception as e:
                 logger.debug(f"IB connection failed: {str(e)}")
-                logger.debug("Make sure TWS/Gateway is running on port 7497")
+                cfg = get_config().ib_connection
+                logger.debug(
+                    "Ensure IB Gateway/TWS is running on one of: "
+                    f"gateway_paper={cfg.gateway_paper_port}, gateway_live={cfg.gateway_live_port}, "
+                    f"tws_paper={cfg.paper_port}, tws_live={cfg.live_port}"
+                )
                 return False
 
         # Run the async test
@@ -175,19 +215,25 @@ def main(skip_ib_test: bool = False, verbose: bool = False) -> dict[str, Any]:
     # Get missing dependencies for recommendations
     _, missing_deps = check_dependencies()
     if missing_deps:
-        recommendations.extend([
-            f"Install missing dependency: {dep}" for dep in missing_deps
-        ])
+        recommendations.extend(
+            [f"Install missing dependency: {dep}" for dep in missing_deps]
+        )
 
     passed = sum(1 for _, result in results if result)
     success = passed == len(results)
 
     if not success:
-        recommendations.extend([
-            "Install missing dependencies: pip install -r requirements.txt",
-            "Copy config: cp config/config.example.json config/config.json",
-            "Start TWS/Gateway on port 7497 for connection test"
-        ])
+        cfg = get_config().ib_connection
+        recommendations.extend(
+            [
+                "Install missing dependencies: pip install -r requirements.txt",
+                "Copy config: cp config/config.example.json config/config.json",
+                (
+                    "Start IB Gateway/TWS (paper: "
+                    f"{cfg.gateway_paper_port}/{cfg.paper_port}, live: {cfg.gateway_live_port}/{cfg.live_port})"
+                ),
+            ]
+        )
 
     return {
         "success": success,
@@ -195,7 +241,7 @@ def main(skip_ib_test: bool = False, verbose: bool = False) -> dict[str, Any]:
         "total_checks": len(results),
         "missing_dependencies": missing_deps,
         "issues": issues,
-        "recommendations": recommendations
+        "recommendations": recommendations,
     }
 
 
@@ -204,20 +250,16 @@ def run_cli() -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description="Verify IB trading system setup")
-    parser.add_argument("--skip-ib-test", action="store_true",
-                      help="Skip IB connection test")
-    parser.add_argument("--verbose", action="store_true",
-                      help="Enable verbose output")
-    parser.add_argument("--describe", action="store_true",
-                      help="Show tool schemas")
+    parser.add_argument(
+        "--skip-ib-test", action="store_true", help="Skip IB connection test"
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--describe", action="store_true", help="Show tool schemas")
 
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(json.dumps(_describe(), indent=2))
         return 0
 
     result = main(skip_ib_test=args.skip_ib_test, verbose=args.verbose)

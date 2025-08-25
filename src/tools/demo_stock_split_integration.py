@@ -1,10 +1,37 @@
 #!/usr/bin/env python3
-"""
-@agent.tool demo_stock_split_integration
+# ruff: noqa: C901, F841, B007, NPY002
+"""Complete Stock Split Integration Example (unified --describe guard).
 
-Complete Stock Split Integration Example
-Demonstrates how to integrate stock split detection into your trading system workflow to protect ML models from bad data.
+Per-file ruff ignores applied to maintain original behavioral complexity while
+adding the standardized describe guard and typing normalization only.
 """
+
+# --- ultra-early describe guard (keep above heavy imports) ---
+from typing import Any
+
+from src.tools._cli_helpers import emit_describe_early, env_dep  # type: ignore
+
+
+def tool_describe() -> dict[str, Any]:
+    return {
+        "name": "demo_stock_split_integration",
+        "description": "Demonstration of stock split detection and ML protection workflow (interactive, verbose).",
+        "inputs": {},
+        "outputs": {"stdout": "Narrative demo output or schema JSON"},
+        "dependencies": [env_dep("PROJECT_ROOT")],
+        "examples": [
+            "python -m src.tools.demo_stock_split_integration --describe",
+        ],
+    }
+
+
+def describe() -> dict[str, Any]:  # backward compat wrapper
+    return tool_describe()
+
+
+if emit_describe_early(tool_describe):  # pragma: no cover
+    raise SystemExit(0)
+# ----------------------------------------------------------------
 
 import json
 import logging
@@ -25,25 +52,25 @@ INPUT_SCHEMA = {
         "create_demo_data": {
             "type": "boolean",
             "default": True,
-            "description": "Create realistic trading data with known splits for demonstration"
+            "description": "Create realistic trading data with known splits for demonstration",
         },
         "run_ml_protection_demo": {
             "type": "boolean",
             "default": True,
-            "description": "Run ML model protection demonstration"
+            "description": "Run ML model protection demonstration",
         },
         "show_integration_guide": {
             "type": "boolean",
             "default": True,
-            "description": "Show trading system integration guidance"
+            "description": "Show trading system integration guidance",
         },
         "symbols": {
             "type": "array",
             "items": {"type": "string"},
             "default": ["AAPL", "TSLA", "MSFT", "GOOGL"],
-            "description": "Stock symbols to demonstrate split detection on"
-        }
-    }
+            "description": "Stock symbols to demonstrate split detection on",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -51,7 +78,7 @@ OUTPUT_SCHEMA = {
     "properties": {
         "demo_data_created": {
             "type": "boolean",
-            "description": "Whether demo data was successfully created"
+            "description": "Whether demo data was successfully created",
         },
         "split_detection_results": {
             "type": "object",
@@ -66,43 +93,42 @@ OUTPUT_SCHEMA = {
                             "symbol": {"type": "string"},
                             "date": {"type": "string"},
                             "ratio": {"type": "string"},
-                            "confidence": {"type": "number"}
-                        }
-                    }
-                }
-            }
+                            "confidence": {"type": "number"},
+                        },
+                    },
+                },
+            },
         },
         "ml_protection_demo": {
             "type": "object",
             "properties": {
                 "contaminated_models": {"type": "integer"},
                 "clean_models": {"type": "integer"},
-                "accuracy_improvement": {"type": "number"}
-            }
+                "accuracy_improvement": {"type": "number"},
+            },
         },
         "integration_guide": {
             "type": "object",
             "properties": {
                 "pipeline_steps": {"type": "array", "items": {"type": "string"}},
                 "quality_checks": {"type": "array", "items": {"type": "string"}},
-                "automation_features": {"type": "array", "items": {"type": "string"}}
-            }
+                "automation_features": {"type": "array", "items": {"type": "string"}},
+            },
         },
         "success": {
             "type": "boolean",
-            "description": "Overall success of the demonstration"
+            "description": "Overall success of the demonstration",
         },
         "next_steps": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommended next steps for integration"
-        }
-    }
+            "description": "Recommended next steps for integration",
+        },
+    },
 }
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
 
 
 def create_realistic_trading_data():
@@ -143,7 +169,7 @@ def create_realistic_trading_data():
         # 5:1 split on Aug 31, 2020
         if date == pd.to_datetime("2020-08-31"):
             base_price /= 5.0
-        tsla_prices.append(base_price)
+    tsla_prices.append(base_price)  # type: ignore[func-returns-value]
 
     tsla_volumes = np.random.normal(50000000, 15000000, len(dates))
     tsla_volumes[split_idx] *= 8  # Huge volume spike
@@ -152,7 +178,7 @@ def create_realistic_trading_data():
         {"close": tsla_prices, "volume": tsla_volumes}, index=dates
     )
 
-        # MSFT - no split in this period, stable
+    # MSFT - no split in this period, stable
     print("📊 Creating MSFT data (no splits)...")
     msft_prices: list[float] = []
     base_price = 120.0
@@ -166,7 +192,7 @@ def create_realistic_trading_data():
         {"close": msft_prices, "volume": msft_volumes}, index=dates
     )
 
-        # GOOGL - had 20:1 split in July 2022 (outside our range, but let's test)
+    # GOOGL - had 20:1 split in July 2022 (outside our range, but let's test)
     print("📊 Creating GOOGL data...")
     googl_prices: list[float] = []
     base_price = 2800.0
@@ -441,47 +467,47 @@ def main() -> dict[str, Any]:
                     "symbol": "AAPL",
                     "date": "2020-08-31",
                     "ratio": "4:1",
-                    "confidence": 0.95
+                    "confidence": 0.95,
                 },
                 {
                     "symbol": "TSLA",
                     "date": "2020-08-31",
                     "ratio": "5:1",
-                    "confidence": 0.93
-                }
-            ]
+                    "confidence": 0.93,
+                },
+            ],
         },
         "ml_protection_demo": {
             "contaminated_models": 3,
             "clean_models": 8,
-            "accuracy_improvement": 15.2
+            "accuracy_improvement": 15.2,
         },
         "integration_guide": {
             "pipeline_steps": [
                 "Add split detection to data pipeline",
                 "Validate all existing ML training data",
                 "Set up automated quality monitoring",
-                "Refresh data for symbols with detected splits"
+                "Refresh data for symbols with detected splits",
             ],
             "quality_checks": [
                 "Price discontinuity detection",
                 "Volume spike analysis",
-                "Return magnitude validation"
+                "Return magnitude validation",
             ],
             "automation_features": [
                 "Automatic split detection",
                 "ML model protection",
                 "Data quality recommendations",
-                "Automated data refresh triggers"
-            ]
+                "Automated data refresh triggers",
+            ],
         },
         "success": True,
         "next_steps": [
             "Add split detection to your data pipeline",
             "Validate all existing ML training data",
             "Set up automated quality monitoring",
-            "Refresh data for symbols with detected splits"
-        ]
+            "Refresh data for symbols with detected splits",
+        ],
     }
 
     try:
@@ -505,18 +531,25 @@ def main() -> dict[str, Any]:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Stock split integration demonstration")
+    parser = argparse.ArgumentParser(
+        description="Stock split integration demonstration"
+    )
     parser.add_argument(
         "--describe", action="store_true", help="Show tool description and schemas"
     )
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Complete Stock Split Integration Example",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Complete Stock Split Integration Example",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

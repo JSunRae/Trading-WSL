@@ -1,0 +1,34 @@
+{
+  "symbols": [
+    "AvTimeCLS",
+    "ExitTrigger",
+    "WarriorListCLS",
+    "Update_Test",
+    "Update_Warrior_Main",
+    "Update_Warrior_30Min",
+    "Update_Downloaded",
+    "Create_Warrior_TrainList"
+  ],
+  "usages": {
+    "Update_Warrior_Main": ["src/tools/maintenance/run_data_update.py:166"],
+    "Update_Warrior_30Min": ["src/tools/maintenance/run_data_update.py:202"],
+    "Update_Downloaded": ["src/tools/maintenance/run_data_update.py:233"],
+    "ib_Warror_dl_module_imports": [
+      "src/tools/maintenance/update_data.py:163",
+      "src/tools/maintenance/run_data_update.py:150",
+      "src/tools/maintenance/run_data_update.py:186",
+      "src/tools/maintenance/run_data_update.py:221"
+    ]
+  },
+  "unreferenced": [
+    "AvTimeCLS",
+    "ExitTrigger",
+    "WarriorListCLS",
+    "Update_Test",
+    "Create_Warrior_TrainList"
+  ],
+  "decision": {
+    "action": "delete_file_and_replace_with_tool",
+    "reason": "Only three update functions referenced externally; easier to express as modern CLI modes without legacy classes or timing constructs."
+  }
+}

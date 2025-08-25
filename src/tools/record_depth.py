@@ -1,82 +1,87 @@
+# ruff: noqa: E402,N8
+"""Level 2 Market Depth Recorder (Interactive Brokers)
+
+Clean implementation after refactor issues. Provides:
+- Real-time market depth subscription
+- Periodic order book snapshots
+- Raw depth message capture
+- Parquet/JSON persistence
+- Standard --describe metadata (ports & config driven)
+
+Design goals:
+- Keep dependencies light for --describe (defer heavy imports where possible)
+- Avoid complex control flow (small focused helpers)
+- Support running without IB services (graceful failures)
 """
-Level 2 Market Depth Data Recorder for Interactive Brokers
 
-This module provides real-time Level 2 (order book) data recording capabilities
-using the Interactive Brokers API with nanosecond timestamp precision.
-
-Features:
-- Records bid/ask prices and sizes at specified levels (default 10 each side)
-- Configurable snapshot intervals (default 100ms)
-- Stores data in Parquet format partitioned by symbol and date
-- Logs individual market depth update messages for future MBO analysis
-- CLI interface for easy operation
-- Paper trading mode for testing
-
-Author: Trading Project
-Date: 2025-07-28
-"""
+from __future__ import annotations
 
 import json
 import logging
-import os
-import socket
-import sys
+import socket as _sock
 import threading
 import time
 from collections import deque
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import click
-import pandas as pd
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+try:  # Allow --describe to function without full config dependency
+    from src.core.config import get_config  # type: ignore
+except Exception:  # pragma: no cover
 
-from ibapi.client import EClient
-from ibapi.common import TickerId
-from ibapi.contract import Contract
-from ibapi.wrapper import EWrapper
+    def get_config():  # type: ignore
+        class C:
+            host = "127.0.0.1"
+            gateway_paper_port = 4002
+            gateway_live_port = 4001
+            paper_port = 7497
+            live_port = 7496
+            client_id = 1
+
+        class D:
+            ib_connection = C()
+
+        return D()
 
 
+# IB API imports (alphabetical)
+from ibapi.client import EClient  # type: ignore
+from ibapi.common import TickerId  # type: ignore
+from ibapi.contract import Contract  # type: ignore
+from ibapi.wrapper import EWrapper  # type: ignore
+
+
+# ---------------------------------------------------------------------------
+# Data Structures
+# ---------------------------------------------------------------------------
 @dataclass
 class DepthSnapshot:
-    """Structure for Level 2 order book snapshot."""
-
     timestamp: str
     bid_prices: list[float]
     bid_sizes: list[int]
     ask_prices: list[float]
     ask_sizes: list[int]
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return asdict(self)
-
 
 @dataclass
 class DepthMessage:
-    """Structure for individual market depth update message."""
-
     timestamp: str
-    operation: str  # add/update/remove
-    side: str  # bid/ask
+    operation: str
+    side: str
     level: int
     price: float
     size: int
     symbol: str
 
 
+# ---------------------------------------------------------------------------
+# Recorder Implementation
+# ---------------------------------------------------------------------------
 class DepthRecorder(EWrapper, EClient):
-    """
-    Level 2 market depth recorder using IB API.
-
-    This class handles connection to Interactive Brokers, subscribes to market depth,
-    and records snapshots at specified intervals.
-    """
-
     def __init__(
         self,
         symbol: str,
@@ -84,157 +89,131 @@ class DepthRecorder(EWrapper, EClient):
         interval_ms: int = 100,
         output_dir: str = "./data/level2",
         paper_mode: bool = True,
-        host: str = "127.0.0.1",
-        port: int = 4002,
+        host: str | None = None,
+        port: int | None = None,
         client_id: int = 1,
-    ):
+    ) -> None:
         EClient.__init__(self, self)
-
-        self.symbol = symbol
+        cfg = get_config().ib_connection
+        self.symbol = symbol.upper()
         self.levels = levels
         self.interval_ms = interval_ms
         self.output_dir = Path(output_dir)
         self.paper_mode = paper_mode
-        self.host = host
-        self.port = port
+        self.host = host or cfg.host
+        self.port = (
+            port
+            if port is not None
+            else (cfg.gateway_paper_port if paper_mode else cfg.gateway_live_port)
+        )
         self.client_id = client_id
 
-        # Market depth data storage
-        self.bid_book: dict[int, dict[str, float]] = {}  # level -> {price, size}
-        self.ask_book: dict[int, dict[str, float]] = {}  # level -> {price, size}
+        # Order book state
+        self.bid_book: dict[int, dict[str, float]] = {}
+        self.ask_book: dict[int, dict[str, float]] = {}
         self.book_lock = threading.Lock()
 
-        # Snapshot storage
-        self.snapshots: deque = deque(maxlen=100000)  # Limit memory usage
-        self.messages: deque = deque(maxlen=50000)  # Individual messages
+        # Buffers
+        self.snapshots: deque[DepthSnapshot] = deque(maxlen=100_000)
+        self.messages: deque[DepthMessage] = deque(maxlen=50_000)
 
-        # State management
+        # Session state
         self.connected = False
         self.subscribed = False
         self.recording = False
         self.contract: Contract | None = None
         self.ticker_id = 1001
 
-        # Setup logging
-        self.setup_logging()
-
-        # Create output directories
-        self.setup_directories()
-
-        # Snapshot thread
+        # Infra
+        self._setup_logging()
+        self._ensure_dirs()
         self.snapshot_thread: threading.Thread | None = None
         self.stop_event = threading.Event()
+        self.api_thread: threading.Thread | None = None
 
-    def setup_logging(self):
-        """Setup logging configuration."""
-        log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    # ----- Setup --------------------------------------------------
+    def _setup_logging(self) -> None:
         logging.basicConfig(
             level=logging.INFO,
-            format=log_format,
-            handlers=[
-                logging.FileHandler(f"logs/depth_recorder_{self.symbol}.log"),
-                logging.StreamHandler(),
-            ],
+            format="%(asctime)s %(levelname)s %(message)s",
         )
-        self.logger = logging.getLogger(f"DepthRecorder_{self.symbol}")
+        self.logger = logging.getLogger(f"DepthRecorder.{self.symbol}")
 
-    def setup_directories(self):
-        """Create necessary directories for data storage."""
-        symbol_dir = self.output_dir / self.symbol
-        symbol_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create logs directory if it doesn't exist
+    def _ensure_dirs(self) -> None:
+        (self.output_dir / self.symbol).mkdir(parents=True, exist_ok=True)
         Path("logs").mkdir(exist_ok=True)
 
-        self.logger.info(f"Output directory: {symbol_dir}")
-
-    def create_contract(self) -> Contract:
-        """Create IB contract for the symbol."""
-        contract = Contract()
-        contract.symbol = self.symbol
-        contract.secType = "STK"
-        contract.exchange = "SMART"
-        contract.currency = "USD"
-        return contract
-
-    def connect_to_ib(self):
-        """Connect to Interactive Brokers TWS/Gateway."""
+    # ----- Connection ---------------------------------------------
+    def connect_to_ib(self) -> bool:
         try:
             self.logger.info(
-                f"Connecting to IB at {self.host}:{self.port} (Paper: {self.paper_mode})"
+                f"Connecting {self.host}:{self.port} paper={self.paper_mode}"
             )
             self.connect(self.host, self.port, self.client_id)
-
-            # Wait for connection
-            timeout = 10
-            start_time = time.time()
-            while not self.connected and (time.time() - start_time) < timeout:
+            if not self.api_thread or not self.api_thread.is_alive():
+                self.api_thread = threading.Thread(target=super().run, daemon=True)
+                self.api_thread.start()
+            start = time.time()
+            while not self.connected and time.time() - start < 10:
                 time.sleep(0.1)
-
-            if self.connected:
-                self.logger.info("Successfully connected to IB")
-                return True
-            else:
-                self.logger.error("Failed to connect to IB within timeout")
+            if not self.connected:
+                self.logger.error("Connection timeout")
                 return False
-
-        except Exception as e:
-            self.logger.error(f"Connection error: {e}")
+            return True
+        except Exception as e:  # pragma: no cover
+            self.logger.error(f"Connect error: {e}")
             return False
 
-    def connectAck(self):
-        """Callback when connection is established."""
+    def connectAck(self):  # noqa: N802
         self.connected = True
         self.logger.info("Connection acknowledged")
 
-    def connectionClosed(self):
-        """Callback when connection is closed."""
+    def connectionClosed(self):  # noqa: N802
         self.connected = False
         self.subscribed = False
         self.logger.warning("Connection closed")
 
-    def error(
+    def error(  # noqa: N802
         self,
         reqId: TickerId,
         errorCode: int,
         errorString: str,
         advancedOrderRejectJson: str = "",
-    ):
-        """Handle IB API errors."""
-        if errorCode in [2104, 2106, 2158]:  # Market data warnings
-            self.logger.warning(f"Market data warning: {errorString}")
-        elif errorCode in [200, 162]:  # No security definition or data
-            self.logger.error(f"Security/Data error for {self.symbol}: {errorString}")
+    ) -> None:
+        if errorCode in {2104, 2106, 2158}:
+            self.logger.warning(f"Market data notice: {errorString}")
+        elif errorCode in {200, 162}:
+            self.logger.error(f"Security/Data error {errorCode}: {errorString}")
         else:
             self.logger.error(f"Error {errorCode}: {errorString}")
 
-    def subscribe_market_depth(self):
-        """Subscribe to Level 2 market depth data."""
-        if not self.connected:
-            self.logger.error("Not connected to IB")
-            return False
+    # ----- Depth Subscription -------------------------------------
+    def _contract(self) -> Contract:
+        c = Contract()
+        c.symbol = self.symbol
+        c.secType = "STK"
+        c.exchange = "SMART"
+        c.currency = "USD"
+        return c
 
+    def subscribe_market_depth(self) -> bool:
         try:
-            self.contract = self.create_contract()
-
-            # Request market depth with native order book (not smart depth)
+            self.contract = self._contract()
             self.reqMktDepth(
                 reqId=self.ticker_id,
                 contract=self.contract,
-                numRows=self.levels * 2,  # Total rows (bid + ask)
-                isSmartDepth=False,  # Use native order book
+                numRows=self.levels * 2,
+                isSmartDepth=False,
                 mktDepthOptions=[],
             )
-
             self.subscribed = True
-            self.logger.info(f"Subscribed to market depth for {self.symbol}")
+            self.logger.info("Subscribed to market depth")
             return True
-
-        except Exception as e:
-            self.logger.error(f"Failed to subscribe to market depth: {e}")
+        except Exception as e:  # pragma: no cover
+            self.logger.error(f"Subscribe error: {e}")
             return False
 
-    def updateMktDepth(
+    def updateMktDepth(  # noqa: N802
         self,
         reqId: TickerId,
         position: int,
@@ -242,471 +221,332 @@ class DepthRecorder(EWrapper, EClient):
         side: int,
         price: float,
         size: int,
-    ):
-        """
-        Handle market depth updates.
-
-        Args:
-            reqId: Request ID
-            position: Position in the book (0-based)
-            operation: 0=insert, 1=update, 2=delete
-            side: 0=ask, 1=bid
-            price: Price level
-            size: Size at this level
-        """
-        try:
-            timestamp = datetime.now(UTC).isoformat()
-
-            # Map operation codes
-            op_map = {0: "add", 1: "update", 2: "remove"}
-            side_map = {0: "ask", 1: "bid"}
-
-            operation_str = op_map.get(operation, "unknown")
-            side_str = side_map.get(side, "unknown")
-
-            # Log the individual message
-            message = DepthMessage(
-                timestamp=timestamp,
-                operation=operation_str,
-                side=side_str,
+    ) -> None:
+        ts = datetime.now(UTC).isoformat()
+        op_map = {0: "add", 1: "update", 2: "remove"}
+        side_map = {0: "ask", 1: "bid"}
+        self.messages.append(
+            DepthMessage(
+                timestamp=ts,
+                operation=op_map.get(operation, "?"),
+                side=side_map.get(side, "?"),
                 level=position,
                 price=price,
                 size=size,
                 symbol=self.symbol,
             )
-            self.messages.append(message)
+        )
+        with self.book_lock:
+            book = self.bid_book if side == 1 else self.ask_book
+            if operation == 2:
+                book.pop(position, None)
+            else:
+                book[position] = {"price": price, "size": size}
 
-            # Update the order book
-            with self.book_lock:
-                if side == 1:  # Bid side
-                    if operation == 2:  # Remove
-                        if position in self.bid_book:
-                            del self.bid_book[position]
-                    else:  # Add or update
-                        self.bid_book[position] = {"price": price, "size": size}
-                else:  # Ask side
-                    if operation == 2:  # Remove
-                        if position in self.ask_book:
-                            del self.ask_book[position]
-                    else:  # Add or update
-                        self.ask_book[position] = {"price": price, "size": size}
-
-            # Debug logging for first few messages
-            if len(self.messages) <= 20:
-                self.logger.debug(
-                    f"Depth update: {side_str} L{position} {operation_str} "
-                    f"${price} x {size}"
-                )
-
-        except Exception as e:
-            self.logger.error(f"Error processing market depth update: {e}")
-
-    def create_snapshot(self) -> DepthSnapshot | None:
-        """Create a snapshot of the current order book."""
+    # ----- Snapshot Logic -----------------------------------------
+    def _snapshot(self) -> DepthSnapshot | None:
         try:
             with self.book_lock:
-                timestamp = datetime.now(UTC).isoformat()
-
-                # Initialize arrays with zeros
                 bid_prices = [0.0] * self.levels
                 bid_sizes = [0] * self.levels
                 ask_prices = [0.0] * self.levels
                 ask_sizes = [0] * self.levels
-
-                # Fill bid data (sorted by level)
-                for level in sorted(self.bid_book.keys()):
-                    if level < self.levels:
-                        bid_prices[level] = self.bid_book[level]["price"]
-                        bid_sizes[level] = int(self.bid_book[level]["size"])
-
-                # Fill ask data (sorted by level)
-                for level in sorted(self.ask_book.keys()):
-                    if level < self.levels:
-                        ask_prices[level] = self.ask_book[level]["price"]
-                        ask_sizes[level] = int(self.ask_book[level]["size"])
-
-                return DepthSnapshot(
-                    timestamp=timestamp,
-                    bid_prices=bid_prices,
-                    bid_sizes=bid_sizes,
-                    ask_prices=ask_prices,
-                    ask_sizes=ask_sizes,
-                )
-
-        except Exception as e:
-            self.logger.error(f"Error creating snapshot: {e}")
+                for lvl in sorted(self.bid_book):
+                    if lvl < self.levels:
+                        bid_prices[lvl] = self.bid_book[lvl]["price"]
+                        bid_sizes[lvl] = int(self.bid_book[lvl]["size"])
+                for lvl in sorted(self.ask_book):
+                    if lvl < self.levels:
+                        ask_prices[lvl] = self.ask_book[lvl]["price"]
+                        ask_sizes[lvl] = int(self.ask_book[lvl]["size"])
+            return DepthSnapshot(
+                timestamp=datetime.now(UTC).isoformat(),
+                bid_prices=bid_prices,
+                bid_sizes=bid_sizes,
+                ask_prices=ask_prices,
+                ask_sizes=ask_sizes,
+            )
+        except Exception as e:  # pragma: no cover
+            self.logger.error(f"Snapshot error: {e}")
             return None
 
-    def snapshot_worker(self):
-        """Worker thread for taking periodic snapshots."""
-        self.logger.info(f"Starting snapshot worker with {self.interval_ms}ms interval")
-
+    def _snapshot_loop(self) -> None:
         while not self.stop_event.is_set():
-            try:
-                if self.recording and self.subscribed:
-                    snapshot = self.create_snapshot()
-                    if snapshot:
-                        self.snapshots.append(snapshot)
+            if self.recording and self.subscribed:
+                snap = self._snapshot()
+                if snap:
+                    self.snapshots.append(snap)
+            self.stop_event.wait(self.interval_ms / 1000.0)
 
-                        # Log progress every 100 snapshots
-                        if len(self.snapshots) % 100 == 0:
-                            self.logger.info(
-                                f"Recorded {len(self.snapshots)} snapshots"
-                            )
-
-                # Wait for the specified interval
-                self.stop_event.wait(self.interval_ms / 1000.0)
-
-            except Exception as e:
-                self.logger.error(f"Error in snapshot worker: {e}")
-                time.sleep(1)  # Prevent tight loop on errors
-
-    def start_recording(self):
-        """Start recording market depth snapshots."""
+    def start_recording(self) -> bool:
         if not self.subscribed:
-            self.logger.error("Not subscribed to market depth")
+            self.logger.error("Not subscribed")
             return False
-
         self.recording = True
         self.stop_event.clear()
-
-        # Start snapshot worker thread
-        self.snapshot_thread = threading.Thread(target=self.snapshot_worker)
-        self.snapshot_thread.daemon = True
+        self.snapshot_thread = threading.Thread(target=self._snapshot_loop, daemon=True)
         self.snapshot_thread.start()
-
-        self.logger.info("Started recording market depth snapshots")
         return True
 
-    def stop_recording(self):
-        """Stop recording and save data."""
-        self.logger.info("Stopping recording...")
-
+    def stop_recording(self) -> None:
         self.recording = False
         self.stop_event.set()
-
         if self.snapshot_thread:
             self.snapshot_thread.join(timeout=5)
+        self._persist()
 
-        # Save data
-        self.save_data()
-
-        self.logger.info("Recording stopped")
-
-    def save_data(self):
-        """Save recorded snapshots and messages to files."""
+    # ----- Persistence --------------------------------------------
+    def _persist(self) -> None:
+        if not self.snapshots:
+            self.logger.warning("No snapshots captured")
+            return
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        ts = datetime.now().strftime("%H%M%S")
+        dest = self.output_dir / self.symbol
+        dest.mkdir(parents=True, exist_ok=True)
         try:
-            if not self.snapshots:
-                self.logger.warning("No snapshots to save")
-                return
+            import pandas as pd  # local import
 
-            # Create filename with current date
-            date_str = datetime.now().strftime("%Y-%m-%d")
-            timestamp_str = datetime.now().strftime("%H%M%S")
-
-            # Save snapshots to Parquet
-            snapshots_data = [snapshot.to_dict() for snapshot in self.snapshots]
-            df_snapshots = pd.DataFrame(snapshots_data)
-
-            snapshots_file = (
-                self.output_dir
-                / self.symbol
-                / f"{date_str}_snapshots_{timestamp_str}.parquet"
-            )
-            df_snapshots.to_parquet(snapshots_file, compression="snappy")
-
-            self.logger.info(
-                f"Saved {len(snapshots_data)} snapshots to {snapshots_file}"
-            )
-
-            # Save messages to JSON for detailed analysis
+            snap_file = dest / f"{date_str}_snapshots_{ts}.parquet"
+            data_rows = [s.__dict__ for s in self.snapshots]
+            pd.DataFrame(data_rows).to_parquet(snap_file, compression="snappy")
             if self.messages:
-                messages_data = [asdict(msg) for msg in self.messages]
-                messages_file = (
-                    self.output_dir
-                    / self.symbol
-                    / f"{date_str}_messages_{timestamp_str}.json"
+                msg_file = dest / f"{date_str}_messages_{ts}.json"
+                msg_file.write_text(
+                    json.dumps([m.__dict__ for m in self.messages], indent=2)
                 )
-
-                with open(messages_file, "w") as f:
-                    json.dump(messages_data, f, indent=2)
-
-                self.logger.info(
-                    f"Saved {len(messages_data)} messages to {messages_file}"
-                )
-
-            # Save summary statistics
-            self.save_summary_stats(len(snapshots_data), len(self.messages))
-
-        except Exception as e:
-            self.logger.error(f"Error saving data: {e}")
-
-    def save_summary_stats(self, num_snapshots: int, num_messages: int):
-        """Save summary statistics of the recording session."""
-        try:
-            stats = {
-                "symbol": self.symbol,
-                "recording_date": datetime.now().isoformat(),
-                "levels": self.levels,
-                "interval_ms": self.interval_ms,
-                "num_snapshots": num_snapshots,
-                "num_messages": num_messages,
-                "paper_mode": self.paper_mode,
-            }
-
             stats_file = (
-                self.output_dir
-                / self.symbol
-                / f"session_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                dest / f"session_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             )
+            stats_file.write_text(
+                json.dumps(
+                    {
+                        "symbol": self.symbol,
+                        "levels": self.levels,
+                        "interval_ms": self.interval_ms,
+                        "num_snapshots": len(self.snapshots),
+                        "num_messages": len(self.messages),
+                        "paper_mode": self.paper_mode,
+                        "recording_date": datetime.now().isoformat(),
+                    },
+                    indent=2,
+                )
+            )
+        except Exception as e:  # pragma: no cover
+            self.logger.error(f"Persist error: {e}")
 
-            with open(stats_file, "w") as f:
-                json.dump(stats, f, indent=2)
-
-            self.logger.info(f"Saved session statistics to {stats_file}")
-
-        except Exception as e:
-            self.logger.error(f"Error saving statistics: {e}")
-
-    def run(self, duration_minutes: int | None = None):
-        """
-        Run the recorder for specified duration.
-
-        Args:
-            duration_minutes: How long to record (None = indefinite)
-        """
+    # ----- Orchestration -----------------------------------------
+    def run_session(self, duration_minutes: int | None = None) -> bool:
         try:
-            # Connect to IB
             if not self.connect_to_ib():
                 return False
-
-            # Subscribe to market depth
             if not self.subscribe_market_depth():
                 return False
-
-            # Wait for initial data
-            self.logger.info("Waiting for initial market depth data...")
-            time.sleep(2)
-
-            # Start recording
+            time.sleep(2)  # warm-up
             if not self.start_recording():
                 return False
-
-            # Run for specified duration or until interrupted
             if duration_minutes:
-                self.logger.info(f"Recording for {duration_minutes} minutes...")
                 time.sleep(duration_minutes * 60)
             else:
-                self.logger.info("Recording indefinitely. Press Ctrl+C to stop...")
-                try:
-                    while self.recording:
-                        time.sleep(1)
-                except KeyboardInterrupt:
-                    self.logger.info("Received interrupt signal")
-
-            # Stop recording and cleanup
+                while self.recording:
+                    time.sleep(1)
             self.stop_recording()
             self.disconnect()
-
             return True
-
-        except Exception as e:
-            self.logger.error(f"Error during recording: {e}")
+        except KeyboardInterrupt:  # pragma: no cover
+            self.stop_recording()
+            self.disconnect()
+            return True
+        except Exception as e:  # pragma: no cover
+            self.logger.error(f"Session error: {e}")
             return False
 
 
-def check_available_ports() -> tuple[list, bool, bool]:
-    """Check which IB ports are accessible"""
-    ports = {
-        4002: "IB Gateway Paper Trading",
-        4001: "IB Gateway Live Trading",
-        7497: "TWS Paper Trading",
-        7496: "TWS Live Trading",
-    }
+# ---------------------------------------------------------------------------
+# Port utilities
+# ---------------------------------------------------------------------------
 
+
+def check_available_ports() -> tuple[list[int], bool, bool]:
+    cfg = get_config().ib_connection
+    ports = [
+        cfg.gateway_paper_port,
+        cfg.gateway_live_port,
+        cfg.paper_port,
+        cfg.live_port,
+    ]
     accessible: list[int] = []
-    gateway_available = False
-    tws_available = False
-
-    for port, name in ports.items():
+    gateway = False
+    tws = False
+    for p in ports:
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)
-            result = sock.connect_ex(("127.0.0.1", port))
-            sock.close()
-
-            if result == 0:
-                accessible.append(port)
-                if port in [4001, 4002]:
-                    gateway_available = True
+            s = _sock.socket(_sock.AF_INET, _sock.SOCK_STREAM)
+            s.settimeout(0.4)
+            if s.connect_ex(("127.0.0.1", p)) == 0:
+                accessible.append(p)
+                if p in (cfg.gateway_paper_port, cfg.gateway_live_port):
+                    gateway = True
                 else:
-                    tws_available = True
+                    tws = True
+            s.close()
         except Exception:
             pass
-
-    return accessible, gateway_available, tws_available
+    return accessible, gateway, tws
 
 
 def get_preferred_port(paper_mode: bool) -> int:
-    """Get user's preferred connection port"""
-    print("\n🔌 IB CONNECTION SETUP")
-    print("=" * 50)
-
-    # Check what's available
-    accessible_ports, gateway_available, tws_available = check_available_ports()
-
-    if accessible_ports:
-        print("✅ Available connections:")
-        for port in accessible_ports:
-            if port == 4002:
-                print("   1. IB Gateway Paper Trading (port 4002) ⭐ RECOMMENDED")
-            elif port == 4001:
-                print("   2. IB Gateway Live Trading (port 4001)")
-            elif port == 7497:
-                print("   3. TWS Paper Trading (port 7497)")
-            elif port == 7496:
-                print("   4. TWS Live Trading (port 7496)")
-    else:
-        print("❌ No IB services detected. Available options:")
-        print("   1. IB Gateway Paper Trading (port 4002) ⭐ RECOMMENDED")
-        print("   2. IB Gateway Live Trading (port 4001)")
-        print("   3. TWS Paper Trading (port 7497)")
-        print("   4. TWS Live Trading (port 7496)")
-
-    # Default recommendations
+    cfg = get_config().ib_connection
+    gp, gl, tp, tl = (
+        cfg.gateway_paper_port,
+        cfg.gateway_live_port,
+        cfg.paper_port,
+        cfg.live_port,
+    )
+    accessible, gateway_avail, tws_avail = check_available_ports()
     if paper_mode:
-        default_port = 4002 if gateway_available or not accessible_ports else (7497 if tws_available else 4002)
-        default_name = "IB Gateway Paper" if default_port == 4002 else "TWS Paper"
+        default_port = (
+            gp if gateway_avail or not accessible else (tp if tws_avail else gp)
+        )
+        default_name = "Gateway Paper" if default_port == gp else "TWS Paper"
     else:
-        default_port = 4001 if gateway_available or not accessible_ports else (7496 if tws_available else 4001)
-        default_name = "IB Gateway Live" if default_port == 4001 else "TWS Live"
-
-    print(f"\n💡 Recommended for {'paper' if paper_mode else 'live'} trading: {default_name} (port {default_port})")
-
-    # Ask user preference
+        default_port = (
+            gl if gateway_avail or not accessible else (tl if tws_avail else gl)
+        )
+        default_name = "Gateway Live" if default_port == gl else "TWS Live"
+    print("\n🔌 IB CONNECTION SETUP\n" + "=" * 50)
+    if accessible:
+        print("Detected:")
+        for p in accessible:
+            label = {
+                gp: f"1. Gateway Paper ({gp})",
+                gl: f"2. Gateway Live ({gl})",
+                tp: f"3. TWS Paper ({tp})",
+                tl: f"4. TWS Live ({tl})",
+            }.get(p, f"? {p}")
+            print("  " + label)
+    else:
+        print("No running IB services detected")
+    print(f"\nRecommended: {default_name} (port {default_port})")
+    mapping = {"1": gp, "2": gl, "3": tp, "4": tl, "5": default_port}
     while True:
-        print("\nConnection options:")
-        print("1. IB Gateway Paper Trading (4002) ⭐")
-        print("2. IB Gateway Live Trading (4001)")
-        print("3. TWS Paper Trading (7497)")
-        print("4. TWS Live Trading (7496)")
-        print("5. Use recommended default")
-
         try:
-            choice = input("\nChoose connection (1-5) [default: 5]: ").strip()
-
-            if choice == "1" or choice == "":
-                return 4002
-            elif choice == "2":
-                return 4001
-            elif choice == "3":
-                return 7497
-            elif choice == "4":
-                return 7496
-            elif choice == "5" or choice == "":
-                print(f"Using recommended: {default_name} (port {default_port})")
-                return default_port
-            else:
-                print("Please enter 1, 2, 3, 4, or 5")
-
-        except KeyboardInterrupt:
-            print(f"\nUsing default: {default_name} (port {default_port})")
+            sel = input("Select connection (1-5) [5]: ").strip() or "5"
+            if sel in mapping:
+                if sel == "5":
+                    print(f"Using recommended {default_name} ({default_port})")
+                return mapping[sel]
+            print("Enter 1-5")
+        except KeyboardInterrupt:  # pragma: no cover
+            print(f"\nUsing default {default_name} ({default_port})")
             return default_port
-        except Exception:
-            print("Invalid input. Please try again.")
 
 
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 @click.command()
-@click.option("--describe", is_flag=True, help="Show tool description")
+@click.option("--describe", is_flag=True, help="Show tool description and exit")
+@click.option("--symbol", "-s", help="Stock symbol (e.g., AAPL)")
+@click.option("--levels", "-l", default=10, show_default=True, help="Levels per side")
 @click.option(
-    "--symbol", "-s", help="Stock symbol to record (e.g., AAPL)"
+    "--interval", "-i", default=100, show_default=True, help="Snapshot interval ms"
 )
 @click.option(
-    "--levels", "-l", default=10, help="Number of price levels per side (default: 10)"
+    "--output",
+    "-o",
+    default="./data/level2",
+    show_default=True,
+    help="Output directory",
 )
 @click.option(
-    "--interval",
-    "-i",
-    default=100,
-    help="Snapshot interval in milliseconds (default: 100)",
+    "--duration", "-d", type=int, help="Duration minutes (omit for indefinite)"
 )
+@click.option("--host", default=None, help="IB host (default from config)")
+@click.option("--port", type=int, default=None, help="IB port (auto-detect / prompt)")
+@click.option("--client-id", default=1, show_default=True, help="IB API client id")
 @click.option(
-    "--output", "-o", default="./data/level2", help="Output directory for data files"
+    "--paper/--live", default=True, show_default=True, help="Paper vs live mode"
 )
-@click.option(
-    "--duration",
-    "-d",
-    type=int,
-    help="Recording duration in minutes (default: indefinite)",
-)
-@click.option(
-    "--host", default="127.0.0.1", help="IB TWS/Gateway host (default: 127.0.0.1)"
-)
-@click.option(
-    "--port",
-    default=None,
-    type=int,
-    help="IB connection port. If not specified, will auto-detect or ask user preference. " +
-         "Gateway: 4002 (paper) / 4001 (live), TWS: 7497 (paper) / 7496 (live)"
-)
-@click.option("--client-id", default=1, help="IB API client ID (default: 1)")
-@click.option(
-    "--paper/--live", default=True, help="Use paper trading account (default: True)"
-)
-def main(describe, symbol, levels, interval, output, duration, host, port, client_id, paper):
-    """
-    Record Level 2 market depth data from Interactive Brokers.
-
-    Example usage:
-    python record_depth.py --symbol AAPL --levels 10 --interval 100 --duration 60
-    """
-
+def main(
+    describe: bool,
+    symbol: str | None,
+    levels: int,
+    interval: int,
+    output: str,
+    duration: int | None,
+    host: str | None,
+    port: int | None,
+    client_id: int,
+    paper: bool,
+) -> None:
     if describe:
-        describe_info = {
-            "name": "record_depth.py",
-            "description": "Record Level 2 market depth data from Interactive Brokers with nanosecond precision",
-            "inputs": ["--symbol", "--levels", "--interval", "--output", "--duration", "--host", "--port", "--client-id", "--paper/--live"],
-            "outputs": ["parquet files in partitioned structure", "JSON message logs"],
-            "dependencies": ["click", "pandas", "ibapi"]
+        cfg = get_config().ib_connection
+        desc: dict[str, Any] = {
+            "name": "record_depth",
+            "description": "Record Level 2 market depth snapshots and raw messages (nanosecond timestamps).",
+            "inputs": {
+                "--symbol": {"type": "str", "required": True},
+                "--levels": {"type": "int", "default": levels},
+                "--interval": {"type": "int", "default": interval},
+                "--output": {"type": "path", "default": output},
+                "--duration": {"type": "int", "default": duration},
+                "--host": {"type": "str", "default": host or cfg.host},
+                "--port": {"type": "int", "default": None},
+                "--client-id": {"type": "int", "default": client_id},
+                "--paper/--live": {"type": "flag", "default": paper},
+            },
+            "outputs": {
+                "stdout": "Progress + summary logs",
+                "files": [
+                    "data/level2/<SYMBOL>/*_snapshots_*.parquet",
+                    "data/level2/<SYMBOL>/*_messages_*.json",
+                    "data/level2/<SYMBOL>/session_stats_*.json",
+                ],
+            },
+            "dependencies": [
+                "config:IB_HOST",
+                "config:IB_GATEWAY_PAPER_PORT",
+                "config:IB_GATEWAY_LIVE_PORT",
+                "config:IB_PAPER_PORT",
+                "config:IB_LIVE_PORT",
+                "optional:ibapi",
+            ],
+            "examples": [
+                "python -m src.tools.record_depth --symbol AAPL --duration 60",
+                "python -m src.tools.record_depth --symbol MSFT --paper --levels 5",
+            ],
+            "ports": {
+                "gateway_paper": cfg.gateway_paper_port,
+                "gateway_live": cfg.gateway_live_port,
+                "tws_paper": cfg.paper_port,
+                "tws_live": cfg.live_port,
+            },
+            "version": "1.0.0",
         }
-        print(json.dumps(describe_info, indent=2))
+        print(json.dumps(desc, indent=2))
         return
 
     if not symbol:
-        print("Error: --symbol is required when not using --describe")
+        print("Error: --symbol is required (or use --describe)")
         return
-
-    # Auto-detect or ask for port if not specified
+    cfg = get_config().ib_connection
+    host = host or cfg.host
     if port is None:
         port = get_preferred_port(paper)
 
     print("=" * 60)
     print("📊 LEVEL 2 MARKET DEPTH RECORDER")
     print("=" * 60)
-    print(f"Symbol: {symbol}")
-    print(f"Levels: {levels} per side")
+    print(f"Symbol: {symbol.upper()}")
+    print(f"Levels: {levels}")
     print(f"Interval: {interval}ms")
     print(f"Output: {output}")
-    print(f"Mode: {'Paper Trading' if paper else 'Live Trading'}")
+    print(f"Mode: {'Paper' if paper else 'Live'}")
     print(f"Connection: {host}:{port}")
-
-    # Show connection type
-    if port == 4002:
-        print("🔗 Connection: IB Gateway Paper Trading ⭐ RECOMMENDED")
-    elif port == 4001:
-        print("🔗 Connection: IB Gateway Live Trading")
-    elif port == 7497:
-        print("🔗 Connection: TWS Paper Trading")
-    elif port == 7496:
-        print("🔗 Connection: TWS Live Trading")
-    else:
-        print(f"🔗 Connection: Custom (port {port})")
-
     print("=" * 60)
 
-    # Create recorder
-    recorder = DepthRecorder(
-        symbol=symbol.upper(),
+    rec = DepthRecorder(
+        symbol=symbol,
         levels=levels,
         interval_ms=interval,
         output_dir=output,
@@ -715,28 +555,24 @@ def main(describe, symbol, levels, interval, output, duration, host, port, clien
         port=port,
         client_id=client_id,
     )
-
-    # Run recording
-    success = recorder.run(duration_minutes=duration)
-
-    if success:
+    ok = rec.run_session(duration_minutes=duration)
+    if ok:
         print("\n✅ Recording completed successfully!")
         print(f"💾 Data saved to: {output}/{symbol.upper()}/")
+        raise SystemExit(0)
+    print("\n❌ Recording failed!")
+    print("💡 Troubleshooting:")
+    if port in {cfg.gateway_live_port, cfg.gateway_paper_port}:
+        print("   • Ensure IB Gateway is running & logged in")
+        print("   • Check Configuration → API settings")
+        print("   • Confirm port & trusted IP (127.0.0.1)")
     else:
-        print("\n❌ Recording failed!")
-        print("💡 Troubleshooting tips:")
-        if port in [4001, 4002]:
-            print("   • Make sure IB Gateway is running and logged in")
-            print("   • Check API settings in Gateway (Configuration → API)")
-            print("   • Ensure API is enabled and port is correct")
-        else:
-            print("   • Make sure TWS is running and logged in")
-            print("   • Go to Configuration → API → Settings")
-            print("   • Enable 'Enable ActiveX and Socket Clients'")
-            print(f"   • Set Socket Port to {port}")
-            print("   • Add 127.0.0.1 to trusted IPs")
-        sys.exit(1)
+        print("   • Ensure TWS is running & logged in")
+        print("   • Enable 'Enable ActiveX and Socket Clients'")
+        print(f"   • Socket Port must be {port}")
+        print("   • Add 127.0.0.1 to trusted IPs")
+    raise SystemExit(1)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

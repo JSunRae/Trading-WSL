@@ -1,0 +1,163 @@
+{
+  "defs": [
+    { "file": "src/MasterPy_Trading.py", "line": 562 },
+    { "file": "src/tools/maintenance/architecture_demo.py", "line": 449 }
+  ],
+  "refs": [
+    {
+      "file": "src/MasterPy_Trading.py",
+      "line": 1839,
+      "context": "# launches the requestCheckerCLS class and returns it Req"
+    },
+    {
+      "file": "src/MasterPy_Trading.py",
+      "line": 1865,
+      "context": "Req = requestCheckerCLS(\"127.0.0.1\", Code, clientId, ib)"
+    },
+    {
+      "file": "src/migration_helper.py",
+      "line": 17,
+      "context": "Adapter class that provides the old requestCheckerCLS interface"
+    },
+    {
+      "file": "src/migration_helper.py",
+      "line": 293,
+      "context": "Gradually replace requestCheckerCLS usage with DataManager"
+    },
+    {
+      "file": "src/migration_helper.py",
+      "line": 308,
+      "context": "This function can be used as a drop-in replacement for requestCheckerCLS"
+    },
+    {
+      "file": "src/services/request_manager_service.py",
+      "line": 5,
+      "context": "Replaces the request management functionality from requestCheckerCLS."
+    },
+    {
+      "file": "src/services/request_manager_service.py",
+      "line": 407,
+      "context": "Adapter class that provides the old requestCheckerCLS interface"
+    },
+    {
+      "file": "src/services/contract_manager_service.py",
+      "line": 4,
+      "context": "Extracted from monolithic requestCheckerCLS (300+ lines)."
+    },
+    {
+      "file": "src/services/service_manager.py",
+      "line": 8,
+      "context": "This replaces the monolithic requestCheckerCLS with a modern"
+    },
+    {
+      "file": "src/services/historical_data_service.py",
+      "line": 9,
+      "context": "This replaces the Download_Historical method from requestCheckerCLS."
+    },
+    {
+      "file": "src/services/historical_data/__init__.py",
+      "line": 5,
+      "context": "functionality from the monolithic requestCheckerCLS."
+    },
+    {
+      "file": "src/services/historical_data/historical_data_service.py",
+      "line": 5,
+      "context": "Extracted from the monolithic requestCheckerCLS to provide focused,"
+    },
+    {
+      "file": "src/services/historical_data/historical_data_service.py",
+      "line": 50,
+      "context": "replacing the monolithic requestCheckerCLS functionality."
+    },
+    {
+      "file": "src/services/historical_data/availability_checker.py",
+      "line": 4,
+      "context": "Extracted from requestCheckerCLS to handle data availability checking."
+    },
+    {
+      "file": "src/services/historical_data/availability_checker.py",
+      "line": 34,
+      "context": "Extracted from the monolithic requestCheckerCLS to provide focused"
+    },
+    {
+      "file": "src/tools/integration_examples.py",
+      "line": 92,
+      "context": "Example: Using Historical Data Service instead of requestCheckerCLS"
+    },
+    {
+      "file": "src/tools/integration_examples.py",
+      "line": 96,
+      "context": "❌ OLD (Monolithic requestCheckerCLS):"
+    },
+    {
+      "file": "src/tools/integration_examples.py",
+      "line": 98,
+      "context": "print(\"   req = requestCheckerCLS(host, port, clientId, ib)\")"
+    },
+    {
+      "file": "src/tools/integration_examples.py",
+      "line": 195,
+      "context": "# Instead of requestCheckerCLS"
+    },
+    {
+      "file": "src/tools/integration_examples.py",
+      "line": 292,
+      "context": "req = requestCheckerCLS(host, port, clientId, ib)"
+    },
+    {
+      "file": "src/tools/migration_guide.py",
+      "line": 247,
+      "context": "1. Use DataManager instead of requestCheckerCLS"
+    },
+    {
+      "file": "src/tools/migration_guide.py",
+      "line": 270,
+      "context": "□ Migrate from requestCheckerCLS to DataManager"
+    },
+    {
+      "file": "src/tools/migration_guide.py",
+      "line": 331,
+      "context": "print(\"    checker = requestCheckerCLS()\")"
+    },
+    {
+      "file": "src/tools/migration_guide.py",
+      "line": 382,
+      "context": "checker = requestCheckerCLS()"
+    },
+    {
+      "file": "src/tools/maintenance/final_success_report.py",
+      "line": 239,
+      "context": "req = requestCheckerCLS(host, port, clientId, ib)"
+    },
+    {
+      "file": "src/tools/maintenance/final_success_report.py",
+      "line": 283,
+      "context": "Extract Order Management Service from requestCheckerCLS"
+    },
+    {
+      "file": "src/tools/maintenance/system_analysis.py",
+      "line": 338,
+      "context": "Migrate requestCheckerCLS to DataManager"
+    },
+    {
+      "file": "src/tools/maintenance/system_analysis.py",
+      "line": 397,
+      "context": "Replace requestCheckerCLS with DataManager"
+    },
+    {
+      "file": "src/tools/maintenance/critical_issues_summary.py",
+      "line": 130,
+      "context": "Problem: requestCheckerCLS (1,600+ lines) with mixed responsibilities"
+    },
+    {
+      "file": "src/tools/maintenance/critical_issues_summary.py",
+      "line": 201,
+      "context": "5. Extract Order Management Service from requestCheckerCLS"
+    },
+    {
+      "file": "src/tools/maintenance/architecture_demo.py",
+      "line": 384,
+      "context": "old: 1600+ line requestCheckerCLS with mixed responsibilities"
+    }
+  ]
+}

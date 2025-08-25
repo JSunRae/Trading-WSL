@@ -1,0 +1,6 @@
+{
+  "module": "src/tools/maintenance/update_data.py",
+  "public_entry_points": ["main", "DataUpdateManager"],
+  "cli": true,
+  "imported_by": []
+}

@@ -44,7 +44,34 @@ jobs:
 
       - name: Test with pytest (warnings as errors)
         run: |
-          python -m pytest tests/ -W error --cov=src --cov-branch --cov-report=xml --cov-report=term-missing:skip-covered --cov-fail-under=80
+          # Run tests with coverage (including JSON for unused code analysis)
+          python -m pytest tests/ -W error \
+            --cov=src --cov-branch \
+            --cov-report=xml \
+            --cov-report=json:coverage.json \
+            --cov-report=term-missing:skip-covered \
+            --cov-fail-under=80
+
+      - name: Guard against legacy MasterPy_Trading imports
+        run: |
+          echo "Scanning for forbidden legacy imports..."
+          if grep -R --line-number --exclude=src/MasterPy_Trading.py -E '\b(from|import)\s+(src\.)?MasterPy_Trading\b' src/; then
+            echo '❌ Legacy MasterPy_Trading import detected in src/. Failing build.'
+            exit 1
+          else
+            echo '✅ No forbidden legacy imports found.'
+          fi
+
+      - name: Generate unused code report
+        run: |
+          python scripts/find_unused_code.py
+          echo 'Unused code report generated.'
+
+      - name: Upload unused code report artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: unused-code-report
+          path: reports/unused_code_report.md
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

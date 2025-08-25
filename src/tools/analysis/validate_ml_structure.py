@@ -2,8 +2,66 @@
 """
 Test ML imports in a cleaner way
 """
+
 import sys
 from pathlib import Path
+
+from src.tools._cli_helpers import env_dep, print_json
+
+# Ultra-early describe path to guarantee JSON-only output before other side effects
+if "--describe" in sys.argv[1:]:  # pragma: no cover - executed only in describe mode
+    raise SystemExit(
+        print_json(
+            {
+                "name": "validate_ml_structure",
+                "description": "Validate presence and structure of ML-related modules (legacy text tool).",
+                "inputs": {
+                    "--describe": {
+                        "type": "flag",
+                        "description": "Show schema JSON and exit",
+                    }
+                },
+                "outputs": {
+                    "stdout": {
+                        "type": "text",
+                        "description": "Human-readable validation report or schema JSON",
+                    }
+                },
+                "dependencies": [env_dep("PROJECT_ROOT")],
+                "examples": [
+                    {
+                        "description": "Show schema",
+                        "command": "python -m src.tools.analysis.validate_ml_structure --describe",
+                    }
+                ],
+            }
+        )
+    )
+
+
+def describe() -> dict[str, object]:
+    """Machine-readable metadata for --describe."""
+    return {
+        "name": "validate_ml_structure",
+        "description": "Validate presence and structure of ML-related modules (legacy text tool).",
+        "inputs": {
+            "--describe": {"type": "flag", "description": "Show schema JSON and exit"}
+        },
+        "outputs": {
+            "stdout": {
+                "type": "text",
+                "description": "Human-readable validation report or schema JSON",
+            }
+        },
+        "dependencies": [env_dep("PROJECT_ROOT")],
+        "examples": [
+            {
+                "description": "Show schema",
+                "command": "python -m src.tools.analysis.validate_ml_structure --describe",
+            }
+        ],
+    }
+
 
 # Add the specific module paths to avoid conflicts
 src_path = Path(__file__).parent / "src"
@@ -14,6 +72,7 @@ domain_path = src_path / "domain"
 sys.path.insert(0, str(execution_path))
 sys.path.insert(0, str(risk_path))
 sys.path.insert(0, str(domain_path))
+
 
 def test_check_modules_exist():
     """Check that the required modules exist"""
@@ -45,6 +104,7 @@ def test_check_modules_exist():
 
     return True
 
+
 def test_pyright_config():
     """Check if pyrightconfig.json has our fixes"""
     print("\n🔄 Checking pyrightconfig.json...")
@@ -61,6 +121,7 @@ def test_pyright_config():
     else:
         print("❌ pyrightconfig.json missing extraPaths configuration")
         return False
+
 
 def test_domain_types_structure():
     """Check the domain types module structure"""
@@ -80,7 +141,7 @@ def test_domain_types_structure():
         "class RiskLevel",
         "class MLTradingSignal",
         "class RiskAssessment",
-        "class ExecutionReport"
+        "class ExecutionReport",
     ]
 
     missing = []
@@ -94,6 +155,7 @@ def test_domain_types_structure():
     else:
         print("✅ All required domain classes found")
         return True
+
 
 def test_api_module():
     """Check the API module structure"""
@@ -114,6 +176,7 @@ def test_api_module():
         print("❌ API module doesn't import from domain types")
         return False
 
+
 def test_test_file_structure():
     """Check the updated test file"""
     print("\n🔄 Checking updated test file...")
@@ -133,7 +196,12 @@ def test_test_file_structure():
         print("❌ Test file still using problematic imports")
         return False
 
-if __name__ == "__main__":
+
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if "--describe" in args:  # early pure JSON path
+        return print_json(describe())
+
     print("=" * 60)
     print("ML INFRASTRUCTURE STRUCTURE VALIDATION")
     print("=" * 60)
@@ -143,12 +211,10 @@ if __name__ == "__main__":
         test_pyright_config,
         test_domain_types_structure,
         test_api_module,
-        test_test_file_structure
+        test_test_file_structure,
     ]
 
-    results = []
-    for test in tests:
-        results.append(test())
+    results = [t() for t in tests]
 
     print("\n" + "=" * 60)
     print("SUMMARY")
@@ -163,7 +229,11 @@ if __name__ == "__main__":
         print("   1. Install required dependencies (ib_insync, etc.)")
         print("   2. Run: python -m pytest tests/test_ml_infrastructure_priorities.py")
         print("   3. Check that Pyright shows fewer unknown type warnings")
-        sys.exit(0)
+        return 0
     else:
         print(f"❌ {total - passed} of {total} tests failed")
-        sys.exit(1)
+        return 1
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

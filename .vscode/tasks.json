@@ -88,15 +88,15 @@
       "problemMatcher": []
     },
     {
-    "label": "Run Coverage and Report (Windows)",
-    "type": "shell",
-    "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe -m pytest --cov=src --cov-branch --cov-report=json:coverage.json && ${workspaceFolder}\\.venv\\Scripts\\python.exe scripts\\find_unused_code.py",
-    "problemMatcher": []
+      "label": "Run Coverage and Report (Windows)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe -m pytest --cov=src --cov-branch --cov-report=json:coverage.json && ${workspaceFolder}\\.venv\\Scripts\\python.exe scripts\\find_unused_code.py",
+      "problemMatcher": []
     },
     {
-    "label": "Format with Ruff",
-    "type": "shell",
-    "command": "${workspaceFolder}/.venv/bin/python",
+      "label": "Format with Ruff",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["-m", "ruff", "format", "src/", "tests/", "examples/"],
       "windows": {
         "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
@@ -326,6 +326,58 @@
         "focus": false,
         "panel": "shared"
       },
+      "problemMatcher": []
+    },
+    {
+      "label": "nightly:l2_backfill",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "src/tools/backfill_l2_from_warrior.py",
+        "--since",
+        "3",
+        "--max-tasks",
+        "500",
+        "--strict"
+      ],
+      "options": {
+        "env": {
+          "LOG_LEVEL": "INFO"
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Warrior L2: Dry-Run Backfill",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "src/tools/auto_backfill_from_warrior.py",
+        "--since",
+        "3",
+        "--dry-run"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Warrior L2: Run Backfill (strict)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "src/tools/auto_backfill_from_warrior.py",
+        "--since",
+        "3",
+        "--strict",
+        "--max-workers",
+        "4"
+      ],
       "problemMatcher": []
     }
   ]

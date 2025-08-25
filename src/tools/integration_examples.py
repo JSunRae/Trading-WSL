@@ -1,11 +1,32 @@
 #!/usr/bin/env python3
-"""
-@agent.tool integration_examples
+"""Integration Example: Using the New Services (unified --describe guard)."""
 
-Integration Example: Using the New Services
-This script demonstrates how to integrate newly created services
-that address critical code issues into existing applications.
-"""
+# --- ultra-early describe guard (keep above heavy imports) ---
+from typing import Any
+
+from src.tools._cli_helpers import emit_describe_early, print_json  # type: ignore
+
+
+def tool_describe() -> dict[str, Any]:
+    return {
+        "name": "integration_examples",
+        "description": "Demonstrate integrating new modular services replacing legacy monolith components.",
+        "inputs": {},
+        "outputs": {"stdout": "Examples narrative or schema JSON"},
+        "dependencies": ["optional:src.core.config"],
+        "examples": [
+            "python -m src.tools.integration_examples --describe",
+        ],
+    }
+
+
+def describe() -> dict[str, Any]:  # backward compat
+    return tool_describe()
+
+
+if emit_describe_early(tool_describe):  # pragma: no cover
+    raise SystemExit(0)
+# ----------------------------------------------------------------
 
 import logging
 import sys
@@ -20,10 +41,23 @@ sys.path.insert(0, str(project_root))
 INPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "include_code_examples": {"type": "boolean", "default": True, "description": "Include detailed code examples"},
-        "include_benefits": {"type": "boolean", "default": True, "description": "Include modernization benefits"},
-        "service_focus": {"type": "string", "enum": ["all", "config", "data", "safety"], "default": "all", "description": "Focus on specific service type"}
-    }
+        "include_code_examples": {
+            "type": "boolean",
+            "default": True,
+            "description": "Include detailed code examples",
+        },
+        "include_benefits": {
+            "type": "boolean",
+            "default": True,
+            "description": "Include modernization benefits",
+        },
+        "service_focus": {
+            "type": "string",
+            "enum": ["all", "config", "data", "safety"],
+            "default": "all",
+            "description": "Focus on specific service type",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -38,18 +72,18 @@ OUTPUT_SCHEMA = {
                     "old_approach": {"type": "array", "items": {"type": "string"}},
                     "new_approach": {"type": "array", "items": {"type": "string"}},
                     "benefits": {"type": "array", "items": {"type": "string"}},
-                    "status": {"type": "string"}
-                }
-            }
+                    "status": {"type": "string"},
+                },
+            },
         },
         "modernization_benefits": {"type": "object"},
         "implementation_status": {"type": "object"},
-        "next_steps": {"type": "array", "items": {"type": "string"}}
-    }
+        "next_steps": {"type": "array", "items": {"type": "string"}},
+    },
 }
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -150,22 +184,16 @@ def example_dataframe_safety():
     try:
         import pandas as pd
 
-        # Create test DataFrame
         df = pd.DataFrame(
             {"Symbol": ["AAPL", "MSFT"], "Status": ["Yes", "No"]}
         ).set_index("Symbol")
-
         print("🔍 Live Safety Example:")
-        print("   Test DataFrame created ✅")
-
-        # Demonstrate safe operations
+        print(f"   Test DataFrame created ✅ shape={df.shape}")
         print("   Testing safe access to existing data...")
-        # These would normally use the SafeDataFrameAccessor but we'll simulate
         print("   ✅ Safe operations protect against crashes")
         print("   ✅ Graceful handling of missing indices")
         print("   ✅ Automatic fallback to default values")
-
-    except Exception as e:
+    except Exception as e:  # pragma: no cover - optional dependency
         print(f"   ⚠️  Error: {e}")
 
     print()
@@ -259,7 +287,11 @@ def show_modernization_benefits():
         print()
 
 
-def main(include_code_examples: bool = True, include_benefits: bool = True, service_focus: str = "all") -> dict[str, Any]:
+def main(
+    include_code_examples: bool = True,
+    include_benefits: bool = True,
+    service_focus: str = "all",
+) -> dict[str, Any]:
     """Generate integration examples and implementation guidance."""
     logger.info("Generating integration examples")
 
@@ -270,40 +302,40 @@ def main(include_code_examples: bool = True, include_benefits: bool = True, serv
             "old_approach": [
                 'file_path = "G:/Machine Learning/IB Failed Stocks.xlsx"',
                 'LocG = "G:\\Machine Learning\\\\"',
-                "# Hardcoded paths causing portability issues"
+                "# Hardcoded paths causing portability issues",
             ],
             "new_approach": [
                 "from src.core.config import get_config",
                 "config = get_config()",
                 'file_path = config.get_data_file_path("ib_failed_stocks")',
-                "base_path = config.data_paths.base_path"
+                "base_path = config.data_paths.base_path",
             ],
             "benefits": [
                 "Platform-independent paths",
                 "Environment-based configuration",
-                "Team development friendly"
+                "Team development friendly",
             ],
-            "status": "✅ Implemented and tested"
+            "status": "✅ Implemented and tested",
         },
         {
             "title": "Historical Data Service",
             "old_approach": [
                 "# 1,600+ line monolithic class",
                 "req = requestCheckerCLS(host, port, clientId, ib)",
-                "req.Download_Exists(symbol, bar_size, for_date)"
+                "req.Download_Exists(symbol, bar_size, for_date)",
             ],
             "new_approach": [
                 "from src.services.historical_data import HistoricalDataService",
                 "service = HistoricalDataService(ib_connection)",
-                "service.check_if_downloaded(symbol, bar_size, for_date)"
+                "service.check_if_downloaded(symbol, bar_size, for_date)",
             ],
             "benefits": [
                 "Download tracking and status management",
                 "Request throttling and bulk operations",
-                "Comprehensive error handling"
+                "Comprehensive error handling",
             ],
-            "status": "✅ Focused service architecture"
-        }
+            "status": "✅ Focused service architecture",
+        },
     ]
 
     result: dict[str, Any] = {
@@ -311,29 +343,29 @@ def main(include_code_examples: bool = True, include_benefits: bool = True, serv
         "implementation_status": {
             "critical_issues_addressed": 3,
             "services_implemented": len(examples),
-            "production_ready": True
+            "production_ready": True,
         },
         "next_steps": [
             "Continue with Phase 2: Complete monolithic decomposition",
             "Add comprehensive test coverage",
-            "Deploy to production environment"
-        ]
+            "Deploy to production environment",
+        ],
     }
 
     if include_benefits:
         result["modernization_benefits"] = {
             "🏗️ Architecture": [
                 "Modular, single-responsibility services",
-                "Clean separation of concerns"
+                "Clean separation of concerns",
             ],
             "🚀 Performance": [
                 "Intelligent caching strategies",
-                "Optimized data operations"
+                "Optimized data operations",
             ],
             "🛡️ Reliability": [
                 "Enterprise-grade error handling",
-                "Safe DataFrame operations"
-            ]
+                "Safe DataFrame operations",
+            ],
         }
 
     return result
@@ -343,24 +375,24 @@ def run_cli() -> int:
     """CLI wrapper for the tool."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Integration examples for trading system services")
-    parser.add_argument("--no-benefits", action="store_true",
-                      help="Exclude modernization benefits")
-    parser.add_argument("--describe", action="store_true",
-                      help="Show tool schemas")
+    parser = argparse.ArgumentParser(
+        description="Integration examples for trading system services"
+    )
+    parser.add_argument(
+        "--no-benefits", action="store_true", help="Exclude modernization benefits"
+    )
+    parser.add_argument(
+        "--describe", action="store_true", help="(Deprecated) Show tool schema and exit"
+    )
 
     args = parser.parse_args()
 
-    if args.describe:
-        import json
-        print(json.dumps({
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
-        return 0
+    if args.describe:  # legacy path - now handled by early guard
+        return print_json(tool_describe())
 
     result = main(include_benefits=not args.no_benefits)
     import json
+
     print(json.dumps(result, indent=2))
 
     return 0
@@ -368,4 +400,5 @@ def run_cli() -> int:
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(run_cli())

@@ -1,0 +1,36 @@
+{
+  "generated_at": "2025-08-17T00:00:00Z",
+  "usages": [
+    {
+      "file": "src/MasterPy_Trading.py",
+      "line": 27,
+      "context": "class BarCLS:"
+    },
+    {
+      "file": "tests/test_masterpy_trading_interval.py",
+      "line": 29,
+      "context": "bar = mod.BarCLS(\"1 min\")"
+    },
+    {
+      "file": "tests/test_masterpy_trading_interval.py",
+      "line": 42,
+      "context": "bar = mod.BarCLS(\"1 min\")"
+    },
+    {
+      "file": "tests/test_masterpy_trading_interval.py",
+      "line": 57,
+      "context": "bar = mod.BarCLS(\"1 day\")"
+    },
+    {
+      "file": "tests/test_masterpy_trading_interval.py",
+      "line": 66,
+      "context": "bar = mod.BarCLS(\"1 min\")"
+    }
+  ],
+  "summary": {
+    "production_references": 1,
+    "test_references": 4,
+    "external_risk": "Low - only tests depend on BarCLS; production code does not construct BarCLS outside legacy module",
+    "recommended_option": "B"
+  }
+}

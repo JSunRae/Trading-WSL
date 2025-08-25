@@ -31,14 +31,20 @@ class IBConnectionConfig:
 
     def validate(self):
         if self.port not in [7496, 7497, 4001, 4002]:
-            raise ValueError("Port must be 7496 (live), 7497 (paper), 4001 (gateway live), or 4002 (gateway paper)")
+            raise ValueError(
+                "Port must be 7496 (live), 7497 (paper), 4001 (gateway live), or 4002 (gateway paper)"
+            )
         if self.paper_trading and self.port == 7496:
             raise ValueError("Paper trading should use port 7497")
 
     def get_port_for_mode(self, use_gateway: bool = False) -> int:
         """Get the appropriate port based on trading mode and gateway usage."""
         if use_gateway:
-            return self.gateway_paper_port if self.paper_trading else self.gateway_live_port
+            return (
+                self.gateway_paper_port
+                if self.paper_trading
+                else self.gateway_live_port
+            )
         return self.paper_port if self.paper_trading else self.live_port
 
 
@@ -87,20 +93,56 @@ class LoggingConfig:
 
 
 def _load_dotenv(path: str = ".env") -> dict[str, str]:  # pragma: no cover
+    """Lightweight .env loader with WSL-aware Windows path normalization.
+
+    Supports:
+    - ~ expansion
+    - Converting Windows style drive paths (e.g. ``D:\\Machine Learning``) to
+      WSL mount points (``/mnt/d/Machine Learning``) when running under WSL.
+    This lets users keep legacy Windows-oriented configs while operating inside
+    a Linux / WSL runtime without breaking path discovery for historical files.
+    """
     env: dict[str, str] = {}
     p = Path(path)
     if not p.exists():
         return env
+
+    def _is_wsl() -> bool:
+        try:
+            return "microsoft" in Path("/proc/version").read_text().lower()
+        except Exception:
+            return False
+
+    def _looks_like_win_drive(val: str) -> bool:
+        return (
+            len(val) > 2
+            and val[1] == ":"
+            and val[0].isalpha()
+            and (val[2] in {"\\", "/"})
+        )
+
+    wsl_active = os.name != "nt" and _is_wsl()
+
+    def _normalize_windows_path(val: str) -> str:
+        if wsl_active and _looks_like_win_drive(val):
+            drive = val[0].lower()
+            rest = val[3:].replace("\\", "/")
+            return f"/mnt/{drive}/{rest}"
+        return val
+
     try:
         for raw in p.read_text().splitlines():
             line = raw.strip()
             if not line or line.startswith("#") or "=" not in line:
                 continue
-            k, v = line.split("=", 1)
-            v = v.strip().strip('"').strip("'")
-            if v.startswith("~/"):
-                v = str(Path.home() / v[2:])
-            env[k.strip()] = v
+            key, raw_val = line.split("=", 1)
+            key = key.strip()
+            val = raw_val.strip().strip('"').strip("'")
+            if val.startswith("~/"):
+                val = str(Path.home() / val[2:])
+            if key in {"ML_BASE_PATH", "ML_BACKUP_PATH", "DATA_PATH_OVERRIDE"}:
+                val = _normalize_windows_path(val)
+            env[key] = val
     except Exception:
         return {}
     return env
@@ -145,18 +187,41 @@ class ConfigManager:
             "CACHE_SIZE_MB": "512",
             "CONNECTION_TIMEOUT": "30",
             "RETRY_ATTEMPTS": "3",
+            # DataBento optional backfill settings (defaults empty/off)
+            "DATABENTO_API_KEY": "",
+            "DATABENTO_ENABLE_BACKFILL": "0",
+            "DATABENTO_DATASET": "NASDAQ.ITCH",
+            "DATABENTO_SCHEMA": "mbp-10",
+            "DATABENTO_TZ": "America/New_York",
+            "L2_BACKFILL_WINDOW_ET": "08:00-11:30",
+            "L2_BACKFILL_CONCURRENCY": "2",
+            "SYMBOL_MAPPING_FILE": "config/symbol_mapping.json",
         }
         ib_config_data = self.config.get("ib_connection", {})
         self.ib_connection = IBConnectionConfig(
             host=ib_config_data.get("host", self.get_env("IB_HOST")),
             port=ib_config_data.get("port", self.get_env_int("IB_PORT", 7497)),
-            client_id=ib_config_data.get("client_id", self.get_env_int("IB_CLIENT_ID", 1)),
-            timeout=ib_config_data.get("timeout", self.get_env_int("CONNECTION_TIMEOUT", 30)),
-            paper_trading=ib_config_data.get("paper_trading", self.get_env_bool("IB_PAPER_TRADING", True)),
-            live_port=ib_config_data.get("live_port", self.get_env_int("IB_LIVE_PORT", 7496)),
-            paper_port=ib_config_data.get("paper_port", self.get_env_int("IB_PAPER_PORT", 7497)),
-            gateway_live_port=ib_config_data.get("gateway_live_port", self.get_env_int("IB_GATEWAY_LIVE_PORT", 4001)),
-            gateway_paper_port=ib_config_data.get("gateway_paper_port", self.get_env_int("IB_GATEWAY_PAPER_PORT", 4002)),
+            client_id=ib_config_data.get(
+                "client_id", self.get_env_int("IB_CLIENT_ID", 1)
+            ),
+            timeout=ib_config_data.get(
+                "timeout", self.get_env_int("CONNECTION_TIMEOUT", 30)
+            ),
+            paper_trading=ib_config_data.get(
+                "paper_trading", self.get_env_bool("IB_PAPER_TRADING", True)
+            ),
+            live_port=ib_config_data.get(
+                "live_port", self.get_env_int("IB_LIVE_PORT", 7496)
+            ),
+            paper_port=ib_config_data.get(
+                "paper_port", self.get_env_int("IB_PAPER_PORT", 7497)
+            ),
+            gateway_live_port=ib_config_data.get(
+                "gateway_live_port", self.get_env_int("IB_GATEWAY_LIVE_PORT", 4001)
+            ),
+            gateway_paper_port=ib_config_data.get(
+                "gateway_paper_port", self.get_env_int("IB_GATEWAY_PAPER_PORT", 4002)
+            ),
         )
         self._apply_environment_overrides()
         self.data_paths = self._get_platform_paths()
@@ -319,6 +384,27 @@ class ConfigManager:
         if file_type in simple:
             return ml_dir / simple[file_type]
         raise ValueError(f"Unknown file type: {file_type}")
+
+    # ---------------- DataBento / Backfill helpers -----------------
+    def databento_enabled(self) -> bool:
+        return self.get_env_bool("DATABENTO_ENABLE_BACKFILL", False)
+
+    def databento_api_key(self) -> str | None:
+        key = self.get_env("DATABENTO_API_KEY")
+        return key or None
+
+    def get_symbol_mapping_path(self) -> Path:
+        return Path(self.get_env("SYMBOL_MAPPING_FILE"))
+
+    def get_l2_backfill_window(self) -> tuple[str, str]:
+        win = self.get_env("L2_BACKFILL_WINDOW_ET")
+        if "-" in win:
+            a, b = win.split("-", 1)
+            return a.strip(), b.strip()
+        return ("08:00", "11:30")
+
+    def get_l2_backfill_concurrency(self) -> int:
+        return self.get_env_int("L2_BACKFILL_CONCURRENCY", 2)
 
     def get_backup_path(self, original_path: Path) -> Path:
         rel = original_path.relative_to(self.data_paths.base_path)

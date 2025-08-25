@@ -1,0 +1,36 @@
+{
+  "largest_files_sample": [
+    { "path": "src/lib/ib_async_wrapper.py", "lines": 1003 },
+    { "path": "src/services/order_management_service.py", "lines": 931 },
+    { "path": "src/monitoring/ml_performance_monitor.py", "lines": 888 },
+    {
+      "path": "src/tools/maintenance/senior_architect_review.py",
+      "lines": 839
+    },
+    { "path": "src/execution/ml_signal_executor.py", "lines": 821 },
+    { "path": "src/services/ml_order_management_service.py", "lines": 772 },
+    { "path": "src/services/market_data_service.py", "lines": 751 },
+    { "path": "src/tools/record_depth.py", "lines": 742 },
+    { "path": "src/services/data_persistence_service.py", "lines": 739 },
+    { "path": "src/services/stock_split_detection_service.py", "lines": 738 },
+    { "path": "src/Ib_Manual_Attempt.py", "lines": 693 },
+    { "path": "src/data/parquet_repository.py", "lines": 685 },
+    {
+      "path": "src/tools/maintenance/migrate_excel_to_parquet.py",
+      "lines": 684
+    },
+    { "path": "src/tools/maintenance/architecture_demo.py", "lines": 669 },
+    { "path": "src/services/service_manager.py", "lines": 659 },
+    { "path": "src/core/integrated_error_handling.py", "lines": 648 },
+    { "path": "src/data/data_manager.py", "lines": 625 },
+    { "path": "src/automation/headless_gateway.py", "lines": 601 },
+    { "path": "src/tools/maintenance/system_analysis.py", "lines": 600 },
+    { "path": "src/lib/ib_insync_compat.py", "lines": 595 },
+    { "path": "src/risk/ml_risk_manager.py", "lines": 589 },
+    { "path": "src/core/connection_pool.py", "lines": 570 },
+    { "path": "src/services/historical_data_service.py", "lines": 565 },
+    { "path": "src/core/performance.py", "lines": 540 },
+    { "path": "src/core/dataframe_safety.py", "lines": 534 }
+  ],
+  "note": "Sample of 25 largest python files for refactor prioritization"
+}

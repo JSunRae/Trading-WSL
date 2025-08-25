@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
+
+from src.tools._cli_helpers import env_dep, print_json
 
 COVERAGE_XML = Path("coverage.xml")
 COVERAGE_JSON = Path("coverage.json")
@@ -209,6 +212,48 @@ def parse() -> dict[str, Any]:
     return summary
 
 
-if __name__ == "__main__":
+def describe() -> dict[str, Any]:
+    return {
+        "name": "generate_coverage_analysis",
+        "description": "Parse coverage.xml or coverage.json and produce aggregated coverage summary JSON report.",
+        "inputs": {
+            "--describe": {
+                "type": "flag",
+                "description": "Print schema metadata and exit",
+            }
+        },
+        "outputs": {
+            "stdout": {
+                "type": "json",
+                "description": "When run normally, prints high-level summary stats; with --describe prints schema",
+            },
+            "reports/coverage_analysis.json": {
+                "type": "file",
+                "description": "Full structured coverage analysis written to disk",
+            },
+        },
+        "dependencies": [env_dep("PYTHONPATH")],
+        "examples": [
+            {
+                "description": "Show schema",
+                "command": "python -m src.tools.analysis.generate_coverage_analysis --describe",
+            },
+            {
+                "description": "Generate coverage analysis (after running tests with coverage)",
+                "command": "python -m src.tools.analysis.generate_coverage_analysis",
+            },
+        ],
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if "--describe" in args:  # early pure JSON path for schema test
+        return print_json(describe())
     data = parse()
     print(json.dumps(data["summary"], indent=2))
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

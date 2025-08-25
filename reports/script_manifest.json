@@ -1,0 +1,1000 @@
+{
+  "analyze_depth": {
+    "describe": {
+      "dependencies": [
+        "optional:ib_async",
+        "config:ML_BASE_PATH"
+      ],
+      "description": "Analyze market depth snapshots or streams.",
+      "examples": [
+        "python -m src.tools.analyze_depth --describe"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--data-dir": {
+          "required": false,
+          "type": "str"
+        },
+        "--date": {
+          "required": false,
+          "type": "str"
+        },
+        "--output": {
+          "required": false,
+          "type": "str"
+        },
+        "--plot": {
+          "required": false,
+          "type": "flag"
+        },
+        "--show-describe": {
+          "required": false,
+          "type": "flag"
+        },
+        "--symbol": {
+          "required": false,
+          "type": "str"
+        }
+      },
+      "name": "analyze_depth",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "analysis summary JSON"
+      }
+    },
+    "path": "src/tools/analyze_depth.py"
+  },
+  "analyze_root_files": {
+    "describe": {
+      "dependencies": [
+        "config:PROJECT_ROOT"
+      ],
+      "description": "Audit stray Python files in project root and propose target locations.",
+      "examples": [
+        {
+          "command": "python -m src.tools.analysis.analyze_root_files --describe",
+          "description": "Show schema"
+        },
+        {
+          "command": "python -m src.tools.analysis.analyze_root_files",
+          "description": "Run analysis (text)"
+        },
+        {
+          "command": "python -m src.tools.analysis.analyze_root_files --json",
+          "description": "Run analysis (JSON)"
+        }
+      ],
+      "input_schema": {
+        "properties": {
+          "--json": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "inputs": {
+        "--describe": {
+          "description": "Print schema and exit",
+          "type": "flag"
+        },
+        "--json": {
+          "description": "Emit JSON instead of human text",
+          "type": "flag"
+        }
+      },
+      "name": "analyze_root_files",
+      "output_schema": {
+        "properties": {
+          "move_plan": {
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "outputs": {
+        "root_cleanup_move_plan.csv": {
+          "description": "CSV file containing move plan (always written)",
+          "type": "file"
+        },
+        "stdout": {
+          "description": "Report (text) or JSON object with move plan when --json provided",
+          "type": "text|json"
+        }
+      }
+    },
+    "path": "src/tools/analysis/analyze_root_files.py"
+  },
+  "analyze_scripts": {
+    "describe": {
+      "dependencies": [
+        "config:PROJECT_ROOT"
+      ],
+      "description": "Inventory & classify project Python scripts; produces CSV + JSON summaries.",
+      "examples": [
+        {
+          "command": "python -m src.tools.analysis.analyze_scripts --describe",
+          "description": "Show schema"
+        },
+        {
+          "command": "python -m src.tools.analysis.analyze_scripts",
+          "description": "Analyze scripts"
+        }
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--describe": {
+          "description": "Print this schema and exit",
+          "required": false,
+          "type": "flag"
+        },
+        "--skip-pyright": {
+          "description": "Skip pyright type analysis",
+          "required": false,
+          "type": "flag"
+        },
+        "--verbose": {
+          "description": "Enable verbose logging",
+          "required": false,
+          "type": "flag"
+        }
+      },
+      "name": "analyze_scripts",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "duplicates.json": {
+          "description": "Duplicate file analysis placeholder",
+          "type": "file"
+        },
+        "import_graph.json": {
+          "description": "Simplified import graph",
+          "type": "file"
+        },
+        "scripts_groups.json": {
+          "description": "Proposed grouping / target paths",
+          "type": "file"
+        },
+        "scripts_inventory.json": {
+          "description": "Inventory of analyzed scripts with metrics",
+          "type": "file"
+        },
+        "scripts_move_plan.csv": {
+          "description": "CSV move/organization plan",
+          "type": "file"
+        },
+        "stdout": {
+          "description": "Summary JSON (tool results or schema)",
+          "type": "json"
+        }
+      }
+    },
+    "path": "src/tools/analysis/analyze_scripts.py"
+  },
+  "async_migration_demo": {
+    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
+    "path": "src/tools/migration/async_migration_demo.py"
+  },
+  "auto_backfill_from_warrior": {
+    "describe": {
+      "dependencies": [
+        "optional:databento",
+        "config:DATABENTO_API_KEY",
+        "config:L2_BACKFILL_WINDOW_ET",
+        "config:SYMBOL_MAPPING_FILE"
+      ],
+      "description": "Automatically backfill historical L2 (08:00\u201311:30 ET) for Warrior list trading days using programmatic orchestrator.",
+      "examples": [
+        "python -m src.tools.auto_backfill_from_warrior --since 3",
+        "python -m src.tools.auto_backfill_from_warrior --last 5 --dry-run"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--dry-run": {
+          "required": false,
+          "type": "flag"
+        },
+        "--force": {
+          "required": false,
+          "type": "flag"
+        },
+        "--last": {
+          "description": "Keep only last N distinct dates after other filters",
+          "required": false,
+          "type": "int"
+        },
+        "--max-tasks": {
+          "required": false,
+          "type": "int"
+        },
+        "--max-workers": {
+          "description": "Override parallel worker count (default env L2_MAX_WORKERS or 4)",
+          "required": false,
+          "type": "int"
+        },
+        "--since": {
+          "description": "Include tasks with trading_day >= today - N days",
+          "required": false,
+          "type": "int"
+        },
+        "--strict": {
+          "required": false,
+          "type": "flag"
+        }
+      },
+      "name": "auto_backfill_from_warrior",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "progress + single SUMMARY line"
+      }
+    },
+    "path": "src/tools/auto_backfill_from_warrior.py"
+  },
+  "backfill_l2_from_warrior": {
+    "describe": {
+      "dependencies": [
+        "optional:databento",
+        "config:DATABENTO_API_KEY",
+        "config:L2_BACKFILL_WINDOW_ET",
+        "config:SYMBOL_MAPPING_FILE"
+      ],
+      "description": "Backfill historical L2 (08:00-11:30 ET) from DataBento for each Warrior list trading day.",
+      "examples": [
+        "python -m src.tools.backfill_l2_from_warrior --date 2025-07-29",
+        "python -m src.tools.backfill_l2_from_warrior --start 2025-07-01 --end 2025-07-10 --symbol AAPL"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--date": {
+          "required": false,
+          "type": "str"
+        },
+        "--dry-run": {
+          "required": false,
+          "type": "flag"
+        },
+        "--end": {
+          "required": false,
+          "type": "str"
+        },
+        "--force": {
+          "required": false,
+          "type": "flag"
+        },
+        "--last": {
+          "required": false,
+          "type": "int"
+        },
+        "--max-tasks": {
+          "required": false,
+          "type": "int"
+        },
+        "--since": {
+          "required": false,
+          "type": "str"
+        },
+        "--start": {
+          "required": false,
+          "type": "str"
+        },
+        "--strict": {
+          "required": false,
+          "type": "flag"
+        },
+        "--symbol": {
+          "required": false,
+          "type": "str"
+        }
+      },
+      "name": "backfill_l2_from_warrior",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "progress log"
+      }
+    },
+    "path": "src/tools/backfill_l2_from_warrior.py"
+  },
+  "demo_stock_split_integration": {
+    "describe": {
+      "dependencies": [
+        "config:PROJECT_ROOT"
+      ],
+      "description": "Demonstration of stock split detection and ML protection workflow (interactive, verbose).",
+      "examples": [
+        "python -m src.tools.demo_stock_split_integration --describe"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {},
+      "name": "demo_stock_split_integration",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "Narrative demo output or schema JSON"
+      }
+    },
+    "path": "src/tools/demo_stock_split_integration.py"
+  },
+  "fix_hardcoded_paths": {
+    "describe": {
+      "dependencies": [
+        "pathlib",
+        "re"
+      ],
+      "description": "Fix hardcoded paths throughout the codebase using ConfigManager",
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": [
+        "--dry-run",
+        "--verbose"
+      ],
+      "name": "fix_hardcoded_paths.py",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": [
+        "Modified Python files",
+        "console report"
+      ]
+    },
+    "path": "src/tools/setup/fix_hardcoded_paths.py"
+  },
+  "generate_coverage_analysis": {
+    "describe": {
+      "dependencies": [
+        "config:PYTHONPATH"
+      ],
+      "description": "Parse coverage.xml or coverage.json and produce aggregated coverage summary JSON report.",
+      "examples": [
+        {
+          "command": "python -m src.tools.analysis.generate_coverage_analysis --describe",
+          "description": "Show schema"
+        },
+        {
+          "command": "python -m src.tools.analysis.generate_coverage_analysis",
+          "description": "Generate coverage analysis (after running tests with coverage)"
+        }
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--describe": {
+          "description": "Print schema metadata and exit",
+          "type": "flag"
+        }
+      },
+      "name": "generate_coverage_analysis",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "reports/coverage_analysis.json": {
+          "description": "Full structured coverage analysis written to disk",
+          "type": "file"
+        },
+        "stdout": {
+          "description": "When run normally, prints high-level summary stats; with --describe prints schema",
+          "type": "json"
+        }
+      }
+    },
+    "path": "src/tools/analysis/generate_coverage_analysis.py"
+  },
+  "ib_migration_demo": {
+    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
+    "path": "src/tools/migration/ib_migration_demo.py"
+  },
+  "ib_migration_helper": {
+    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
+    "path": "src/tools/migration/ib_migration_helper.py"
+  },
+  "integration_examples": {
+    "describe": {
+      "dependencies": [
+        "optional:src.core.config"
+      ],
+      "description": "Demonstrate integrating new modular services replacing legacy monolith components.",
+      "examples": [
+        "python -m src.tools.integration_examples --describe"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {},
+      "name": "integration_examples",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "Examples narrative or schema JSON"
+      }
+    },
+    "path": "src/tools/integration_examples.py"
+  },
+  "migrate_to_ib_async": {
+    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
+    "path": "src/tools/migration/migrate_to_ib_async.py"
+  },
+  "migration_guide": {
+    "describe": {
+      "input_schema": {
+        "properties": {
+          "analyze_only": {
+            "default": false,
+            "description": "Only analyze codebase, skip migration plan",
+            "type": "boolean"
+          },
+          "include_examples": {
+            "default": true,
+            "description": "Include code examples in output",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "analysis": {
+            "properties": {
+              "error_handling_issues": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "files_analyzed": {
+                "type": "integer"
+              },
+              "hardcoded_paths": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "monolithic_classes": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "print_statements": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "architecture_components": {
+            "type": "object"
+          },
+          "code_examples": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "migration_plan": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "warnings": [
+        "missing keys ['description'] (tolerated)"
+      ]
+    },
+    "path": "src/tools/migration_guide.py"
+  },
+  "phase2_progress_demo": {
+    "describe": {
+      "description": "Phase 2 Architecture Migration - Progress Demo",
+      "input_schema": {
+        "properties": {
+          "analyze_monolith": {
+            "default": true,
+            "description": "Analyze monolithic code reduction",
+            "type": "boolean"
+          },
+          "include_coordination_test": {
+            "default": true,
+            "description": "Include service coordination testing",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "coordination_status": {
+            "type": "boolean"
+          },
+          "monolith_analysis": {
+            "properties": {
+              "phase1_extracted": {
+                "type": "integer"
+              },
+              "phase1_reduction_percent": {
+                "type": "number"
+              },
+              "phase2_potential_percent": {
+                "type": "number"
+              },
+              "phase2_remaining": {
+                "type": "integer"
+              },
+              "target_services": {
+                "type": "object"
+              },
+              "total_lines": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "service_status": {
+            "description": "Import status of Phase 2 services",
+            "type": "object"
+          },
+          "summary": {
+            "properties": {
+              "available_services": {
+                "type": "integer"
+              },
+              "progress_percentage": {
+                "type": "number"
+              },
+              "total_services": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "path": "src/tools/phase2_progress_demo.py"
+  },
+  "quick_start": {
+    "describe": {
+      "dependencies": [
+        "config:IB_HOST",
+        "config:IB_PAPER_PORT",
+        "config:IB_LIVE_PORT"
+      ],
+      "description": "Display project structure, IB setup guidance, and usage examples.",
+      "examples": [
+        "python -m src.tools.quick_start",
+        "python -m src.tools.quick_start --describe"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {},
+      "name": "quick_start",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "Guidance text or schema"
+      }
+    },
+    "path": "src/tools/quick_start.py"
+  },
+  "record_depth": {
+    "describe": {
+      "dependencies": [
+        "config:IB_HOST",
+        "config:IB_GATEWAY_PAPER_PORT",
+        "config:IB_GATEWAY_LIVE_PORT",
+        "config:IB_PAPER_PORT",
+        "config:IB_LIVE_PORT",
+        "optional:ibapi"
+      ],
+      "description": "Record Level 2 market depth snapshots and raw messages (nanosecond timestamps).",
+      "examples": [
+        "python -m src.tools.record_depth --symbol AAPL --duration 60",
+        "python -m src.tools.record_depth --symbol MSFT --paper --levels 5"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--client-id": {
+          "default": 1,
+          "type": "int"
+        },
+        "--duration": {
+          "default": null,
+          "type": "int"
+        },
+        "--host": {
+          "default": "127.0.0.1",
+          "type": "str"
+        },
+        "--interval": {
+          "default": 100,
+          "type": "int"
+        },
+        "--levels": {
+          "default": 10,
+          "type": "int"
+        },
+        "--output": {
+          "default": "./data/level2",
+          "type": "path"
+        },
+        "--paper/--live": {
+          "default": true,
+          "type": "flag"
+        },
+        "--port": {
+          "default": null,
+          "type": "int"
+        },
+        "--symbol": {
+          "required": true,
+          "type": "str"
+        }
+      },
+      "name": "record_depth",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "files": [
+          "data/level2/<SYMBOL>/*_snapshots_*.parquet",
+          "data/level2/<SYMBOL>/*_messages_*.json",
+          "data/level2/<SYMBOL>/session_stats_*.json"
+        ],
+        "stdout": "Progress + summary logs"
+      },
+      "ports": {
+        "gateway_live": 4001,
+        "gateway_paper": 4002,
+        "tws_live": 7496,
+        "tws_paper": 7497
+      },
+      "version": "1.0.0"
+    },
+    "path": "src/tools/record_depth.py"
+  },
+  "run_trading_fully_automated": {
+    "describe": {
+      "defaults": {
+        "client_id": 1,
+        "gateway_live_port": 4001,
+        "gateway_paper_port": 4002,
+        "host": "127.0.0.1"
+      },
+      "dependencies": [
+        "src.automation.headless_gateway",
+        "src.lib.ib_async_wrapper",
+        "ib_async",
+        "pandas"
+      ],
+      "description": "Fully automated trading pipeline (starts gateway, downloads data, runs analysis).",
+      "env_keys": [
+        "IB_USERNAME",
+        "IB_PASSWORD",
+        "IB_HOST",
+        "IB_GATEWAY_PAPER_PORT",
+        "IB_GATEWAY_LIVE_PORT",
+        "IB_CLIENT_ID"
+      ],
+      "examples": [
+        "python -m src.tools.run_trading_fully_automated --symbols TSLA",
+        "python -m src.tools.run_trading_fully_automated --symbols AAPL MSFT --duration '5 D'",
+        "python -m src.tools.run_trading_fully_automated --symbols SPY --bar-size '5 mins' --no-save"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": [
+        "--symbols",
+        "--duration",
+        "--bar-size",
+        "--live",
+        "--no-save",
+        "--verbose"
+      ],
+      "name": "run_trading_fully_automated",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": [
+        "data/automated_trading/*.parquet",
+        "data/automated_trading/*.csv",
+        "data/automated_trading/trading_summary_*.txt"
+      ],
+      "version": "1.0.0"
+    },
+    "path": "src/tools/run_trading_fully_automated.py"
+  },
+  "script_inventory_analyzer": {
+    "describe": {
+      "dependencies": [
+        "config:PROJECT_ROOT"
+      ],
+      "description": "Deprecated legacy script inventory analyzer (use analyze_scripts instead).",
+      "examples": [
+        {
+          "command": "python -m src.tools.analysis.script_inventory_analyzer --describe",
+          "description": "Show schema"
+        }
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--describe": {
+          "description": "Show schema and exit",
+          "type": "flag"
+        }
+      },
+      "name": "script_inventory_analyzer",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": {
+          "description": "Deprecation notice or schema JSON",
+          "type": "text"
+        }
+      }
+    },
+    "path": "src/tools/analysis/script_inventory_analyzer.py"
+  },
+  "setup_automated_trading": {
+    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
+    "path": "src/tools/setup/setup_automated_trading.py"
+  },
+  "setup_critical_fixes": {
+    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=/home/jrae/wsl projects/Trading/src/core/dataframe_safety.py:102: FutureWarning: Setting an item of incompatible dtype i",
+    "path": "src/tools/setup/setup_critical_fixes.py"
+  },
+  "setup_ib_gateway": {
+    "describe": {
+      "defaults": {
+        "client_id": 1,
+        "gateway_live_port": 4001,
+        "gateway_paper_port": 4002,
+        "host": "127.0.0.1",
+        "tws_live_port": 7496,
+        "tws_paper_port": 7497
+      },
+      "description": "IB Gateway setup helper (config-driven ports/host).",
+      "env_keys": [
+        "IB_HOST",
+        "IB_GATEWAY_PAPER_PORT",
+        "IB_GATEWAY_LIVE_PORT",
+        "IB_PAPER_PORT",
+        "IB_LIVE_PORT",
+        "IB_CLIENT_ID"
+      ],
+      "examples": [
+        "python -m src.tools.setup.setup_ib_gateway --guide",
+        "python -m src.tools.setup.setup_ib_gateway --create-files",
+        "python -m src.tools.setup.setup_ib_gateway --guide --create-files"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": [
+        "--guide",
+        "--create-files"
+      ],
+      "name": "setup_ib_gateway",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": [
+        "config/ib_gateway_config.json",
+        "start_gateway.sh",
+        "check_gateway_status.py"
+      ],
+      "version": "1.0.0"
+    },
+    "path": "src/tools/setup/setup_ib_gateway.py"
+  },
+  "system_analysis": {
+    "describe": {
+      "dependencies": [
+        "config:IB_HOST",
+        "config:IB_PAPER_PORT",
+        "config:IB_LIVE_PORT",
+        "config:IB_GATEWAY_PAPER_PORT",
+        "config:IB_GATEWAY_LIVE_PORT",
+        "config:IB_CLIENT_ID"
+      ],
+      "description": "Lightweight system + config environment summary (safe, no side effects).",
+      "examples": [
+        {
+          "command": "python -m src.tools.system_analysis --describe",
+          "description": "Show describe metadata"
+        },
+        {
+          "command": "python -m src.tools.system_analysis",
+          "description": "Run full system analysis"
+        }
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {},
+      "name": "system_analysis",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "System summary JSON or schema"
+      }
+    },
+    "path": "src/tools/system_analysis.py"
+  },
+  "system_check_analysis": {
+    "describe": {
+      "dependencies": [
+        "config:PROJECT_ROOT"
+      ],
+      "description": "Static summary style system/type check report (legacy, emits text).",
+      "examples": [
+        {
+          "command": "python -m src.tools.analysis.system_check_analysis --describe",
+          "description": "Show schema"
+        }
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--describe": {
+          "description": "Show schema JSON and exit",
+          "type": "flag"
+        }
+      },
+      "name": "system_check_analysis",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": {
+          "description": "Human-readable system/type check report or schema JSON",
+          "type": "text"
+        }
+      }
+    },
+    "path": "src/tools/analysis/system_check_analysis.py"
+  },
+  "validate_env": {
+    "error": "failed --describe: Traceback (most recent call last):\n  File \"/home/jrae/wsl projects/Trading/src/tools/validate_env.py\", line 16, in <modu",
+    "path": "src/tools/validate_env.py"
+  },
+  "validate_ml_structure": {
+    "describe": {
+      "dependencies": [
+        "config:PROJECT_ROOT"
+      ],
+      "description": "Validate presence and structure of ML-related modules (legacy text tool).",
+      "examples": [
+        {
+          "command": "python -m src.tools.analysis.validate_ml_structure --describe",
+          "description": "Show schema"
+        }
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--describe": {
+          "description": "Show schema JSON and exit",
+          "type": "flag"
+        }
+      },
+      "name": "validate_ml_structure",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": {
+          "description": "Human-readable validation report or schema JSON",
+          "type": "text"
+        }
+      }
+    },
+    "path": "src/tools/analysis/validate_ml_structure.py"
+  },
+  "verify_setup": {
+    "describe": {
+      "dependencies": [
+        "config:IB_HOST",
+        "config:IB_GATEWAY_PAPER_PORT",
+        "config:IB_GATEWAY_LIVE_PORT",
+        "config:IB_PAPER_PORT",
+        "config:IB_LIVE_PORT",
+        "optional:ib_async"
+      ],
+      "description": "Verify installation, dependencies, configuration files, and (optionally) IB connectivity.",
+      "examples": [
+        "python -m src.tools.verify_setup --describe",
+        "python -m src.tools.verify_setup --skip-ib-test",
+        "python -m src.tools.verify_setup --verbose"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--describe": {
+          "default": false,
+          "required": false,
+          "type": "flag"
+        },
+        "--skip-ib-test": {
+          "default": false,
+          "required": false,
+          "type": "flag"
+        },
+        "--verbose": {
+          "default": false,
+          "required": false,
+          "type": "flag"
+        }
+      },
+      "name": "verify_setup",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "files": [],
+        "stdout": "JSON summary of verification checks"
+      },
+      "ports": {
+        "gateway_live": 4001,
+        "gateway_paper": 4002,
+        "tws_live": 7496,
+        "tws_paper": 7497
+      },
+      "version": "1.0.0"
+    },
+    "path": "src/tools/verify_setup.py"
+  },
+  "warrior_update": {
+    "error": "failed --describe: Traceback (most recent call last):\n  File \"/home/jrae/wsl projects/Trading/src/tools/warrior_update.py\", line 28, in <mo",
+    "path": "src/tools/warrior_update.py"
+  }
+}

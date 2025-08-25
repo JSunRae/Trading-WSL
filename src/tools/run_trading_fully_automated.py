@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: C901,I001,E402
 """
 FULLY AUTOMATED TRADING SCRIPT
 ===============================
@@ -33,18 +34,36 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-# Add project to path
+import pandas as pd
+
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
-# Import our modules
 from src.automation.headless_gateway import HeadlessGateway
 from src.lib.ib_async_wrapper import IBAsync
 
+try:
+    from src.core.config import get_config
+except Exception:  # pragma: no cover
+
+    def get_config(*_args, **_kwargs) -> Any:  # type: ignore
+        class DummyIB:
+            host = "127.0.0.1"
+            gateway_paper_port = 4002
+            gateway_live_port = 4001
+            client_id = 1
+
+        class Dummy:
+            ib_connection = DummyIB()
+
+        return Dummy()
+
 
 async def fully_automated_trading(
-    symbols: list,
+    symbols: list[str],
     duration: str = "1 D",
     bar_size: str = "1 min",
     paper_trading: bool = True,
@@ -92,114 +111,83 @@ async def fully_automated_trading(
         gateway = HeadlessGateway(
             username=username, password=password, paper_trading=paper_trading
         )
-
         if not await gateway.start_gateway():
             logger.error("❌ Failed to start IB Gateway")
             return False
-
         logger.info("✅ IB Gateway running and ready!")
 
         # Step 2: Connect to API
         logger.info("🔌 Step 2: Connecting to IB API...")
         ib = IBAsync()
-
-        port = 4002 if paper_trading else 4001
-        if not await ib.connect("127.0.0.1", port, 1):
+        cfg = get_config().ib_connection
+        port = cfg.gateway_paper_port if paper_trading else cfg.gateway_live_port
+        host = cfg.host
+        client_id = cfg.client_id
+        if not await ib.connect(host, port, client_id):
             logger.error("❌ Failed to connect to IB API")
             return False
-
         logger.info("✅ Connected to IB API!")
 
         # Step 3: Process each symbol
         logger.info(f"📊 Step 3: Processing {len(symbols)} symbols...")
-
-        all_data = {}
-
+        all_data: dict[str, pd.DataFrame] = {}
         for i, symbol in enumerate(symbols, 1):
             logger.info(f"📈 Processing {symbol} ({i}/{len(symbols)})...")
-
             try:
-                # Create contract
                 contract = ib.create_stock_contract(symbol)
-
-                # Download historical data
                 df = await ib.req_historical_data(contract, duration, bar_size)
-
                 if df is None or df.empty:
                     logger.warning(f"⚠️  No data received for {symbol}")
                     continue
-
                 logger.info(f"✅ Downloaded {len(df)} bars for {symbol}")
-
-                # Store data
                 all_data[symbol] = df
-
-                # Basic analysis
                 latest_price = df["close"].iloc[-1]
                 avg_price = df["close"].mean()
                 price_change = (
                     (latest_price - df["close"].iloc[0]) / df["close"].iloc[0]
                 ) * 100
                 volatility = df["close"].pct_change().std() * 100
-
                 logger.info(f"💰 {symbol} Analysis:")
                 logger.info(f"   Latest: ${latest_price:.2f}")
                 logger.info(f"   Average: ${avg_price:.2f}")
                 logger.info(f"   Change: {price_change:+.2f}%")
                 logger.info(f"   Volatility: {volatility:.2f}%")
-
-                # Simple signal
-                if latest_price > avg_price * 1.02:  # 2% above average
+                if latest_price > avg_price * 1.02:
                     signal = "🔥 STRONG BUY"
                 elif latest_price > avg_price:
                     signal = "📈 BUY"
-                elif latest_price < avg_price * 0.98:  # 2% below average
+                elif latest_price < avg_price * 0.98:
                     signal = "🔻 STRONG SELL"
                 else:
                     signal = "📉 SELL"
-
                 logger.info(f"   Signal: {signal}")
-
                 success_count += 1
-
-                # Small delay between requests
                 if i < len(symbols):
                     await asyncio.sleep(1)
-
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 logger.error(f"❌ Error processing {symbol}: {e}")
                 continue
 
         # Step 4: Save data if requested
         if save_data and all_data:
             logger.info("💾 Step 4: Saving data...")
-
-            # Create data directory
             data_dir = Path("data") / "automated_trading"
             data_dir.mkdir(parents=True, exist_ok=True)
-
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
             for symbol, df in all_data.items():
-                # Save as Parquet (efficient)
                 parquet_file = (
                     data_dir
                     / f"{symbol}_{duration.replace(' ', '_')}_{bar_size.replace(' ', '_')}_{timestamp}.parquet"
                 )
                 df.to_parquet(parquet_file)
-
-                # Save as CSV (readable)
                 csv_file = (
                     data_dir
                     / f"{symbol}_{duration.replace(' ', '_')}_{bar_size.replace(' ', '_')}_{timestamp}.csv"
                 )
                 df.to_csv(csv_file)
-
                 logger.info(f"💾 Saved {symbol} data: {parquet_file}")
-
-            # Create summary report
             summary_file = data_dir / f"trading_summary_{timestamp}.txt"
-            with open(summary_file, "w") as f:
+            with summary_file.open("w") as f:
                 f.write("AUTOMATED TRADING SUMMARY\n")
                 f.write("=" * 50 + "\n")
                 f.write(f"Timestamp: {datetime.now()}\n")
@@ -210,20 +198,17 @@ async def fully_automated_trading(
                 f.write(
                     f"Success Rate: {success_count}/{len(symbols)} ({success_count / len(symbols) * 100:.1f}%)\n\n"
                 )
-
                 for symbol, df in all_data.items():
                     latest_price = df["close"].iloc[-1]
                     avg_price = df["close"].mean()
                     price_change = (
                         (latest_price - df["close"].iloc[0]) / df["close"].iloc[0]
                     ) * 100
-
                     f.write(f"{symbol}:\n")
                     f.write(f"  Latest Price: ${latest_price:.2f}\n")
                     f.write(f"  Average Price: ${avg_price:.2f}\n")
                     f.write(f"  Price Change: {price_change:+.2f}%\n")
                     f.write(f"  Data Points: {len(df)}\n\n")
-
             logger.info(f"📄 Created summary: {summary_file}")
 
         # Step 5: Results
@@ -235,11 +220,9 @@ async def fully_automated_trading(
         logger.info(f"📈 Data timeframe: {duration}")
         logger.info(f"⏱️  Bar size: {bar_size}")
         logger.info(f"🎯 Trading mode: {'Paper' if paper_trading else 'Live'}")
-
         if all_data:
             total_bars = sum(len(df) for df in all_data.values())
             logger.info(f"📊 Total data points: {total_bars:,}")
-
         return success_count > 0
 
     except KeyboardInterrupt:
@@ -275,7 +258,7 @@ def load_env_file():
     """Load environment variables from .env file if it exists"""
     env_file = Path(".env")
     if env_file.exists():
-        with open(env_file) as f:
+        with env_file.open() as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
@@ -300,9 +283,7 @@ Examples:
     )
 
     parser.add_argument(
-        "--describe",
-        action="store_true",
-        help="Show tool description and exit"
+        "--describe", action="store_true", help="Show tool description and exit"
     )
     parser.add_argument(
         "--symbols",
@@ -327,12 +308,49 @@ Examples:
     args = parser.parse_args()
 
     if args.describe:
+        cfg = get_config().ib_connection
         describe_info = {
-            "name": "run_trading_fully_automated.py",
-            "description": "Fully automated trading system that manages IB Gateway and runs trading analysis",
-            "inputs": ["--symbols", "--duration", "--bar-size", "--live", "--no-save", "--verbose"],
-            "outputs": ["data/automated_trading/*.parquet", "data/automated_trading/*.csv", "logs/automated_trading.log"],
-            "dependencies": ["src.automation.headless_gateway", "src.lib.ib_async_wrapper", "ib_insync", "pandas"]
+            "name": "run_trading_fully_automated",
+            "description": "Fully automated trading pipeline (starts gateway, downloads data, runs analysis).",
+            "inputs": [
+                "--symbols",
+                "--duration",
+                "--bar-size",
+                "--live",
+                "--no-save",
+                "--verbose",
+            ],
+            "outputs": [
+                "data/automated_trading/*.parquet",
+                "data/automated_trading/*.csv",
+                "data/automated_trading/trading_summary_*.txt",
+            ],
+            "env_keys": [
+                "IB_USERNAME",
+                "IB_PASSWORD",
+                "IB_HOST",
+                "IB_GATEWAY_PAPER_PORT",
+                "IB_GATEWAY_LIVE_PORT",
+                "IB_CLIENT_ID",
+            ],
+            "defaults": {
+                "host": cfg.host,
+                "gateway_paper_port": cfg.gateway_paper_port,
+                "gateway_live_port": cfg.gateway_live_port,
+                "client_id": cfg.client_id,
+            },
+            "dependencies": [
+                "src.automation.headless_gateway",
+                "src.lib.ib_async_wrapper",
+                "ib_async",
+                "pandas",
+            ],
+            "examples": [
+                "python -m src.tools.run_trading_fully_automated --symbols TSLA",
+                "python -m src.tools.run_trading_fully_automated --symbols AAPL MSFT --duration '5 D'",
+                "python -m src.tools.run_trading_fully_automated --symbols SPY --bar-size '5 mins' --no-save",
+            ],
+            "version": "1.0.0",
         }
         print(json.dumps(describe_info, indent=2))
         return 0

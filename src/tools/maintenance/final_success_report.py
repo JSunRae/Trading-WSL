@@ -1,12 +1,62 @@
 #!/usr/bin/env python3
-"""
-@agent.tool final_success_report
+"""Final success report tool.
 
-🎉 CRITICAL ISSUES IMPLEMENTATION - FINAL SUCCESS REPORT 🎉
-
-MISSION ACCOMPLISHED: All Critical Code Issues Successfully Addressed!
-This report documents the complete implementation of enterprise-grade fixes for the 3 critical issues identified in the senior software architect review.
+Adds early --describe guard so test harness can discover metadata without
+executing the heavy report logic.
 """
+
+from typing import Any
+
+# --- ultra-early describe guard -------------------------------------------------
+try:  # Prefer shared helper
+    from src.tools._cli_helpers import emit_describe_early, print_json  # type: ignore
+except Exception:  # pragma: no cover - minimal fallback
+    import json as _json  # type: ignore
+    import sys as _sys  # type: ignore
+
+    def print_json(d: dict[str, Any]):  # type: ignore
+        _sys.stdout.write(_json.dumps(d, indent=2, sort_keys=True) + "\n")
+        _sys.stdout.flush()
+        return 0
+
+    def emit_describe_early(fn):  # type: ignore
+        if any(a == "--describe" for a in _sys.argv[1:]):
+            print_json(fn())
+            return True
+        return False
+
+
+def tool_describe() -> dict[str, Any]:
+    return {
+        "name": "final_success_report",
+        "description": "Final success report summarizing resolution of critical issues.",
+        "inputs": {
+            "include_detailed_analysis": {"type": "bool", "default": True},
+            "include_metrics": {"type": "bool", "default": True},
+            "format_style": {
+                "type": "str",
+                "default": "executive",
+                "enum": ["executive", "technical", "detailed"],
+            },
+        },
+        "outputs": {"stdout": "Human readable report plus JSON when executed"},
+        "dependencies": [],
+        "examples": [
+            {
+                "description": "Show description",
+                "command": "python -m src.tools.maintenance.final_success_report --describe",
+            },
+            {
+                "description": "Run report",
+                "command": "python -m src.tools.maintenance.final_success_report",
+            },
+        ],
+    }
+
+
+if emit_describe_early(tool_describe):  # pragma: no cover
+    raise SystemExit(0)
+# -------------------------------------------------------------------------------
 
 import json
 import logging
@@ -20,20 +70,20 @@ INPUT_SCHEMA = {
         "include_detailed_analysis": {
             "type": "boolean",
             "default": True,
-            "description": "Include detailed analysis of each critical issue"
+            "description": "Include detailed analysis of each critical issue",
         },
         "include_metrics": {
             "type": "boolean",
             "default": True,
-            "description": "Include implementation metrics and statistics"
+            "description": "Include implementation metrics and statistics",
         },
         "format_style": {
             "type": "string",
             "enum": ["executive", "technical", "detailed"],
             "default": "executive",
-            "description": "Report format style"
-        }
-    }
+            "description": "Report format style",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -45,8 +95,8 @@ OUTPUT_SCHEMA = {
                 "implementation_date": {"type": "string"},
                 "total_issues_resolved": {"type": "integer"},
                 "architecture_transformation": {"type": "string"},
-                "status": {"type": "string"}
-            }
+                "status": {"type": "string"},
+            },
         },
         "critical_issues": {
             "type": "array",
@@ -58,9 +108,9 @@ OUTPUT_SCHEMA = {
                     "severity": {"type": "string"},
                     "status": {"type": "string"},
                     "solution_implemented": {"type": "string"},
-                    "impact": {"type": "string"}
-                }
-            }
+                    "impact": {"type": "string"},
+                },
+            },
         },
         "implementation_metrics": {
             "type": "object",
@@ -68,20 +118,20 @@ OUTPUT_SCHEMA = {
                 "code_quality_improvement": {"type": "number"},
                 "maintainability_score": {"type": "number"},
                 "test_coverage": {"type": "number"},
-                "performance_improvement": {"type": "number"}
-            }
+                "performance_improvement": {"type": "number"},
+            },
         },
         "next_phase_recommendations": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommendations for the next development phase"
+            "description": "Recommendations for the next development phase",
         },
         "success_indicators": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Key success indicators achieved"
-        }
-    }
+            "description": "Key success indicators achieved",
+        },
+    },
 }
 
 # Set up logging
@@ -421,7 +471,7 @@ def main() -> dict[str, Any]:
             "implementation_date": current_time,
             "total_issues_resolved": 3,
             "architecture_transformation": "Legacy → Enterprise-Grade",
-            "status": "ALL CRITICAL ISSUES RESOLVED"
+            "status": "ALL CRITICAL ISSUES RESOLVED",
         },
         "critical_issues": [
             {
@@ -430,7 +480,7 @@ def main() -> dict[str, Any]:
                 "severity": "Critical",
                 "status": "RESOLVED",
                 "solution_implemented": "Implemented dynamic path resolution with pathlib",
-                "impact": "Eliminated environment dependencies and deployment blockers"
+                "impact": "Eliminated environment dependencies and deployment blockers",
             },
             {
                 "issue_id": "CRITICAL-002",
@@ -438,7 +488,7 @@ def main() -> dict[str, Any]:
                 "severity": "Critical",
                 "status": "RESOLVED",
                 "solution_implemented": "Comprehensive error handling and graceful degradation",
-                "impact": "System stability and production readiness achieved"
+                "impact": "System stability and production readiness achieved",
             },
             {
                 "issue_id": "CRITICAL-003",
@@ -446,29 +496,29 @@ def main() -> dict[str, Any]:
                 "severity": "Critical",
                 "status": "RESOLVED",
                 "solution_implemented": "Modular service architecture with fault isolation",
-                "impact": "Enterprise-grade resilience and maintainability"
-            }
+                "impact": "Enterprise-grade resilience and maintainability",
+            },
         ],
         "implementation_metrics": {
             "code_quality_improvement": 85.0,
             "maintainability_score": 92.0,
             "test_coverage": 78.0,
-            "performance_improvement": 45.0
+            "performance_improvement": 45.0,
         },
         "next_phase_recommendations": [
             "Deploy to production environment",
             "Implement comprehensive monitoring",
             "Establish CI/CD pipeline",
             "Conduct performance optimization",
-            "Expand test coverage to 90%"
+            "Expand test coverage to 90%",
         ],
         "success_indicators": [
             "All critical issues resolved",
             "Enterprise-grade architecture implemented",
             "Production-ready codebase achieved",
             "Comprehensive error handling in place",
-            "Modular, maintainable design established"
-        ]
+            "Modular, maintainable design established",
+        ],
     }
 
     try:
@@ -493,11 +543,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "🎉 CRITICAL ISSUES IMPLEMENTATION - FINAL SUCCESS REPORT 🎉",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "🎉 CRITICAL ISSUES IMPLEMENTATION - FINAL SUCCESS REPORT 🎉",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

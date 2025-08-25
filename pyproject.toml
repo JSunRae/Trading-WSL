@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trading"
-version = "0.11.1"
+version = "0.11.2"
 description = "Interactive Brokers Trading System with Real-time Data Processing"
 authors = [
     {name = "Jason Rae", email = "your.email@example.com"}
@@ -41,6 +41,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Existing optional groups may be here; we append databento group for historical L2 backfill
+databento = ["databento>=0.38.0"]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -82,6 +84,7 @@ Documentation = "https://github.com/yourusername/trading-project/docs"
 [project.scripts]
 trading-main = "src.ib_main:main"
 trading-trader = "src.ib_trader:main"
+validate-env = "src.tools.validate_env:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -98,7 +101,12 @@ select = ["E", "F", "I", "UP", "B", "NPY", "PTH", "C90", "N", "W"]
 ignore = ["E501", "B008", "N999"]
 
 # Per-file ignores moved under lint section
-per-file-ignores = {"tests/*" = ["N802", "N806"], "__init__.py" = ["F401"], "src/Ib_Manual_Attempt.py" = ["E402", "N802", "N803", "N806", "N816", "N817", "E712", "UP031"], "scripts/*" = ["N999", "E402"], "src/MasterPy_Trading.py" = ["N801", "N802", "N803", "N806", "N817", "C901", "PTH100", "PTH110", "PTH111", "PTH120", "PTH204", "E711", "E722", "UP038", "B018"]}
+per-file-ignores = {"tests/*" = ["N802", "N806"], "__init__.py" = ["F401"], "src/Ib_Manual_Attempt.py" = ["E402", "N802", "N803", "N806", "N816", "N817", "E712", "UP031"], "scripts/*" = ["N999", "E402"], "src/MasterPy_Trading.py" = ["N801", "N802", "N803", "N806", "N817", "C901", "PTH100", "PTH110", "PTH111", "PTH120", "PTH204", "E711", "E722", "UP038", "B018"], "src/tools/record_depth.py" = ["N8", "E402"], "src/tools/verify_setup.py" = ["E402"], "src/tools/analyze_depth.py" = ["E402"], "src/tools/system_analysis.py" = ["E402"], "src/tools/*integration*.py" = ["E402"], "src/tools/quick_start.py" = ["E402"]}
+
+# Ban legacy module imports outside tests (tidy-imports / banned-api)
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"src.MasterPy_Trading" = {msg = "Legacy module removed; do not import. Use modern services instead."}
+"MasterPy_Trading" = {msg = "Legacy module removed; do not import. Use modern services instead."}
 
 exclude = [
     ".eggs",

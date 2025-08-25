@@ -1,0 +1,14 @@
+{
+  "generated": "manual update",
+  "notes": "Tracks remaining legacy WarriorList entry points after backfill_l2 extraction.",
+  "legacy_calls": [
+    {
+      "symbol": "WarriorList",
+      "locations": [
+        "src/services/data_management_service.py:438",
+        "src/tools/backfill_l2_from_warrior.py:120"
+      ],
+      "replacement": "Use backfill_l2 (programmatic) or CLI backfill_l2_from_warrior (delegates to API)"
+    }
+  ]
+}

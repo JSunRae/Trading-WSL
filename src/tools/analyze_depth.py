@@ -1,18 +1,46 @@
-"""
-Level 2 Data Replay and Analysis Tools
+"""Level 2 Market Depth Analysis Tool.
 
-This module provides tools for replaying and analyzing recorded Level 2 data,
-including order flow analysis, spoofing detection, and market microstructure insights.
-
-Author: Trading Project
-Date: 2025-07-28
+Restored logic with standardized ultra-early --describe guard. The guard must
+remain at the very top to avoid importing heavy optional modules (pandas,
+matplotlib) when only metadata is requested.
 """
+
+# --- ultra-early describe guard (do NOT move below heavy imports) ---
+from typing import Any, cast
+
+from src.tools._cli_helpers import emit_describe_early, print_json  # type: ignore
+
+
+def tool_describe() -> dict[str, Any]:  # standardized schema (must reflect actual CLI)
+    return {
+        "name": "analyze_depth",
+        "description": "Analyze market depth snapshots or streams.",
+        "inputs": {
+            "--data-dir": {"type": "str", "required": False},
+            "--symbol": {"type": "str", "required": False},
+            "--date": {"type": "str", "required": False},
+            "--output": {"type": "str", "required": False},
+            "--plot": {"type": "flag", "required": False},
+            "--show-describe": {"type": "flag", "required": False},
+        },
+        "outputs": {"stdout": "analysis summary JSON"},
+        "dependencies": ["optional:ib_async", "config:ML_BASE_PATH"],
+        "examples": ["python -m src.tools.analyze_depth --describe"],
+    }
+
+
+def describe() -> dict[str, Any]:  # backward compat wrapper used by --show-describe
+    return tool_describe()
+
+
+if emit_describe_early(tool_describe):  # pragma: no cover
+    raise SystemExit(0)
+# -----------------------------------------------------------------------------
 
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 import click
 import matplotlib.pyplot as plt
@@ -62,7 +90,7 @@ class Level2Analyzer:
                 return False
 
             # Load and combine all snapshot files for the date
-            dfs = []
+            dfs: list[pd.DataFrame] = []
             for file in snapshot_files:
                 df = pd.read_parquet(file)
                 dfs.append(df)
@@ -82,9 +110,10 @@ class Level2Analyzer:
             # Load message files if available
             message_files = list(symbol_dir.glob(f"{date}_messages_*.json"))
             if message_files:
-                messages = []
+                messages: list[dict[str, Any]] = []
                 for file in message_files:
-                    with open(file) as f:
+                    for_json = file  # Path object
+                    with for_json.open() as f:
                         file_messages = json.load(f)
                         messages.extend(file_messages)
 
@@ -107,32 +136,31 @@ class Level2Analyzer:
             return False
 
     def calculate_order_flow_metrics(self) -> list[OrderFlowMetrics]:
-        """Calculate order flow metrics from snapshots."""
-        if self.snapshots_df is None:
+        """Calculate order flow metrics from snapshots (restored logic)."""
+        if self.snapshots_df is None:  # guard
             raise ValueError("No snapshot data loaded")
 
-        metrics = []
-
+        metrics: list[OrderFlowMetrics] = []
         for _, row in self.snapshots_df.iterrows():
             try:
-                # Parse price and size arrays
+                # Parse price and size arrays (stored as list or repr string)
                 bid_prices = (
-                    eval(row["bid_prices"])
+                    eval(row["bid_prices"])  # noqa: S307 (trusted internal data)
                     if isinstance(row["bid_prices"], str)
                     else row["bid_prices"]
                 )
                 bid_sizes = (
-                    eval(row["bid_sizes"])
+                    eval(row["bid_sizes"])  # noqa: S307
                     if isinstance(row["bid_sizes"], str)
                     else row["bid_sizes"]
                 )
                 ask_prices = (
-                    eval(row["ask_prices"])
+                    eval(row["ask_prices"])  # noqa: S307
                     if isinstance(row["ask_prices"], str)
                     else row["ask_prices"]
                 )
                 ask_sizes = (
-                    eval(row["ask_sizes"])
+                    eval(row["ask_sizes"])  # noqa: S307
                     if isinstance(row["ask_sizes"], str)
                     else row["ask_sizes"]
                 )
@@ -148,31 +176,21 @@ class Level2Analyzer:
                     for p, s in zip(ask_prices, ask_sizes, strict=False)
                     if p > 0 and s > 0
                 ]
-
                 if not valid_bids or not valid_asks:
                     continue
 
-                # Best bid/ask
-                best_bid_price = max(p for p, s in valid_bids)
-                best_ask_price = min(p for p, s in valid_asks)
-
-                # Spread and mid price
+                best_bid_price = max(p for p, _s in valid_bids)
+                best_ask_price = min(p for p, _s in valid_asks)
                 spread = best_ask_price - best_bid_price
                 mid_price = (best_bid_price + best_ask_price) / 2
-
-                # Volume calculations
-                total_bid_volume = sum(s for p, s in valid_bids)
-                total_ask_volume = sum(s for p, s in valid_asks)
-
-                # Volume imbalance
+                total_bid_volume = sum(s for _p, s in valid_bids)
+                total_ask_volume = sum(s for _p, s in valid_asks)
                 total_volume = total_bid_volume + total_ask_volume
                 volume_imbalance = (
                     (total_bid_volume - total_ask_volume) / total_volume
                     if total_volume > 0
                     else 0
                 )
-
-                # Price impact (simplified - depth at 1% of mid price)
                 impact_threshold = mid_price * 0.01
                 bid_impact_vol = sum(
                     s for p, s in valid_bids if best_bid_price - p <= impact_threshold
@@ -181,9 +199,7 @@ class Level2Analyzer:
                     s for p, s in valid_asks if p - best_ask_price <= impact_threshold
                 )
                 price_impact = (bid_impact_vol + ask_impact_vol) / 2
-
-                # Effective spread (half spread as percentage of mid price)
-                effective_spread = (spread / 2) / mid_price * 10000  # in basis points
+                effective_spread = (spread / 2) / mid_price * 10000  # bps
 
                 metrics.append(
                     OrderFlowMetrics(
@@ -197,11 +213,9 @@ class Level2Analyzer:
                         effective_spread=effective_spread,
                     )
                 )
-
-            except Exception as e:
+            except Exception as e:  # defensive per-row
                 print(f"Error calculating metrics for row: {e}")
                 continue
-
         return metrics
 
     def detect_spoofing_patterns(
@@ -220,11 +234,9 @@ class Level2Analyzer:
             print("No message data available for spoofing detection")
             return []
 
-        spoofing_events = []
+        spoofing_events: list[dict[str, Any]] = []
 
-        # Look for rapid add/remove patterns
         window_delta = timedelta(seconds=window_seconds)
-
         for i in range(len(self.messages_df) - 1):
             msg = self.messages_df.iloc[i]
 
@@ -242,7 +254,7 @@ class Level2Analyzer:
                     & (abs(self.messages_df["price"] - msg["price"]) < 0.01)
                 )
 
-                removals = self.messages_df[mask]
+                removals = cast("pd.DataFrame", self.messages_df[mask])
 
                 if len(removals) > 0:
                     time_diff = (
@@ -306,16 +318,26 @@ class Level2Analyzer:
         # Spoofing analysis if message data available
         if self.messages_df is not None:
             spoofing_events = self.detect_spoofing_patterns()
+            data_summary = cast(dict[str, Any], report["data_summary"])  # type: ignore[index]
+            duration_minutes_val = float(
+                cast(float, data_summary.get("duration_minutes", 0.0)) or 0.0
+            )
+            events_per_hour = (
+                (len(spoofing_events) / (duration_minutes_val / 60.0))
+                if duration_minutes_val > 0
+                else 0.0
+            )
             report["spoofing_analysis"] = {
                 "total_events": len(spoofing_events),
-                "events_per_hour": len(spoofing_events)
-                / (report["data_summary"]["duration_minutes"] / 60),
+                "events_per_hour": events_per_hour,
                 "events": spoofing_events[:10],  # First 10 events as examples
             }
 
         # Save report if output file specified
         if output_file:
-            with open(output_file, "w") as f:
+            from pathlib import Path as _Path
+
+            with _Path(output_file).open("w") as f:
                 json.dump(report, f, indent=2, default=str)
             print(f"Analysis report saved to {output_file}")
 
@@ -326,106 +348,96 @@ class Level2Analyzer:
         start_time: str | None = None,
         end_time: str | None = None,
         save_file: str | None = None,
-    ):
-        """Plot order book evolution over time."""
+    ) -> None:
+        """Plot order book evolution over time (restored indentation)."""
         if self.snapshots_df is None:
             raise ValueError("No data loaded")
 
-        # Filter by time range if specified
         df = self.snapshots_df.copy()
         if start_time:
             df = df[df["timestamp"] >= pd.to_datetime(start_time)]
         if end_time:
             df = df[df["timestamp"] <= pd.to_datetime(end_time)]
 
-        # Calculate mid prices
-        mid_prices = []
-        spreads = []
-        timestamps = []
-
+        mid_prices: list[float] = []
+        spreads: list[float] = []
+        timestamps: list[pd.Timestamp] = []
         for _, row in df.iterrows():
             try:
                 bid_prices = (
-                    eval(row["bid_prices"])
+                    eval(row["bid_prices"])  # noqa: S307
                     if isinstance(row["bid_prices"], str)
                     else row["bid_prices"]
                 )
                 ask_prices = (
-                    eval(row["ask_prices"])
+                    eval(row["ask_prices"])  # noqa: S307
                     if isinstance(row["ask_prices"], str)
                     else row["ask_prices"]
                 )
-
                 valid_bids = [p for p in bid_prices if p > 0]
                 valid_asks = [p for p in ask_prices if p > 0]
-
                 if valid_bids and valid_asks:
                     best_bid = max(valid_bids)
                     best_ask = min(valid_asks)
-                    mid_price = (best_bid + best_ask) / 2
-                    spread = best_ask - best_bid
-
-                    mid_prices.append(mid_price)
-                    spreads.append(spread)
+                    mid_prices.append((best_bid + best_ask) / 2)
+                    spreads.append(best_ask - best_bid)
                     timestamps.append(row["timestamp"])
-
             except Exception:
                 continue
-
-        # Create plots
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10), sharex=True)
-
-        # Mid price plot
-        ax1.plot(timestamps, mid_prices, linewidth=1, alpha=0.8)
+        _fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10), sharex=True)  # noqa: F841  # type: ignore[assignment]
+        ax1.plot(timestamps, mid_prices, linewidth=1, alpha=0.8)  # type: ignore[attr-defined]
         ax1.set_ylabel("Mid Price ($)")
         ax1.set_title(f"{self.symbol} Order Book Evolution")
         ax1.grid(True, alpha=0.3)
-
-        # Spread plot
-        ax2.plot(timestamps, spreads, linewidth=1, alpha=0.8, color="orange")
+        ax2.plot(timestamps, spreads, linewidth=1, alpha=0.8, color="orange")  # type: ignore[attr-defined]
         ax2.set_ylabel("Bid-Ask Spread ($)")
         ax2.set_xlabel("Time")
         ax2.grid(True, alpha=0.3)
-
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-
+        plt.xticks(rotation=45)  # type: ignore[attr-defined]
+        plt.tight_layout()  # type: ignore[attr-defined]
         if save_file:
-            plt.savefig(save_file, dpi=300, bbox_inches="tight")
+            plt.savefig(save_file, dpi=300, bbox_inches="tight")  # type: ignore[attr-defined]
             print(f"Plot saved to {save_file}")
+        plt.show()  # type: ignore[attr-defined]
 
-        plt.show()
+
+## legacy describe() handled above; early guard removed (now centralized)
 
 
 @click.command()
-@click.option("--describe", is_flag=True, help="Show tool description")
 @click.option(
-    "--data-dir", "-d", help="Data directory containing Level 2 files"
+    "--show-describe",
+    "show_describe",
+    is_flag=True,
+    help="Show tool description and exit",
 )
+@click.option("--data-dir", "-d", help="Data directory containing Level 2 files")
 @click.option("--symbol", "-s", help="Stock symbol to analyze")
 @click.option("--date", help="Date to analyze (YYYY-MM-DD)")
 @click.option("--output", "-o", help="Output file for analysis report")
 @click.option("--plot", is_flag=True, help="Generate plots")
-def main(describe, data_dir, symbol, date, output, plot):
+def main(
+    show_describe: bool,
+    data_dir: str | None,
+    symbol: str | None,
+    date: str | None,
+    output: str | None,
+    plot: bool,
+) -> None:
     """
     Analyze recorded Level 2 market depth data.
 
     Example:
     python analyze_depth.py -d ./data/level2 -s AAPL --date 2025-07-28 --plot
     """
-    if describe:
-        describe_info = {
-            "name": "analyze_depth.py",
-            "description": "Analyze recorded Level 2 market depth data for order flow and spoofing detection",
-            "inputs": ["--data-dir", "--symbol", "--date", "--output", "--plot"],
-            "outputs": ["JSON analysis report", "optional plots"],
-            "dependencies": ["click", "pandas", "matplotlib"]
-        }
-        print(json.dumps(describe_info, indent=2))
+    if show_describe:  # early pure-JSON describe path
+        print_json(describe())
         return
 
     if not data_dir or not symbol or not date:
-        print("Error: --data-dir, --symbol, and --date are required when not using --describe")
+        print(
+            "Error: --data-dir, --symbol, and --date are required when not using --describe"
+        )
         return
 
     print("=" * 60)
@@ -464,5 +476,5 @@ def main(describe, data_dir, symbol, date, output, plot):
             print(f"Error generating plots: {e}")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

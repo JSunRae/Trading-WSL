@@ -1,0 +1,33 @@
+{
+  "ib_connection": {
+    "host": "127.0.0.1",
+    "port": 7497,
+    "client_id": 1,
+    "timeout": 30,
+    "paper_trading": true,
+    "live_port": 7496,
+    "paper_port": 7497,
+    "gateway_live_port": 4001,
+    "gateway_paper_port": 4002
+  },
+  "data_update": {
+    "default_timeframes": [
+      "1 min",
+      "30 mins",
+      "1 secs"
+    ],
+    "max_retry_attempts": 3,
+    "retry_delay_seconds": 5,
+    "batch_size": 10,
+    "max_file_age_days": 30
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "./logs/trading.log",
+    "max_file_size": "10MB",
+    "backup_count": 5,
+    "enable_console": true,
+    "enable_file": true
+  }
+}

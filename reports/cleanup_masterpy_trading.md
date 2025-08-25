@@ -8,8 +8,7 @@ Initial refactor pass: inserted deprecation shims for path/location helpers and 
 
 Remaining minimal legacy symbols (backward compatibility only):
 
-- `BarCLS` – retained for test coverage of interval calculation. (Will migrate to factory in bar_configuration_service later.)
-- `requestCheckerCLS` – thin deprecated stub exposing only `Download_Historical` adapter to HistoricalDataService. All pacing/market info/tracking removed.
+- (None) – `BarCLS` retired (moved to test shim) and `requestCheckerCLS` removed.
 
 Removed in this final pass:
 
@@ -37,11 +36,15 @@ Removed in this final pass:
 
 ## Size / Metrics
 
-`src/MasterPy_Trading.py` reduced to < 200 lines (target was ≤1200) from original ~2300.
+`src/MasterPy_Trading.py` replaced by <50 line deprecation stub (original ~2300 LOC).
 
 ## Status
 
-Cleanup complete; only minimal compatibility surface retained. Future removal of `requestCheckerCLS` and transition of `BarCLS` to service factory tracked in backlog.
+Cleanup complete; deprecation stub will be deleted on 2025-09-30 pending external migration confirmation.
+
+## Update: L2 Backfill API Extraction
+
+The historical L2 backfill logic was centralized into `services.market_data.backfill_api.backfill_l2` and the CLI tool now delegates per-task execution to this API. Legacy `WarriorList` accessor issues a `DeprecationWarning`; a usage map was added at `reports/usage_map_backfill.json` to track remaining legacy touch points.
 
 # MasterPy_Trading.py Cleanup Report
 

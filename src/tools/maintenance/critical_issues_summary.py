@@ -1,11 +1,54 @@
 #!/usr/bin/env python3
-"""
-@agent.tool critical_issues_summary
+"""Critical Issues Fix Summary tool (adds early --describe guard)."""
 
-Critical Issues Fix Summary
-This script summarizes the progress made on addressing the Critical Code Issues identified in the senior software architect review.
-Priority: IMMEDIATE (Week 1-2) Impact: Platform independence, maintainability, reliability
-"""
+from typing import Any
+
+# --- ultra‑early describe guard -------------------------------------------------
+try:  # Prefer shared helper if present
+    from src.tools._cli_helpers import emit_describe_early, print_json  # type: ignore
+except Exception:  # pragma: no cover - fallback minimal helpers
+    import json as _json  # type: ignore
+    import sys as _sys  # type: ignore
+
+    def print_json(d: dict[str, Any]):  # type: ignore
+        _sys.stdout.write(_json.dumps(d, indent=2, sort_keys=True) + "\n")
+        _sys.stdout.flush()
+        return 0
+
+    def emit_describe_early(fn):  # type: ignore
+        if any(a == "--describe" for a in _sys.argv[1:]):
+            print_json(fn())
+            return True
+        return False
+
+
+def tool_describe() -> dict[str, Any]:
+    return {
+        "name": "critical_issues_summary",
+        "description": "Summarize remediation progress for critical code issues (platform independence, reliability).",
+        "inputs": {
+            "include_detailed_analysis": {"type": "bool", "default": True},
+            "show_implementation_status": {"type": "bool", "default": True},
+            "include_file_inventory": {"type": "bool", "default": True},
+        },
+        "outputs": {"stdout": "Human-readable summary plus JSON when executed"},
+        "dependencies": [],
+        "examples": [
+            {
+                "description": "Show description",
+                "command": "python -m src.tools.maintenance.critical_issues_summary --describe",
+            },
+            {
+                "description": "Run summary",
+                "command": "python -m src.tools.maintenance.critical_issues_summary",
+            },
+        ],
+    }
+
+
+if emit_describe_early(tool_describe):  # pragma: no cover
+    raise SystemExit(0)
+# -------------------------------------------------------------------------------
 
 import json
 import logging
@@ -21,19 +64,19 @@ INPUT_SCHEMA = {
         "include_detailed_analysis": {
             "type": "boolean",
             "default": True,
-            "description": "Include detailed analysis of each critical issue"
+            "description": "Include detailed analysis of each critical issue",
         },
         "show_implementation_status": {
             "type": "boolean",
             "default": True,
-            "description": "Show current implementation status for each issue"
+            "description": "Show current implementation status for each issue",
         },
         "include_file_inventory": {
             "type": "boolean",
             "default": True,
-            "description": "Include inventory of files modified for each fix"
-        }
-    }
+            "description": "Include inventory of files modified for each fix",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -45,8 +88,8 @@ OUTPUT_SCHEMA = {
                 "report_date": {"type": "string"},
                 "total_critical_issues": {"type": "integer"},
                 "issues_resolved": {"type": "integer"},
-                "overall_status": {"type": "string"}
-            }
+                "overall_status": {"type": "string"},
+            },
         },
         "critical_issues": {
             "type": "array",
@@ -60,9 +103,9 @@ OUTPUT_SCHEMA = {
                     "solution_implemented": {"type": "string"},
                     "files_modified": {"type": "array", "items": {"type": "string"}},
                     "key_improvements": {"type": "array", "items": {"type": "string"}},
-                    "impact": {"type": "array", "items": {"type": "string"}}
-                }
-            }
+                    "impact": {"type": "array", "items": {"type": "string"}},
+                },
+            },
         },
         "implementation_metrics": {
             "type": "object",
@@ -70,15 +113,15 @@ OUTPUT_SCHEMA = {
                 "platform_independence": {"type": "boolean"},
                 "maintainability_improved": {"type": "boolean"},
                 "reliability_enhanced": {"type": "boolean"},
-                "deployment_ready": {"type": "boolean"}
-            }
+                "deployment_ready": {"type": "boolean"},
+            },
         },
         "next_steps": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommended next steps for continued improvement"
-        }
-    }
+            "description": "Recommended next steps for continued improvement",
+        },
+    },
 }
 
 # Set up logging
@@ -307,7 +350,7 @@ def main() -> dict[str, Any]:
             "report_date": current_time,
             "total_critical_issues": 3,
             "issues_resolved": 3,
-            "overall_status": "ALL CRITICAL ISSUES RESOLVED"
+            "overall_status": "ALL CRITICAL ISSUES RESOLVED",
         },
         "critical_issues": [
             {
@@ -319,19 +362,19 @@ def main() -> dict[str, Any]:
                 "files_modified": [
                     "src/MasterPy_Trading.py",
                     "src/core/config.py",
-                    "fix_hardcoded_paths.py"
+                    "fix_hardcoded_paths.py",
                 ],
                 "key_improvements": [
                     "Platform independence (Windows/Linux)",
                     "Environment-based configuration",
                     "Fallback paths for safety",
-                    "Helper methods for common file types"
+                    "Helper methods for common file types",
                 ],
                 "impact": [
                     "Eliminates deployment issues across platforms",
                     "Enables team development without path conflicts",
-                    "Supports multiple environments (dev/test/prod)"
-                ]
+                    "Supports multiple environments (dev/test/prod)",
+                ],
             },
             {
                 "issue_number": 2,
@@ -341,19 +384,19 @@ def main() -> dict[str, Any]:
                 "solution_implemented": "SafeDataFrameAccessor with comprehensive error handling",
                 "files_modified": [
                     "src/core/dataframe_safety.py",
-                    "src/MasterPy_Trading.py"
+                    "src/MasterPy_Trading.py",
                 ],
                 "key_improvements": [
                     "Safe accessor patterns",
                     "Automatic error recovery",
                     "Graceful degradation",
-                    "Production-ready reliability"
+                    "Production-ready reliability",
                 ],
                 "impact": [
                     "93% reduction in runtime errors",
                     "Eliminates data corruption risks",
-                    "Enables reliable automated trading"
-                ]
+                    "Enables reliable automated trading",
+                ],
             },
             {
                 "issue_number": 3,
@@ -364,33 +407,33 @@ def main() -> dict[str, Any]:
                 "files_modified": [
                     "src/services/historical_data/",
                     "src/services/request_manager_service.py",
-                    "src/services/data_persistence_service.py"
+                    "src/services/data_persistence_service.py",
                 ],
                 "key_improvements": [
                     "Single Responsibility Principle compliance",
                     "Modular, testable components",
                     "Clear separation of concerns",
-                    "Enterprise-grade error handling"
+                    "Enterprise-grade error handling",
                 ],
                 "impact": [
                     "Improved maintainability",
                     "Enhanced testability",
-                    "Scalable architecture foundation"
-                ]
-            }
+                    "Scalable architecture foundation",
+                ],
+            },
         ],
         "implementation_metrics": {
             "platform_independence": True,
             "maintainability_improved": True,
             "reliability_enhanced": True,
-            "deployment_ready": True
+            "deployment_ready": True,
         },
         "next_steps": [
             "Continue Phase 2 monolithic decomposition",
             "Implement comprehensive testing suite",
             "Deploy to production environment",
-            "Establish monitoring and alerting"
-        ]
+            "Establish monitoring and alerting",
+        ],
     }
 
     try:
@@ -417,11 +460,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Critical Issues Fix Summary",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Critical Issues Fix Summary",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

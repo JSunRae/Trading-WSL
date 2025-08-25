@@ -405,16 +405,28 @@ def get_request_manager(ib_connection=None) -> RequestManagerService:
 
 # Backward compatibility - Legacy interface
 class RequestManagerAdapter:
-    """
-    Adapter class that provides the old requestCheckerCLS interface
-    for request management functionality only.
-    """
+    """Adapter exposing legacy interface. Defaults now sourced from config."""
 
-    def __init__(self, host="127.0.0.1", port=7497, clientId=1, ib=None):
+    def __init__(
+        self, host="", port: int | None = None, clientId: int | None = None, ib=None
+    ):  # noqa: N803
+        try:  # prefer centralized config
+            from src.core.config import get_config
+
+            cfg = get_config()
+            resolved_host = host or cfg.ib_connection.host
+            resolved_port = port or cfg.ib_connection.port
+            resolved_client_id = clientId or cfg.ib_connection.client_id
+        except Exception:  # pragma: no cover
+            resolved_host = host or "127.0.0.1"
+            resolved_port = port or 7497
+            resolved_client_id = clientId or 1
+
+        self._host = resolved_host
+        self._port = resolved_port
+        self._client_id = resolved_client_id
         self.request_service = RequestManagerService(ib)
-
-        # Legacy properties for compatibility
-        self.ReqDict = self.request_service.req_dict
+        self.ReqDict = self.request_service.req_dict  # legacy attr
         self.Downloading = False
         self.exitflag = False
 

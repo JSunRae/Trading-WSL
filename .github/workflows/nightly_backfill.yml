@@ -1,0 +1,76 @@
+name: Nightly DataBento L2 Backfill
+
+on:
+  schedule:
+    # 02:00 ET -> 06:00 UTC (accounts for ET=UTC-4 during DST). Adjust if DST changes.
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    env:
+      LOG_LEVEL: INFO
+      L2_MAX_ROWS_PER_TASK: 0
+      L2_ZERO_ROW_MAX: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+          pip install -e .[dev]
+
+      - name: Validate environment
+        run: |
+          python tools/validate_env.py
+
+      - name: Run backfill (since 3 days, cap 500 tasks)
+        env:
+          DATABENTO_API_KEY: '${{ secrets.DATABENTO_API_KEY }}'
+          DATABENTO_DATASET: '${{ vars.DATABENTO_DATASET }}'
+          DATABENTO_SCHEMA: '${{ vars.DATABENTO_SCHEMA }}'
+          SYMBOL_MAPPING_FILE: '${{ vars.SYMBOL_MAPPING_FILE }}'
+        run: |
+          python src/tools/backfill_l2_from_warrior.py --since 3 --max-tasks 500 --strict || echo "BACKFILL_EXIT=$?" >> $GITHUB_ENV
+
+      - name: Evaluate summary & enforce guardrails
+        run: |
+          set -e
+          if [ -f backfill_l2_summary.json ]; then SUMMARY_FILE=backfill_l2_summary.json; \
+          elif [ -f data/backfill_l2_summary.json ]; then SUMMARY_FILE=data/backfill_l2_summary.json; \
+          else echo "ERROR summary file missing"; exit 1; fi
+          echo "Using summary file: $SUMMARY_FILE"
+          python -c "import json,os,sys;sp=os.environ['SUMMARY_FILE'];s=json.load(open(sp));errs=sum(s['counts'].get(k,0) for k in ['ERROR','UNAVAIL'])+len(s.get('errors',{}));zr=len(s.get('zero_row_tasks',[]));zm=int(os.getenv('L2_ZERO_ROW_MAX','5'));print(f'Errors={errs} ZeroRows={zr} Threshold={zm}');(errs>0) and (print('Fail: errors present') or sys.exit(2));(zr>zm) and (print('Fail: zero_row_tasks beyond threshold') or sys.exit(3));print('Backfill guardrails satisfied')"
+
+      - name: Optional Slack notification
+        if: failure() && env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: '${{ secrets.SLACK_WEBHOOK }}'
+        run: |
+          echo "Posting Slack alert"; curl -X POST -H 'Content-type: application/json' --data '{"text":"Backfill failed in $GITHUB_REPOSITORY @ $GITHUB_RUN_ID"}' "$SLACK_WEBHOOK" || true
+
+      - name: Optional Email notification (Mailgun / generic webhook)
+        if: failure() && env.BACKFILL_ALERT_WEBHOOK != ''
+        env:
+          BACKFILL_ALERT_WEBHOOK: '${{ secrets.BACKFILL_ALERT_WEBHOOK }}'
+        run: |
+          curl -X POST -H 'Content-Type: application/json' -d '{"event":"backfill_failed","repo":"'$GITHUB_REPOSITORY'","run":"'$GITHUB_RUN_ID'"}' "$BACKFILL_ALERT_WEBHOOK" || true
+
+      - name: Upload artifacts (summary, manifest, log)
+        uses: actions/upload-artifact@v3
+        with:
+          name: l2-backfill-artifacts
+          path: |
+            backfill_l2_summary.json
+            backfill_l2_manifest.jsonl
+            backfill.log
+            data/backfill_l2_summary.json
+            data/backfill_l2_manifest.jsonl
+            data/backfill.log

@@ -1,13 +1,42 @@
 #!/usr/bin/env python3
-"""
-Quick Start Guide for Trading Project
+"""Quick Start Guide for Trading Project (with unified --describe guard)."""
 
-This script demonstrates the basic setup and provides examples of how to use
-the trading system.
-"""
+# --- ultra-early describe guard (keep above heavy imports) ---
+from typing import Any
+
+from src.tools._cli_helpers import emit_describe_early, print_json  # type: ignore
+
+
+def tool_describe() -> dict[str, Any]:
+    return {
+        "name": "quick_start",
+        "description": "Display project structure, IB setup guidance, and usage examples.",
+        "inputs": {},
+        "outputs": {"stdout": "Guidance text or schema"},
+        "dependencies": [
+            "config:IB_HOST",
+            "config:IB_PAPER_PORT",
+            "config:IB_LIVE_PORT",
+        ],
+        "examples": [
+            "python -m src.tools.quick_start",
+            "python -m src.tools.quick_start --describe",
+        ],
+    }
+
+
+def describe() -> dict[str, Any]:  # backward compatibility
+    return tool_describe()
+
+
+if emit_describe_early(tool_describe):  # pragma: no cover
+    raise SystemExit(0)
+# ----------------------------------------------------------------
 
 import sys
 from pathlib import Path
+
+from src.core.config import get_config  # heavy import after guard
 
 # Add src directory to path
 project_root = Path(__file__).parent
@@ -61,8 +90,12 @@ def check_ib_connection():
     print("  2. Enable API connections in TWS/Gateway settings:")
     print("     - Go to API -> Settings")
     print("     - Enable 'Enable ActiveX and Socket Clients'")
-    print("     - Set Socket port: 7497 (paper trading) or 7496 (live)")
-    print("     - Add your computer's IP to trusted IPs (127.0.0.1 for local)")
+    cfg = get_config()
+    host = cfg.ib_connection.host
+    paper_port = cfg.ib_connection.paper_port
+    live_port = cfg.ib_connection.live_port
+    print(f"     - Set Socket port: {paper_port} (paper trading) or {live_port} (live)")
+    print(f"     - Add your computer's IP to trusted IPs ({host} for local)")
     print("  3. Update config/config.json with correct port and settings")
 
 
@@ -121,8 +154,22 @@ def show_next_steps():
     print("  - Ensure proper Level 2 data permissions with IB")
 
 
-def main():
-    """Main function."""
+def main(argv: list[str] | None = None):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Quick start helper for the trading system"
+    )
+    parser.add_argument(
+        "--describe",
+        action="store_true",
+        help="(Deprecated) Show JSON tool description and exit",
+    )
+    args = parser.parse_args(argv)
+
+    if args.describe:  # legacy path
+        return print_json(tool_describe())
+
     show_project_info()
     check_ib_connection()
     show_usage_examples()
@@ -132,7 +179,8 @@ def main():
     print("🎉 Your trading project is ready!")
     print("Start with 'python verify_setup.py' to test everything.")
     print("=" * 60)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

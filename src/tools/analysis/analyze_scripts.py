@@ -14,26 +14,109 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-# Schema definitions for agent tool pattern
+from src.tools._cli_helpers import env_dep, print_json
+
+# Schema definitions for agent tool pattern / describe support
 INPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "skip_pyright": {"type": "boolean", "default": False, "description": "Skip pyright analysis"},
-        "verbose": {"type": "boolean", "default": False, "description": "Enable verbose logging"}
-    }
+        "skip_pyright": {
+            "type": "boolean",
+            "default": False,
+            "description": "Skip pyright analysis",
+        },
+        "verbose": {
+            "type": "boolean",
+            "default": False,
+            "description": "Enable verbose logging",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "success": {"type": "boolean", "description": "Analysis completed successfully"},
-        "files_analyzed": {"type": "integer", "description": "Number of Python files analyzed"},
-        "reports_generated": {"type": "array", "items": {"type": "string"}, "description": "Report files created"}
-    }
+        "success": {
+            "type": "boolean",
+            "description": "Analysis completed successfully",
+        },
+        "files_analyzed": {
+            "type": "integer",
+            "description": "Number of Python files analyzed",
+        },
+        "reports_generated": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Report files created",
+        },
+    },
 }
 
+
+def describe() -> dict[str, object]:
+    """Return machine readable metadata for --describe flag."""
+    return {
+        "name": "analyze_scripts",
+        "description": "Inventory & classify project Python scripts; produces CSV + JSON summaries.",
+        "inputs": {
+            "--skip-pyright": {
+                "type": "flag",
+                "required": False,
+                "description": "Skip pyright type analysis",
+            },
+            "--verbose": {
+                "type": "flag",
+                "required": False,
+                "description": "Enable verbose logging",
+            },
+            "--describe": {
+                "type": "flag",
+                "required": False,
+                "description": "Print this schema and exit",
+            },
+        },
+        "outputs": {
+            "stdout": {
+                "type": "json",
+                "description": "Summary JSON (tool results or schema)",
+            },
+            "scripts_inventory.json": {
+                "type": "file",
+                "description": "Inventory of analyzed scripts with metrics",
+            },
+            "scripts_groups.json": {
+                "type": "file",
+                "description": "Proposed grouping / target paths",
+            },
+            "scripts_move_plan.csv": {
+                "type": "file",
+                "description": "CSV move/organization plan",
+            },
+            "import_graph.json": {
+                "type": "file",
+                "description": "Simplified import graph",
+            },
+            "duplicates.json": {
+                "type": "file",
+                "description": "Duplicate file analysis placeholder",
+            },
+        },
+        "dependencies": [env_dep("PROJECT_ROOT")],
+        "examples": [
+            {
+                "description": "Show schema",
+                "command": "python -m src.tools.analysis.analyze_scripts --describe",
+            },
+            {
+                "description": "Analyze scripts",
+                "command": "python -m src.tools.analysis.analyze_scripts",
+            },
+        ],
+    }
+
+
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -49,8 +132,11 @@ def find_python_files(repo_root):
         python_files.extend(files)
 
     # Remove duplicates and __pycache__ files
-    python_files = [f for f in set(python_files)
-                   if "__pycache__" not in str(f) and f.name.endswith('.py')]
+    python_files = [
+        f
+        for f in set(python_files)
+        if "__pycache__" not in str(f) and f.name.endswith(".py")
+    ]
 
     return sorted(python_files)
 
@@ -119,7 +205,7 @@ def check_describe_support(file_path, repo_root):
             capture_output=True,
             text=True,
             timeout=10,
-            cwd=repo_root
+            cwd=repo_root,
         )
 
         if result.returncode == 0 and result.stdout.strip():
@@ -139,7 +225,7 @@ def check_describe_support(file_path, repo_root):
 def analyze_file(file_path, repo_root):
     """Analyze a single Python file."""
     try:
-        with open(file_path, encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
     except Exception as e:
         logger.error(f"Could not read {file_path}: {e}")
@@ -158,15 +244,15 @@ def analyze_file(file_path, repo_root):
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.startswith(('src', 'scripts')):
+                if alias.name.startswith(("src", "scripts")):
                     internal_deps.append(alias.name)
                 else:
-                    external_deps.append(alias.name.split('.')[0])
+                    external_deps.append(alias.name.split(".")[0])
         elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.startswith(('src', 'scripts')):
+            if node.module and node.module.startswith(("src", "scripts")):
                 internal_deps.append(node.module)
             elif node.module:
-                external_deps.append(node.module.split('.')[0])
+                external_deps.append(node.module.split(".")[0])
 
     # Calculate metrics
     loc = len(content.splitlines())
@@ -182,11 +268,7 @@ def analyze_file(file_path, repo_root):
         "describe_support": check_describe_support(file_path, repo_root),
         "deps_internal": list(set(internal_deps)),
         "deps_external": list(set(external_deps)),
-        "metrics": {
-            "loc": loc,
-            "functions": functions,
-            "classes": classes
-        }
+        "metrics": {"loc": loc, "functions": functions, "classes": classes},
     }
 
     return file_info
@@ -251,40 +333,31 @@ def propose_target_path(file_info):
         "target_path": target_path,
         "confidence": confidence,
         "rationale": rationale,
-        "blockers": blockers
+        "blockers": blockers,
     }
 
 
 def main():
+    if "--describe" in sys.argv[1:]:
+        return print_json(describe())
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Analyze Python files for organization")
-    parser.add_argument("--describe", action="store_true",
-                       help="Show tool description and schema")
-    parser.add_argument("--skip-pyright", action="store_true",
-                       help="Skip pyright analysis")
-    parser.add_argument("--verbose", action="store_true",
-                       help="Enable verbose logging")
+    parser = argparse.ArgumentParser(
+        description="Analyze Python files for organization"
+    )
+    parser.add_argument(
+        "--describe", action="store_true", help="Show tool description and schema"
+    )
+    parser.add_argument(
+        "--skip-pyright", action="store_true", help="Skip pyright analysis"
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
 
-    if args.describe:
-        description = {
-            "name": "script_inventory_analyzer",
-            "version": "1.0.0",
-            "description": "Python file analysis for organization planning",
-            "inputs_schema": INPUT_SCHEMA,
-            "outputs_schema": OUTPUT_SCHEMA,
-            "examples": [
-                {
-                    "description": "Basic analysis",
-                    "command": "python script_inventory_analyzer.py"
-                }
-            ]
-        }
-        print(json.dumps(description, indent=2))
-        return
+    if args.describe:  # secondary path (argparse) still returns canonical schema
+        return print_json(describe())
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -321,24 +394,35 @@ def main():
 
         # Create CSV move plan
         with open(reports_dir / "scripts_move_plan.csv", "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=[
-                "current_path", "target_path", "reason", "confidence", "blockers"
-            ])
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "current_path",
+                    "target_path",
+                    "reason",
+                    "confidence",
+                    "blockers",
+                ],
+            )
             writer.writeheader()
             for proposal in groups_proposal:
-                writer.writerow({
-                    "current_path": proposal["current_path"],
-                    "target_path": proposal["target_path"],
-                    "reason": proposal["rationale"],
-                    "confidence": proposal["confidence"],
-                    "blockers": "; ".join(proposal["blockers"])
-                })
+                writer.writerow(
+                    {
+                        "current_path": proposal["current_path"],
+                        "target_path": proposal["target_path"],
+                        "reason": proposal["rationale"],
+                        "confidence": proposal["confidence"],
+                        "blockers": "; ".join(proposal["blockers"]),
+                    }
+                )
 
         # Simple import graph
         import_graph = {
-            "nodes": [{"id": f["path"], "role_tags": f["role_tags"]} for f in file_inventory],
+            "nodes": [
+                {"id": f["path"], "role_tags": f["role_tags"]} for f in file_inventory
+            ],
             "edges": [],
-            "cycles": []
+            "cycles": [],
         }
 
         with open(reports_dir / "import_graph.json", "w") as f:
@@ -354,8 +438,9 @@ def main():
                 role_counts[role] += 1
 
         executable_files = sum(1 for f in file_inventory if f["entrypoint"])
-        files_with_describe = sum(1 for f in file_inventory
-                                if f["describe_support"]["has_describe"])
+        files_with_describe = sum(
+            1 for f in file_inventory if f["describe_support"]["has_describe"]
+        )
 
         result = {
             "success": True,
@@ -365,14 +450,14 @@ def main():
                 "scripts_groups.json",
                 "scripts_move_plan.csv",
                 "import_graph.json",
-                "duplicates.json"
+                "duplicates.json",
             ],
             "summary": {
                 "total_files": len(file_inventory),
                 "by_role": dict(role_counts),
                 "executable_files": executable_files,
-                "files_with_describe": files_with_describe
-            }
+                "files_with_describe": files_with_describe,
+            },
         }
 
         print(json.dumps(result, indent=2))
@@ -382,11 +467,14 @@ def main():
             "success": False,
             "error": str(e),
             "files_analyzed": 0,
-            "reports_generated": []
+            "reports_generated": [],
         }
         print(json.dumps(error_result, indent=2))
         sys.exit(1)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__":  # pragma: no cover
+    if "--describe" in sys.argv[1:]:
+        print_json(describe())
+        raise SystemExit(0)
+    raise SystemExit(main())
