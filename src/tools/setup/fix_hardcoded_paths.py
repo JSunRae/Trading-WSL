@@ -107,7 +107,7 @@ class HardcodedPathFixer:
     def analyze_file(self, file_path: Path) -> dict[str, list[tuple[int, str]]]:
         """Analyze a file for hardcoded paths"""
         try:
-            with open(file_path, encoding="utf-8") as f:
+            with file_path.open(encoding="utf-8") as f:
                 content = f.read()
                 lines = content.split("\n")
         except (UnicodeDecodeError, PermissionError) as e:
@@ -128,7 +128,7 @@ class HardcodedPathFixer:
     def fix_file(self, file_path: Path) -> bool:
         """Fix hardcoded paths in a single file"""
         try:
-            with open(file_path, encoding="utf-8") as f:
+            with file_path.open(encoding="utf-8") as f:
                 content = f.read()
         except (UnicodeDecodeError, PermissionError) as e:
             print(f"⚠️  Could not read {file_path}: {e}")
@@ -180,7 +180,7 @@ class HardcodedPathFixer:
         # Only write if changes were made
         if content != original_content:
             try:
-                with open(file_path, "w", encoding="utf-8") as f:
+                with file_path.open("w", encoding="utf-8") as f:
                     f.write(content)
                 self.fixes_made += fixes_in_file
                 print(
@@ -202,7 +202,7 @@ class HardcodedPathFixer:
             return False
 
         try:
-            with open(config_file, encoding="utf-8") as f:
+            with config_file.open(encoding="utf-8") as f:
                 content = f.read()
         except Exception as e:
             print(f"⚠️  Could not read config file: {e}")
@@ -260,7 +260,7 @@ class HardcodedPathFixer:
             return False
 
         try:
-            with open(config_file, "w", encoding="utf-8") as f:
+            with config_file.open("w", encoding="utf-8") as f:
                 f.write(content)
             print("✅ Added helper methods to ConfigManager")
             return True
@@ -316,7 +316,11 @@ def main():
     """Main execution function"""
     parser = argparse.ArgumentParser(description="Fix hardcoded paths in codebase")
     parser.add_argument("--describe", action="store_true", help="Show tool description")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be fixed without making changes")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be fixed without making changes",
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
     args = parser.parse_args()
@@ -327,7 +331,7 @@ def main():
             "description": "Fix hardcoded paths throughout the codebase using ConfigManager",
             "inputs": ["--dry-run", "--verbose"],
             "outputs": ["Modified Python files", "console report"],
-            "dependencies": ["pathlib", "re"]
+            "dependencies": ["pathlib", "re"],
         }
         print(json.dumps(describe_info, indent=2))
         return True

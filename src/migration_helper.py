@@ -1,3 +1,4 @@
+# ruff: noqa: N802,N803,N806  # Legacy compatibility layer retains historical names/args
 # Migration helper to gradually transition from old monolithic code to new architecture
 # This provides backward compatibility while enabling new patterns
 
@@ -72,13 +73,13 @@ class LegacyDataManagerAdapter:
         self.df_IBDownloaded = self.data_manager.download_tracker.df_downloaded
 
     # Legacy method compatibility
-    def appendFailed(
+    def appendFailed(  # noqa: N802 - legacy name for compatibility
         self,
         symbol,
-        NonExistant=True,
-        EarliestAvailBar="",
-        BarSize="",
-        forDate="",
+        NonExistant=True,  # noqa: N803
+        EarliestAvailBar="",  # noqa: N803
+        BarSize="",  # noqa: N803
+        forDate="",  # noqa: N803
         comment="",
     ):
         """Legacy method - delegates to new system"""
@@ -90,7 +91,7 @@ class LegacyDataManagerAdapter:
             non_existent=NonExistant,
         )
 
-    def appendDownloadable(
+    def appendDownloadable(  # noqa: N802,N803 - legacy name/args for compatibility
         self, symbol, BarSize, EarliestAvailBar, StartDate="", EndDate=""
     ):
         """Legacy method - delegates to new system"""
@@ -102,25 +103,29 @@ class LegacyDataManagerAdapter:
             end_date=str(EndDate),
         )
 
-    def appendDownloaded(self, symbol, BarSize, forDate):
+    def appendDownloaded(  # noqa: N802,N803 - legacy name/args for compatibility
+        self, symbol, BarSize, forDate
+    ):
         """Legacy method - delegates to new system"""
         return self.data_manager.download_tracker.mark_downloaded(
             symbol=symbol, timeframe=BarSize, date_str=str(forDate)
         )
 
-    def is_failed(self, symbol, BarSize, forDate=""):
+    def is_failed(self, symbol, BarSize, forDate=""):  # noqa: N803
         """Legacy method - delegates to new system"""
         return self.data_manager.download_tracker.is_failed(
             symbol=symbol, timeframe=BarSize, date_str=str(forDate)
         )
 
-    def Download_Exists(self, symbol, BarSize, forDate=""):
+    def Download_Exists(  # noqa: N802,N803 - legacy name/args for compatibility
+        self, symbol, BarSize, forDate=""
+    ):
         """Legacy method - delegates to new system"""
         return self.data_manager.data_exists(
             symbol=symbol, timeframe=BarSize, date_str=str(forDate)
         )
 
-    def On_Exit(self):
+    def On_Exit(self):  # noqa: N802 - legacy name for compatibility
         """Legacy cleanup method"""
         self.data_manager.cleanup()
 
@@ -134,11 +139,10 @@ class MigrationHelper:
         Migrate old hardcoded configuration to new config system
         """
         print("🔄 Migrating configuration...")
-
         config = get_config()
 
         # Check if old hardcoded paths exist and warn user
-        old_paths = [
+        old_paths = [  # noqa: F841 - placeholder for future checks
             "G:/Machine Learning/",
             "F:/T7 Backup/Machine Learning/",
             "/home/user/Machine Learning/",
@@ -162,7 +166,9 @@ class MigrationHelper:
         }
 
         try:
-            with open(file_path) as f:
+            from pathlib import Path as _Path
+
+            with _Path(file_path).open() as f:
                 content = f.read()
                 lines = content.split("\n")
 
@@ -305,7 +311,7 @@ class MigrationHelper:
 
 def get_migration_status() -> dict[str, Any]:
     """Get overall migration status"""
-    config = get_config()
+    # Access config lazily via functions when needed; avoid unused variable
 
     status = {
         "config_migrated": True,  # Always true if we get here
@@ -324,7 +330,7 @@ def get_migration_status() -> dict[str, Any]:
 
 
 # Convenience function for gradual migration
-def get_data_manager_legacy(host="127.0.0.1", port=7497, clientId=1, ib=None):
+def get_data_manager_legacy(host="127.0.0.1", port=7497, clientId=1, ib=None):  # noqa: N803
     """
     Get a data manager with legacy compatibility.
 

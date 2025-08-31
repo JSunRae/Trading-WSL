@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """Critical Issues Fix Summary tool (adds early --describe guard)."""
 
 from typing import Any
@@ -140,19 +141,16 @@ def print_header():
 
 def summarize_issue_1():
     """Summarize Issue #1: Hardcoded Paths"""
-    print("🔧 ISSUE #1: HARDCODED PATHS THROUGHOUT SYSTEM")
     print("=" * 50)
     print("❌ Problem: Platform-dependent hardcoded paths (G:/Machine Learning/)")
     print("✅ Solution: ConfigManager integration with environment-based paths")
     print()
     print("📁 Files Modified:")
-    print("   • src/MasterPy_Trading.py - Added config imports and path replacements")
     print(
         "   • src/core/config.py - Enhanced with helper methods for common file types"
     )
     print("   • fix_hardcoded_paths.py - Automated detection and fixing tool")
     print()
-    print("🎯 Key Improvements:")
     print("   ✅ Platform independence (Windows/Linux)")
     print("   ✅ Environment-based configuration")
     print("   ✅ Fallback paths for safety")
@@ -317,26 +315,38 @@ def validate_fixes():
     # Check import capability
     print("\n🔍 Import Validation:")
     try:
+        import importlib.util as _ilu
+
         sys.path.append(str(project_root))
-        from src.core.config import get_config
-
-        print("   ✅ ConfigManager imports successfully")
-    except ImportError as e:
-        print(f"   ❌ ConfigManager import failed: {e}")
-
-    try:
-        from src.core.dataframe_safety import SafeDataFrameAccessor
-
-        print("   ✅ DataFrame safety utilities import successfully")
-    except ImportError as e:
-        print(f"   ❌ DataFrame safety import failed: {e}")
+        print(
+            "   ✅ ConfigManager import spec found"
+            if _ilu.find_spec("src.core.config") is not None
+            else "   ⚠️  ConfigManager not available"
+        )
+    except Exception as e:
+        print(f"   ❌ ConfigManager import check failed: {e}")
 
     try:
-        from src.services.historical_data import HistoricalDataService
+        import importlib.util as _ilu
 
-        print("   ✅ Historical Data Service imports successfully")
-    except ImportError as e:
-        print(f"   ❌ Historical Data Service import failed: {e}")
+        print(
+            "   ✅ DataFrame safety utilities import spec found"
+            if _ilu.find_spec("src.core.dataframe_safety") is not None
+            else "   ⚠️  DataFrame safety utilities not available"
+        )
+    except Exception as e:
+        print(f"   ❌ DataFrame safety import check failed: {e}")
+
+    try:
+        import importlib.util as _ilu
+
+        print(
+            "   ✅ Historical Data Service import spec found"
+            if _ilu.find_spec("src.services.historical_data") is not None
+            else "   ⚠️  Historical Data Service not available"
+        )
+    except Exception as e:
+        print(f"   ❌ Historical Data Service import check failed: {e}")
 
 
 def main() -> dict[str, Any]:

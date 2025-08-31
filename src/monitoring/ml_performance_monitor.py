@@ -461,7 +461,7 @@ class MLPerformanceMonitor:
             now = datetime.now(UTC)
 
             # Get recent metrics (last hour)
-            recent_metrics = {}
+            recent_metrics: dict[str, dict[str, Any]] = {}
             for metric_key, metric_deque in self.metrics.items():
                 recent_values = [
                     m.value
@@ -812,7 +812,7 @@ class MLPerformanceMonitor:
         try:
             # Save recent metrics
             all_metrics: list[dict[str, Any]] = []
-            for metric_key, metric_deque in self.metrics.items():
+            for _metric_key, metric_deque in self.metrics.items():
                 for metric in list(metric_deque)[-1000:]:  # Last 1000 per metric
                     all_metrics.append(
                         {

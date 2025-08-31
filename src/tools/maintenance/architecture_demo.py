@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """Architecture Demo tool (adds early --describe guard).
 
 Provides a demonstration of the modernized trading system architecture. For the

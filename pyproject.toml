@@ -142,6 +142,7 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_unreachable = true
+mypy_path = ["stubs"]
 exclude = [
     "venv/",
     "build/",
@@ -152,7 +153,6 @@ exclude = [
 [[tool.mypy.overrides]]
 module = [
     "ib_async.*",
-    "ibapi.*",
     "pandas_market_calendars.*",
     "PyQt5.*",
     "tkinter.*",

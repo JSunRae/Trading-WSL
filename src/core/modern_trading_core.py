@@ -113,9 +113,8 @@ class ModernTradingCore:
                     }
 
             # 4. Use request manager for throttling (using correct method)
-            end_datetime = (
-                datetime.strptime(for_date, "%Y-%m-%d") if for_date else datetime.now()
-            )
+            # Compute end datetime if needed in the future; not used currently.
+            _ = datetime.strptime(for_date, "%Y-%m-%d") if for_date else datetime.now()
 
             # Check if we can send request
             if not self.request_manager._can_send_request():
@@ -343,7 +342,7 @@ def create_modern_trading_core(ib_connection=None, config=None) -> ModernTrading
 
 
 # Compatibility functions for legacy code
-async def InitiateTWS(LiveMode=False, clientId=1):
+async def InitiateTWS(LiveMode=False, clientId=1):  # noqa: N802, N803 - legacy compat
     """Legacy compatibility function - now async."""
     try:
         from src.core.ib_client import get_ib

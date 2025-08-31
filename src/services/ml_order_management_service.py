@@ -301,7 +301,7 @@ class MLOrderManagementService:
                     "confidence": signal.confidence,
                 },
             )
-            raise RuntimeError(error_msg)
+            raise RuntimeError(error_msg) from e
 
     def _handle_fill_callback(self, fill: Fill):
         """Handle fill events for ML orders"""

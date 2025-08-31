@@ -100,7 +100,9 @@ class PerformanceMonitor(Protocol):
         """
         ...
 
-    def record_position_pnl(self, signal_id: str, pnl: float, is_final: bool = False) -> None:
+    def record_position_pnl(
+        self, signal_id: str, pnl: float, is_final: bool = False
+    ) -> None:
         """Record P&L for a position.
 
         Args:
@@ -110,7 +112,9 @@ class PerformanceMonitor(Protocol):
         """
         ...
 
-    def generate_model_report(self, model_name: str, days_lookback: int = 30) -> ExecutionReport:
+    def generate_model_report(
+        self, model_name: str, days_lookback: int = 30
+    ) -> ExecutionReport:
         """Generate a performance report for a model.
 
         Args:

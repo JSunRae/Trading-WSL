@@ -55,6 +55,13 @@ class DataBentoL2Service:
         Expected output columns (after light normalization):
         ts_event, action, side, price, size, level, exchange, symbol
         """
+        # Enforce L2-only usage to avoid unintended vendor costs
+        allowed_l2_schemas = {"mbp-1", "mbp-10", "mbp-20", "mbp-50"}
+        if req.schema.lower() not in allowed_l2_schemas:
+            raise VendorUnavailable(
+                f"DataBento is restricted to Level 2 schemas only; requested '{req.schema}'."
+            )
+
         if not self.is_available(
             self.api_key
         ):  # pragma: no cover - guard tested separately

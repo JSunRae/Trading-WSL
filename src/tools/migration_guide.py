@@ -20,9 +20,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 INPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "analyze_only": {"type": "boolean", "default": False, "description": "Only analyze codebase, skip migration plan"},
-        "include_examples": {"type": "boolean", "default": True, "description": "Include code examples in output"}
-    }
+        "analyze_only": {
+            "type": "boolean",
+            "default": False,
+            "description": "Only analyze codebase, skip migration plan",
+        },
+        "include_examples": {
+            "type": "boolean",
+            "default": True,
+            "description": "Include code examples in output",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -35,18 +43,18 @@ OUTPUT_SCHEMA = {
                 "hardcoded_paths": {"type": "array", "items": {"type": "object"}},
                 "print_statements": {"type": "array", "items": {"type": "object"}},
                 "error_handling_issues": {"type": "array", "items": {"type": "object"}},
-                "monolithic_classes": {"type": "array", "items": {"type": "object"}}
-            }
+                "monolithic_classes": {"type": "array", "items": {"type": "object"}},
+            },
         },
         "migration_plan": {"type": "array", "items": {"type": "string"}},
         "code_examples": {"type": "array", "items": {"type": "object"}},
         "next_steps": {"type": "array", "items": {"type": "string"}},
-        "architecture_components": {"type": "object"}
-    }
+        "architecture_components": {"type": "object"},
+    },
 }
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +65,7 @@ class CodeMigrationAssistant:
         try:
             from src.core.config import get_config
             from src.core.error_handler import get_error_handler
+
             self.config = get_config()
             self.error_handler = get_error_handler()
         except ImportError:
@@ -153,7 +162,10 @@ class CodeMigrationAssistant:
                     # Use error handler if available
                     try:
                         from src.core.error_handler import handle_error
-                        handle_error(e, module="MigrationAssistant", function="analyze_codebase")
+
+                        handle_error(
+                            e, module="MigrationAssistant", function="analyze_codebase"
+                        )
                     except ImportError:
                         logger.error(f"Error analyzing {file_path.name}: {e}")
                 else:
@@ -347,7 +359,7 @@ def get_code_examples() -> list[dict[str, Any]]:
             "title": "Replacing Hardcoded Paths",
             "old_code": [
                 'data_path = "G:/Machine Learning/IBDownloads/"',
-                'file_path = data_path + f"{symbol}_USUSD_{timeframe}_{date}.ftr"'
+                'file_path = data_path + f"{symbol}_USUSD_{timeframe}_{date}.ftr"',
             ],
             "new_code": [
                 "from src.core import get_config",
@@ -355,8 +367,8 @@ def get_code_examples() -> list[dict[str, Any]]:
                 "file_path = config.get_data_file_path('ib_download',",
                 "                                      symbol=symbol,",
                 "                                      timeframe=timeframe,",
-                "                                      date_str=date)"
-            ]
+                "                                      date_str=date)",
+            ],
         },
         {
             "title": "Improving Error Handling",
@@ -364,7 +376,7 @@ def get_code_examples() -> list[dict[str, Any]]:
                 "try:",
                 "    result = risky_operation()",
                 "except Exception as e:",
-                '    print(f"Error: {e}")'
+                '    print(f"Error: {e}")',
             ],
             "new_code": [
                 "from src.core import handle_error",
@@ -373,24 +385,24 @@ def get_code_examples() -> list[dict[str, Any]]:
                 "except Exception as e:",
                 "    report = handle_error(e, module='YourModule',",
                 "                           function='your_function')",
-                "    # Error is now logged with ID and context"
-            ]
+                "    # Error is now logged with ID and context",
+            ],
         },
         {
             "title": "Using DataManager",
             "old_code": [
                 "checker = requestCheckerCLS()",
                 "if checker.check_file_exists(symbol, timeframe):",
-                "    data = checker.load_data()"
+                "    data = checker.load_data()",
             ],
             "new_code": [
                 "from src.data.data_manager import DataManager",
                 "dm = DataManager()",
                 "if dm.data_exists(symbol, timeframe, date_str):",
                 "    # Use appropriate repository",
-                "    data = dm.feather_repo.load(identifier)"
-            ]
-        }
+                "    data = dm.feather_repo.load(identifier)",
+            ],
+        },
     ]
 
 
@@ -400,24 +412,33 @@ def main(analyze_only: bool = False, include_examples: bool = True) -> dict[str,
 
     # Import required modules
     try:
-        import src.core.config  # Test import availability
-        import src.core.error_handler  # Test import availability
+        from importlib.util import find_spec
+
+        if (
+            find_spec("src.core.config") is None
+            or find_spec("src.core.error_handler") is None
+        ):
+            raise ImportError
     except ImportError:
         logger.warning("Unable to import core modules, running in limited mode")
         # Create minimal assistant for analysis
-        assistant = type('MockAssistant', (), {
-            'workspace_root': Path(__file__).parent.parent,
-            'analyze_codebase': lambda self: {
-                "files_analyzed": 0,
-                "hardcoded_paths": [],
-                "print_statements": [],
-                "error_handling_issues": [],
-                "monolithic_classes": []
+        assistant = type(
+            "MockAssistant",
+            (),
+            {
+                "workspace_root": Path(__file__).parent.parent,
+                "analyze_codebase": lambda self: {
+                    "files_analyzed": 0,
+                    "hardcoded_paths": [],
+                    "print_statements": [],
+                    "error_handling_issues": [],
+                    "monolithic_classes": [],
+                },
+                "generate_migration_plan": lambda self, analysis: [
+                    "Migration requires core modules to be available"
+                ],
             },
-            'generate_migration_plan': lambda self, analysis: [
-                "Migration requires core modules to be available"
-            ]
-        })()
+        )()
     else:
         assistant = CodeMigrationAssistant()
 
@@ -431,14 +452,14 @@ def main(analyze_only: bool = False, include_examples: bool = True) -> dict[str,
             "Start with Priority 1 items (hardcoded paths)",
             "Use the new architecture components in src/",
             "Test each change thoroughly",
-            "Run architecture_demo.py to verify setup"
+            "Run architecture_demo.py to verify setup",
         ],
         "architecture_components": {
             "configuration": "src/core/config.py",
             "error_handling": "src/core/error_handler.py",
             "data_management": "src/data/data_manager.py",
-            "migration_helper": "src/migration_helper.py"
-        }
+            "migration_helper": "src/migration_helper.py",
+        },
     }
 
     if not analyze_only:
@@ -457,28 +478,31 @@ def run_cli() -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description="Migration guide for trading system")
-    parser.add_argument("--analyze-only", action="store_true",
-                      help="Only analyze codebase, skip migration plan")
-    parser.add_argument("--no-examples", action="store_true",
-                      help="Exclude code examples")
-    parser.add_argument("--describe", action="store_true",
-                      help="Show tool schemas")
+    parser.add_argument(
+        "--analyze-only",
+        action="store_true",
+        help="Only analyze codebase, skip migration plan",
+    )
+    parser.add_argument(
+        "--no-examples", action="store_true", help="Exclude code examples"
+    )
+    parser.add_argument("--describe", action="store_true", help="Show tool schemas")
 
     args = parser.parse_args()
 
     if args.describe:
         import json
-        print(json.dumps({
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+
+        print(
+            json.dumps(
+                {"input_schema": INPUT_SCHEMA, "output_schema": OUTPUT_SCHEMA}, indent=2
+            )
+        )
         return 0
 
-    result = main(
-        analyze_only=args.analyze_only,
-        include_examples=not args.no_examples
-    )
+    result = main(analyze_only=args.analyze_only, include_examples=not args.no_examples)
     import json
+
     print(json.dumps(result, indent=2))
 
     return 0
@@ -486,4 +510,5 @@ def run_cli() -> int:
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(run_cli())

@@ -19,7 +19,6 @@ from typing import Any
 # Import configuration management
 try:
     from ...core.config import get_config
-    from ...core.error_handler import DataError, ErrorSeverity, TradingSystemError
     from .availability_checker import AvailabilityChecker
     from .download_tracker import DownloadTracker
 except ImportError:

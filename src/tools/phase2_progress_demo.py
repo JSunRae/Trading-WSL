@@ -20,15 +20,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 INPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "include_coordination_test": {"type": "boolean", "default": True, "description": "Include service coordination testing"},
-        "analyze_monolith": {"type": "boolean", "default": True, "description": "Analyze monolithic code reduction"}
-    }
+        "include_coordination_test": {
+            "type": "boolean",
+            "default": True,
+            "description": "Include service coordination testing",
+        },
+        "analyze_monolith": {
+            "type": "boolean",
+            "default": True,
+            "description": "Analyze monolithic code reduction",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "service_status": {"type": "object", "description": "Import status of Phase 2 services"},
+        "service_status": {
+            "type": "object",
+            "description": "Import status of Phase 2 services",
+        },
         "monolith_analysis": {
             "type": "object",
             "properties": {
@@ -37,8 +48,8 @@ OUTPUT_SCHEMA = {
                 "phase2_remaining": {"type": "integer"},
                 "phase1_reduction_percent": {"type": "number"},
                 "phase2_potential_percent": {"type": "number"},
-                "target_services": {"type": "object"}
-            }
+                "target_services": {"type": "object"},
+            },
         },
         "coordination_status": {"type": "boolean"},
         "summary": {
@@ -46,15 +57,15 @@ OUTPUT_SCHEMA = {
             "properties": {
                 "available_services": {"type": "integer"},
                 "total_services": {"type": "integer"},
-                "progress_percentage": {"type": "number"}
-            }
+                "progress_percentage": {"type": "number"},
+            },
         },
-        "next_steps": {"type": "array", "items": {"type": "string"}}
-    }
+        "next_steps": {"type": "array", "items": {"type": "string"}},
+    },
 }
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -86,6 +97,8 @@ def test_service_imports() -> dict[str, str]:
             services_status[service_name] = f"❌ Error: {e}"
 
     return services_status
+
+
 def analyze_monolith_reduction() -> dict[str, Any]:
     """Analyze the code reduction achieved through monolith decomposition."""
     logger.info("Analyzing monolith reduction progress")
@@ -195,11 +208,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Phase 2 Architecture Migration - Progress Demo",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Phase 2 Architecture Migration - Progress Demo",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

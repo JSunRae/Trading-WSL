@@ -11,7 +11,6 @@ import logging
 import random
 import sys
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps

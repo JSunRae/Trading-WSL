@@ -8,16 +8,16 @@ Author: Interactive Brokers Trading System
 Created: July 2025 (ML Data Integrity Enhancement)
 """
 
-import os
 import sys
 from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(str(Path(__file__).parent / ".."))
 
 # Type aliases for fallback compatibility
 SplitDetectionService = Any
@@ -330,7 +330,7 @@ def integrate_with_trading_system():
     print("-" * 50)
 
     # Initialize the manager
-    manager = MLDataIntegrityManager()
+    _ = MLDataIntegrityManager()
 
     # Example: Before training ML models
     print("1. Before ML Training - Validate Data:")

@@ -1,3 +1,4 @@
+# ruff: noqa: N802,N803,N806,N817  # Legacy names preserved for compatibility
 # IB_Trader
 # A new API generic tick for realtime news is available via generic tick 292. Also requesting topic news is possible by providing the news source as the exchange. To see all available topics for a source enter "*" for the symbol.
 
@@ -9,8 +10,8 @@
 # US SMASRT RESULTS IN THE BEST DATA
 
 # from ib_async import *
-import os
 from datetime import datetime
+from pathlib import Path
 from time import perf_counter
 from typing import Any
 
@@ -36,48 +37,51 @@ class StockWatch:
         self.ib = ib  # Store the IB connection
 
         # Initiate Hourly
-        if os.path.exists(MP.Download_loc_IB(self.StockCode, "1 hour")):
+        hourly_path = Path(MP.Download_loc_IB(self.StockCode, "1 hour"))
+        if hourly_path.exists():
             self.df_hour = pd.read_excel(
-                MP.Download_loc_IB(self.StockCode, "1 hour"),
+                hourly_path,
                 sheet_name=0,
                 header=0,
                 engine="openpyxl",
             )
         else:
             # Note: Stock_Downloads_Load needs proper Req object, using placeholder for now
-            self.df_hour = None  # MPT.Stock_Downloads_Load(req, self.contract, '1 hour', (date.today() - timedelta(days=400)).strftime('%Y-%m-%d'))
+            self.df_hour = None
 
         # Initiate Second
         now_str = self.NowStr()
-        if os.path.exists(MP.Download_loc_IB(self.StockCode, "1 sec", now_str)):
+        sec_path = Path(MP.Download_loc_IB(self.StockCode, "1 sec", now_str))
+        if sec_path.exists():
             self.df_sec = pd.read_excel(
-                MP.Download_loc_IB(self.StockCode, "1 sec", now_str),
+                sec_path,
                 sheet_name=0,
                 header=0,
                 engine="openpyxl",
             )
         else:
             # Note: Stock_Downloads_Load needs proper Req object, using placeholder for now
-            self.df_sec = None  # MPT.Stock_Downloads_Load(req, self.contract, '1 sec', date.today().strftime('%Y-%m-%d'))
+            self.df_sec = None
 
         # Initiate Tick only on activation
-        if os.path.exists(MP.Download_loc_IB(self.StockCode, "tick", now_str)):
+        tick_path = Path(MP.Download_loc_IB(self.StockCode, "tick", now_str))
+        if tick_path.exists():
             self.df_tick = pd.read_excel(
-                MP.Download_loc_IB(self.StockCode, "tick", now_str),
+                tick_path,
                 sheet_name=0,
                 header=0,
                 engine="openpyxl",
             )
         else:
             # Note: Stock_Downloads_Load should be MPT function and needs proper Req object
-            self.df_tick = None  # MPT.Stock_Downloads_Load(req, self.contract, 'tick', (date.today() - timedelta(minutes=15)).strftime('%Y-%m-%d'))
+            self.df_tick = None
 
     def NowStr(self):
         return datetime.now(pytz.timezone("US/Eastern")).strftime("%Y-%m-%dT%H:%M:%S")
 
     def LevelII(self):
         if hasattr(self.ib, "reqMktDepthExchanges"):
-            xxx = self.ib.reqMktDepthExchanges()
+            _exchanges = self.ib.reqMktDepthExchanges()
             self.ib.reqMktDepth(self.contract, numRows=5, isSmartDepth=False)
         else:
             MP.log_warning("StockWatch", "IB connection does not support Level II data")

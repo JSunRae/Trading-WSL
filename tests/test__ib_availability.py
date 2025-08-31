@@ -22,7 +22,9 @@ def test_ib_unavailable():
     except IBUnavailableError:
         pass
     else:
-        assert False, "require_ib should raise IBUnavailableError when unavailable"
+        raise AssertionError(
+            "require_ib should raise IBUnavailableError when unavailable"
+        )
 
 
 def test_ib_available(monkeypatch):

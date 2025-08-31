@@ -1,3 +1,4 @@
 [console_scripts]
 trading-main = src.ib_main:main
 trading-trader = src.ib_trader:main
+validate-env = src.tools.validate_env:main

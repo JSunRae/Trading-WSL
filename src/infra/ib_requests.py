@@ -1,30 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
-
-# (No direct dependency on availability; ib_client.get_ib() performs checks)
-
-if TYPE_CHECKING:  # For typing only; define Protocols instead of importing
-    from typing import Protocol
-
-    class IB(Protocol):  # noqa: D401
-        async def reqHistoricalDataAsync(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
-        def reqMktData(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
-        async def reqContractDetailsAsync(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
-        def reqMktDepth(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
-        def reqTickByTickData(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
-
-    class Contract(Protocol):  # noqa: D401
-        ...  # Minimal structural type
-else:
-
-    class IB:  # type: ignore[too-many-ancestors]
-        ...
-
-    class Contract:  # type: ignore[too-many-ancestors]
-        ...
-
+from typing import Any, Protocol
 
 from src.infra.async_utils import (
     CONTRACT_DETAILS_LIMITER,
@@ -36,6 +13,20 @@ from src.infra.contract_factories import WhatToShow
 from src.infra.ib_client import get_ib
 from src.types.project_types import BarSize
 
+# (No direct dependency on availability; ib_client.get_ib() performs checks)
+
+
+class IB(Protocol):  # noqa: D401
+    async def reqHistoricalDataAsync(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
+    def reqMktData(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
+    async def reqContractDetailsAsync(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
+    def reqMktDepth(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
+    def reqTickByTickData(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: E701,N802
+
+
+class Contract(Protocol):  # noqa: D401
+    ...  # Minimal structural type
+
 
 async def req_hist(
     contract: Any,
@@ -44,7 +35,7 @@ async def req_hist(
     duration: str = "1 D",
     bar_size: BarSize = "1 min",
     what: WhatToShow = "TRADES",
-    rth: int = 1,
+    rth: bool = True,
     fmt: int = 1,
     keep_up_to_date: bool = False,
     chart_options: Sequence[Any] | None = None,
@@ -74,7 +65,7 @@ async def _req_hist_impl(
     duration: str,
     bar_size: BarSize,
     what: WhatToShow,
-    rth: int,
+    rth: bool,
     fmt: int,
     keep_up_to_date: bool,
     chart_options: Sequence[Any] | None,
@@ -146,7 +137,7 @@ async def _req_contract_details_impl(contract: Any) -> list[Any]:
 
 
 def req_mkt_depth(
-    ib: IB,
+    ib: Any,
     contract: Any,
     *,
     num_rows: int = 20,
@@ -164,7 +155,7 @@ def req_mkt_depth(
 
 
 def req_tick_by_tick_data(
-    ib: IB,
+    ib: Any,
     contract: Any,
     *,
     tick_type: str = "AllLast",

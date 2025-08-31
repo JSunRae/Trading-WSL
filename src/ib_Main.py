@@ -1,3 +1,11 @@
+"""Legacy IB Main script.
+
+This module retains historical function and variable naming for compatibility
+with older scripts/tools that import it.
+"""
+
+# ruff: noqa: N802, N803, N806  # Preserve legacy public API names/args
+
 from sys import path
 
 path.append("..")

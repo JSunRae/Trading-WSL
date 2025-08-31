@@ -1,22 +1,9 @@
-"""Library module for IB integration and compatibility layers."""
+"""Library module for IB integration (async-first)."""
 
-from .ib_async_wrapper import (
-    Contract,
-    IBAsync,
-    Stock,
-)
-
-from .ib_insync_compat import (
-    IB,
-    Stock as CompatStock,
-)
+from .ib_async_wrapper import IBAsync, Stock
 
 __all__ = [
     # ib_async_wrapper
-    "Contract",
     "IBAsync",
     "Stock",
-    # ib_insync_compat
-    "IB",
-    "CompatStock",
 ]

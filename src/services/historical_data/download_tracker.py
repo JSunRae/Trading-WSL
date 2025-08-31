@@ -21,7 +21,7 @@ import pandas as pd
 # Import configuration management
 try:
     from ...core.config import get_config
-    from ...core.error_handler import DataError, ErrorSeverity, TradingSystemError
+    from ...core.error_handler import DataError, ErrorSeverity
 except ImportError:
     # Fallback for direct execution
     sys.path.append(str(Path(__file__).parent.parent.parent.parent))
@@ -214,7 +214,9 @@ class DownloadTracker:
 
         return False
 
-    def mark_downloaded(self, symbol: str, bar_size: str, for_date: str) -> bool:
+    def mark_downloaded(
+        self, symbol: str, bar_size: str, for_date: str | date | datetime
+    ) -> bool:
         """
         Mark a symbol as successfully downloaded
 
@@ -229,7 +231,7 @@ class DownloadTracker:
         # Create the compound key
         if isinstance(for_date, str):
             date_str = for_date[:10]  # Take first 10 characters (YYYY-MM-DD)
-        elif isinstance(for_date, (date, datetime)):
+        elif hasattr(for_date, "strftime"):
             date_str = for_date.strftime("%Y-%m-%d")
         else:
             date_str = str(for_date)[:10]
@@ -254,7 +256,9 @@ class DownloadTracker:
         self._save_downloaded_if_needed()
         return True
 
-    def is_downloaded(self, symbol: str, bar_size: str, for_date: str) -> bool:
+    def is_downloaded(
+        self, symbol: str, bar_size: str, for_date: str | date | datetime
+    ) -> bool:
         """
         Check if data has been downloaded
 
@@ -269,7 +273,7 @@ class DownloadTracker:
         # Create the compound key
         if isinstance(for_date, str):
             date_str = for_date[:10]
-        elif isinstance(for_date, (date, datetime)):
+        elif hasattr(for_date, "strftime"):
             date_str = for_date.strftime("%Y-%m-%d")
         else:
             date_str = str(for_date)[:10]

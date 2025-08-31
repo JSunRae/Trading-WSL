@@ -9,6 +9,9 @@ beautifulsoup4>=4.11.0
 requests>=2.28.0
 openpyxl>=3.0.0
 
+[databento]
+databento>=0.38.0
+
 [dev]
 pytest>=7.0.0
 pytest-asyncio>=0.21.0

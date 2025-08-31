@@ -154,7 +154,7 @@ class PerformanceMonitor:
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Convert metrics to serializable format
-        metrics_data = []
+        metrics_data: list[dict[str, Any]] = []
         for metric in self.metrics:
             metrics_data.append(
                 {
@@ -166,7 +166,7 @@ class PerformanceMonitor:
                 }
             )
 
-        with open(file_path, "w") as f:
+        with file_path.open("w") as f:
             json.dump(
                 {
                     "export_timestamp": datetime.now().isoformat(),
@@ -177,7 +177,6 @@ class PerformanceMonitor:
                 f,
                 indent=2,
             )
-
         return file_path
 
 
@@ -374,7 +373,6 @@ def optimize_dataframe_memory(df) -> None:
     """Optimize DataFrame memory usage"""
     try:
         import numpy as np
-        import pandas as pd
 
         for col in df.columns:
             col_type = df[col].dtype

@@ -18,8 +18,11 @@ import time as _time
 from datetime import date
 from typing import Any
 
+import pandas as pd
+
 from src.core.config import get_config
 from src.services.market_data.databento_l2_service import (
+    DATABENTO_AVAILABLE,
     DataBentoL2Service,
     VendorL2Request,
     VendorUnavailable,
@@ -78,6 +81,17 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
     start_et = _time_cls.fromisoformat(start_et_str)
     end_et = _time_cls.fromisoformat(end_et_str)
 
+    # Enforce trading window for Level 2 via config clamp (default 09:00–11:00 ET)
+    if cfg.get_env_bool("L2_ENFORCE_TRADING_WINDOW", True):
+        tw_start, tw_end = cfg.get_env("L2_TRADING_WINDOW_ET", "09:00-11:00").split(
+            "-", 1
+        )
+        tw_s = _time_cls.fromisoformat(tw_start.strip())
+        tw_e = _time_cls.fromisoformat(tw_end.strip())
+        # clamp
+        start_et = max(start_et, tw_s)
+        end_et = min(end_et, tw_e)
+
     # Destination path (shared with CLI)
     base_path = cfg.get_data_file_path("level2", symbol=symbol, date_str=date_str)
     dest = with_source_suffix(base_path, "databento")
@@ -114,13 +128,31 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
 
     # Vendor availability guard (matches CLI semantics)
     vendor_service = DataBentoL2Service(api_key)
+    # Provide a more actionable error message for availability failures
     if not vendor_service.is_available(api_key):
+        if not DATABENTO_AVAILABLE:
+            return _final(
+                "error",
+                error=(
+                    "DataBento package not installed. Install optional extra: "
+                    "pip install -e .[databento]"
+                ),
+            )
+        if not api_key:
+            return _final(
+                "error",
+                error=(
+                    "DATABENTO_API_KEY missing. Add it to your .env at project root "
+                    "or export it in the environment."
+                ),
+            )
+        # Fallback generic message (should be rare)
         return _final(
-            "error", error="DataBento unavailable (missing package or API key)."
+            "error", error="DataBento unavailable (unknown availability failure)."
         )
 
     # Build vendor request & fetch (isolated for complexity reduction)
-    def _fetch_vendor():
+    def _fetch_vendor() -> dict[str, Any] | pd.DataFrame:
         try:
             vreq = VendorL2Request(
                 dataset=dataset,

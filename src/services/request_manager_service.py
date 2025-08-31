@@ -8,19 +8,19 @@ Author: Interactive Brokers Trading System
 Created: December 2024 (Phase 2 Monolithic Decomposition)
 """
 
-import os
 import signal
 import sys
 import time
 from atexit import register as atexit_register
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from time import perf_counter
 from typing import Any
 
 from joblib import dump, load
 
 # Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 try:
     from src.core.config import get_config
@@ -60,7 +60,7 @@ class RequestManagerService:
         Initialize the Request Manager Service.
 
         Args:
-            ib_connection: IB connection object (ib_insync.IB instance)
+            ib_connection: IB connection object (IBKR client instance)
         """
         self.ib = ib_connection
 
@@ -106,13 +106,14 @@ class RequestManagerService:
         from src.core.config import get_config as _gc
 
         history_file = _gc().get_special_file("request_checker_bin")
+        hf = Path(history_file)
 
-        if os.path.exists(history_file):
+        if hf.exists():
             try:
-                self.timeframe_requests, self.all_requests = load(str(history_file))
+                self.timeframe_requests, self.all_requests = load(str(hf))
 
                 # Adjust times based on file age
-                file_age = time.time() - os.path.getmtime(history_file)
+                file_age = time.time() - hf.stat().st_mtime
                 max_time = (
                     max(max(self.timeframe_requests), max(self.all_requests)) + file_age
                 )
@@ -122,7 +123,6 @@ class RequestManagerService:
                 self.timeframe_requests = [
                     x - max_time for x in self.timeframe_requests
                 ]
-
             except Exception as e:
                 handle_error(
                     e, module="RequestManager", function="_load_request_history"
@@ -333,7 +333,9 @@ class RequestManagerService:
 
     def save_request_history(self) -> None:
         """Save request history to disk for persistence across sessions."""
-        os.makedirs("./Files", exist_ok=True)
+        from pathlib import Path
+
+        Path("./Files").mkdir(parents=True, exist_ok=True)
 
         for _ in range(3):  # Retry up to 3 times
             try:
@@ -408,19 +410,29 @@ class RequestManagerAdapter:
     """Adapter exposing legacy interface. Defaults now sourced from config."""
 
     def __init__(
-        self, host="", port: int | None = None, clientId: int | None = None, ib=None
-    ):  # noqa: N803
+        self,
+        host: str = "",
+        port: int | None = None,
+        client_id: int | None = None,
+        ib: object | None = None,
+        **legacy_kwargs: object,
+    ):
         try:  # prefer centralized config
             from src.core.config import get_config
 
             cfg = get_config()
+            # Support legacy param name "clientId" via kwargs
+            legacy_client_id = legacy_kwargs.get("clientId")
             resolved_host = host or cfg.ib_connection.host
             resolved_port = port or cfg.ib_connection.port
-            resolved_client_id = clientId or cfg.ib_connection.client_id
+            resolved_client_id = (
+                client_id or legacy_client_id
+            ) or cfg.ib_connection.client_id
         except Exception:  # pragma: no cover
+            legacy_client_id = legacy_kwargs.get("clientId")
             resolved_host = host or "127.0.0.1"
             resolved_port = port or 7497
-            resolved_client_id = clientId or 1
+            resolved_client_id = (client_id or legacy_client_id) or 1
 
         self._host = resolved_host
         self._port = resolved_port
@@ -430,25 +442,25 @@ class RequestManagerAdapter:
         self.Downloading = False
         self.exitflag = False
 
-    def SendRequest(self, timeframe, symbol, endDateTime, WhatToShow):
+    def SendRequest(self, timeframe, symbol, endDateTime, WhatToShow):  # noqa: N802,N803
         """Legacy method - delegates to new service"""
         return self.request_service.send_request(
             timeframe, symbol, endDateTime, WhatToShow
         )
 
-    def ReqRemaining(self):
+    def ReqRemaining(self):  # noqa: N802
         """Legacy method - delegates to new service"""
         return self.request_service.requests_remaining()
 
-    def SleepRem(self):
+    def SleepRem(self):  # noqa: N802
         """Legacy method - delegates to new service"""
         return self.request_service.sleep_remaining()
 
-    def Save_requestChecks(self):
+    def Save_requestChecks(self):  # noqa: N802
         """Legacy method - delegates to new service"""
         return self.request_service.save_request_history()
 
-    def On_Exit(self):
+    def On_Exit(self):  # noqa: N802
         """Legacy cleanup method"""
         return self.request_service.on_exit()
 

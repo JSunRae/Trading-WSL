@@ -3,38 +3,31 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any, Protocol, TypedDict, TypeVar, Union
+from typing import Any, Protocol, TypedDict, TypeVar
 
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing import TypeAlias
-
-# Re-export all project types
-from .project_types import *
+# Import project-wide types explicitly to avoid star-import issues with analyzers
+from .project_types import Symbol
 
 # Type variables
 T = TypeVar("T")
 ErrorHandlerT = TypeVar("ErrorHandlerT", bound=Callable[..., Any])
 
-# Basic type aliases
-Timestamp: TypeAlias = pd.Timestamp | datetime
-Price: TypeAlias = float
-Volume: TypeAlias = int
-Symbol: TypeAlias = str
-RequestId: TypeAlias = int
+# Basic type aliases (Python 3.12+ `type` syntax)
+type Timestamp = pd.Timestamp | datetime
+type Price = float
+type Volume = int
+type RequestId = int
 
 # Numpy arrays
-FloatArray: TypeAlias = NDArray[np.floating[Any]]
-IntArray: TypeAlias = NDArray[np.integer[Any]]
-BoolArray: TypeAlias = NDArray[np.bool_]
+type FloatArray = NDArray[np.floating[Any]]
+type IntArray = NDArray[np.integer[Any]]
+type BoolArray = NDArray[np.bool_]
 
 
 # Error and logging types
@@ -121,7 +114,7 @@ class IBContract(Protocol):
     """Protocol for Interactive Brokers contract objects."""
 
     symbol: str
-    secType: str
+    secType: str  # noqa: N815
     exchange: str
     currency: str
 
@@ -131,19 +124,19 @@ class IBWrapper(Protocol):
 
     def error(
         self,
-        reqId: int,
-        errorCode: int,
-        errorString: str,
-        advancedOrderRejectJson: str = "",
+        reqId: int,  # noqa: N803
+        errorCode: int,  # noqa: N803
+        errorString: str,  # noqa: N803
+        advancedOrderRejectJson: str = "",  # noqa: N803
     ) -> None: ...
-    def connectAck(self) -> None: ...
-    def connectionClosed(self) -> None: ...
+    def connectAck(self) -> None: ...  # noqa: N802
+    def connectionClosed(self) -> None: ...  # noqa: N802
 
 
 class IBClient(Protocol):
     """Protocol for IB API client interface."""
 
-    def connect(self, host: str, port: int, clientId: int) -> None: ...
+    def connect(self, host: str, port: int, clientId: int) -> None: ...  # noqa: N803
     def disconnect(self) -> None: ...
     def run(self) -> None: ...
 
@@ -195,27 +188,27 @@ class ProcessingStats(TypedDict):
 
 
 # Callback types
-TickCallback: TypeAlias = Callable[[TickRecord], None]
-BarCallback: TypeAlias = Callable[[BarRecord], None]
-DepthCallback: TypeAlias = Callable[[DepthRecord], None]
-ErrorCallback: TypeAlias = Callable[[ErrorContext], None]
-ConnectionCallback: TypeAlias = Callable[[bool], None]
+type TickCallback = Callable[[TickRecord], None]
+type BarCallback = Callable[[BarRecord], None]
+type DepthCallback = Callable[[DepthRecord], None]
+type ErrorCallback = Callable[[ErrorContext], None]
+type ConnectionCallback = Callable[[bool], None]
 
 # Async callback types (for async handlers)
-AsyncTickCallback: TypeAlias = Callable[[TickRecord], Awaitable[None]]
-AsyncBarCallback: TypeAlias = Callable[[BarRecord], Awaitable[None]]
-AsyncDepthCallback: TypeAlias = Callable[[DepthRecord], Awaitable[None]]
-AsyncErrorCallback: TypeAlias = Callable[[ErrorContext], Awaitable[None]]
+type AsyncTickCallback = Callable[[TickRecord], Awaitable[None]]
+type AsyncBarCallback = Callable[[BarRecord], Awaitable[None]]
+type AsyncDepthCallback = Callable[[DepthRecord], Awaitable[None]]
+type AsyncErrorCallback = Callable[[ErrorContext], Awaitable[None]]
 
 # Generic container types
-DataDict: TypeAlias = dict[str, Any]
-ConfigDict: TypeAlias = dict[str, Any]
-MetricsDict: TypeAlias = dict[str, float | int]
+type DataDict = dict[str, Any]
+type ConfigDict = dict[str, Any]
+type MetricsDict = dict[str, float | int]
 
 # Queue types for async processing
-TickQueue: TypeAlias = asyncio.Queue[TickRecord]
-BarQueue: TypeAlias = asyncio.Queue[BarRecord]
-ErrorQueue: TypeAlias = asyncio.Queue[ErrorContext]
+type TickQueue = asyncio.Queue[TickRecord]
+type BarQueue = asyncio.Queue[BarRecord]
+type ErrorQueue = asyncio.Queue[ErrorContext]
 
 __all__ = [
     # Type variables

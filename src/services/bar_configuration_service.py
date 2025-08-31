@@ -39,7 +39,7 @@ def handle_error(module: str, message: str, duration: int = 60) -> None:
 
             error = TradingSystemError(message)
             error_handler.handle_error(error, {"module": module, "duration": duration})
-        except:
+        except Exception:
             print(f"ERROR [{module}]: {message}")
     else:
         print(f"ERROR [{module}]: {message}")

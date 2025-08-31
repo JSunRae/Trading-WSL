@@ -80,13 +80,12 @@ _The style guide follows Ruff + PEP 8 with a strict focus on readability._
 ## 🤖 Copilot Agent Behaviour
 
 - **Extend before creating**: modify existing code/docs when possible rather than adding new files.
-- Output unified diffs (or patches) for code changes when asked to “rewrite” or “refactor.”
 - Ask clarifying questions instead of guessing at unclear requirements.
-- **No emojis**: do **not** include decorative emojis in commit messages, code comments, doc headings, or chat replies unless explicitly requested.
+- **No emojis**: do **not** include decorative emojis in commit messages, code comments, doc headings, or chat replies.
 - **No duplicate script copies**: never create alternate or suffixed copies of existing scripts (e.g., `*-clean.ps1`); modify the original file or provide a diff instead.
 - **Document rationale**: for every non-trivial change, add a short inline comment explaining _why_ the change was made.
 - **Tests**: test scripts should be organised and go in the test folder. We want an organised test suite that is easy to navigate.
-- **Activate Environment**: Always activate the project’s Python environment before running, testing, or installing packages. Assume .venv unless otherwise specified. Use source .venv/bin/activate (Linux/Mac) or .venv\Scripts\activate (Windows) before any terminal commands.
+- **Activate Environment**: Always activate the project’s Python environment before running, testing, or installing packages.
 
 ---
 
@@ -94,8 +93,6 @@ _The style guide follows Ruff + PEP 8 with a strict focus on readability._
 
 - Ruff linting and auto-formatting must pass.
 - `pytest` must pass with ≥ 85 % coverage.
-- No stray tests outside `/tests/`.
-- Incremental PRs ≤ 400 LOC whenever possible.
 - All tools must pass a `describe:all` quality gate (valid JSON from `--describe`).
 - Inventory tasks must run without errors.
 
@@ -106,3 +103,16 @@ _The style guide follows Ruff + PEP 8 with a strict focus on readability._
 ---
 
 ## applyTo: "\*\*"
+
+# Completion Protocol (Notify Boss via Telegram)
+
+When you finish a task in this repository:
+
+1. Construct a short, single-line summary of the exact prompt you executed.
+2. Run the notifier script to alert the central TelegramNotifications service:
+
+Linux/WSL/macOS:
+
+```bash
+./scripts/notify_tbs.sh "${workspaceFolderBasename}" "run-$(date +%s)" "<paste-the-prompt-here>"
+```

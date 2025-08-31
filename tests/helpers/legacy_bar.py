@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+from datetime import date, datetime
+from typing import Any
+
+import pandas as pd
+
 """Test-only legacy BarCLS shim.
 
 This reproduces the legacy interval behavior required by tests without keeping
 `BarCLS` in production code. If production needs these semantics again, move
 logic into a shared helper under `src/`.
 """
-from datetime import date, datetime
-from typing import Any, Union
 
-import pandas as pd
-
-DateLike = Union[str, datetime, date, pd.Timestamp]
+DateLike = str | datetime | date | pd.Timestamp  # noqa: UP007
 
 
 class BarClsTestShim:
@@ -19,11 +20,11 @@ class BarClsTestShim:
         self.BarStr_Full = bar_str_full.lower()
         self.BarSize = bar_str_full
 
-    def get_intervalReq(self, StartTime: DateLike = "", EndTime: DateLike = ""):
+    def get_intervalReq(self, StartTime: DateLike = "", EndTime: DateLike = ""):  # noqa: N803,C901
         def _coerce(x: Any):
             if isinstance(x, pd.Timestamp):
                 return x.to_pydatetime()
-            if isinstance(x, (datetime, date)):
+            if isinstance(x, (datetime, date)):  # noqa: UP038
                 if not isinstance(x, datetime):
                     return datetime.combine(x, datetime.min.time())
                 return x

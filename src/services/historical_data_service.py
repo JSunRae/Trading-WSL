@@ -67,9 +67,9 @@ class DownloadRequest:
     symbol: str
     bar_size: BarSize
     what_to_show: DataType = DataType.TRADES
-    start_date: Optional[str | date | datetime] = None
-    end_date: Optional[str | date | datetime] = None
-    duration: Optional[str] = None  # e.g., "30 D", "5 Y"
+    start_date: str | date | datetime | None = None
+    end_date: str | date | datetime | None = None
+    duration: str | None = None  # e.g., "30 D", "5 Y"
     use_rth: bool = True  # Regular trading hours only
     format_date: int = 1  # 1 for datetime, 2 for time_t
     keep_up_to_date: bool = False
@@ -83,11 +83,11 @@ class DownloadResult:
     success: bool
     symbol: str
     bar_size: BarSize
-    data: Optional[pd.DataFrame] = None
+    data: pd.DataFrame | None = None
     row_count: int = 0
     download_time: float = 0.0
-    file_path: Optional[Path] = None
-    error_message: Optional[str] = None
+    file_path: Path | None = None
+    error_message: str | None = None
     cached: bool = False
 
 
@@ -221,7 +221,7 @@ class HistoricalDataService:
             self.logger.error(f"Download failed for {request.symbol}: {e}")
             raise  # Re-raise for error handling decorator
 
-    def _check_cache(self, request: DownloadRequest) -> Optional[pd.DataFrame]:
+    def _check_cache(self, request: DownloadRequest) -> pd.DataFrame | None:
         """Check if data already exists in cache"""
 
         date_str = self._get_date_string(request)
@@ -384,8 +384,8 @@ class HistoricalDataService:
             except ValueError:
                 try:
                     return datetime.strptime(date_input, "%Y-%m-%d %H:%M:%S")
-                except ValueError:
-                    raise ValueError(f"Invalid date format: {date_input}")
+                except ValueError as e:
+                    raise ValueError(f"Invalid date format: {date_input}") from e
         else:
             raise ValueError(f"Unsupported date type: {type(date_input)}")
 

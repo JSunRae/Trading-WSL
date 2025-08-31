@@ -20,9 +20,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from src.types.project_types import AnyFn
-from typing import Any
-
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -554,9 +551,8 @@ def create_trading_manager() -> TradingServiceManager:
 
     manager = TradingServiceManager()
 
-    # Start all services
+    # Start all services and summarize
     start_results = manager.start_all_services()
-
     successful_starts = sum(1 for success in start_results.values() if success)
     total_services = len(start_results)
 
@@ -593,7 +589,7 @@ def main():
 
     # Start all services
     print("\n🚀 Starting all services...")
-    start_results = manager.start_all_services()
+    manager.start_all_services()
 
     # Show initial status
     print(f"\n{manager.get_status_report()}")

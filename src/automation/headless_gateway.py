@@ -208,7 +208,6 @@ mode={"paper" if self.paper_trading else "live"}
 
         # Find JAR files
         gateway_dir = gateway_path.parent
-        jar_files = []
 
         # Common JAR locations
         jar_locations = [

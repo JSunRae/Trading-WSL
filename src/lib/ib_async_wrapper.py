@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""
-Modern async wrapper for Interactive Brokers API
-Replaces ib_insync with native asyncio support
-"""
+# ruff: noqa: N802, N803, N806, N817  # Preserve public API names/args for compatibility
+"""Async wrapper utilities for IB with legacy compatibility.
 
-from __future__ import annotations
+Modern async wrapper for Interactive Brokers API with native asyncio support and
+no legacy dependencies.
+"""
 
 import asyncio
 import logging
@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, cast, override
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -65,7 +65,7 @@ class HistoricalBar:
     count: int  # Number of trades
 
     @classmethod
-    def from_ib_bar(cls, bar: BarData) -> HistoricalBar:
+    def from_ib_bar(cls, bar: BarData) -> "HistoricalBar":
         """Create from IB BarData"""
         return cls(
             date=pd.to_datetime(bar.date),
@@ -106,7 +106,7 @@ class TickData:
 class AsyncIBWrapper(EWrapper):
     """
     Async wrapper for IB API events
-    Replaces ib_insync's synchronous event handling with async queues
+    Uses asyncio-based queues for non-blocking event handling
     """
 
     def __init__(self) -> None:
@@ -203,18 +203,15 @@ class AsyncIBWrapper(EWrapper):
         return self._last_prices.get(symbol)
 
     # Connection callbacks
-    @override
     def connectAck(self) -> None:
         """Connection acknowledged"""
         asyncio.create_task(self._connection_events.put(("connected", True)))
 
-    @override
     def connectionClosed(self) -> None:
         """Connection closed"""
         asyncio.create_task(self._connection_events.put(("disconnected", True)))
 
     # Error handling
-    @override
     def error(
         self,
         reqId: TickerId,
@@ -232,7 +229,6 @@ class AsyncIBWrapper(EWrapper):
         asyncio.create_task(self._error_events.put(error_data))
 
     # Historical data callbacks
-    @override
     def historicalData(self, reqId: TickerId, bar: BarData) -> None:
         """Receive historical bar data"""
         if reqId not in self._historical_data:
@@ -251,19 +247,17 @@ class AsyncIBWrapper(EWrapper):
         }
         self._historical_data[reqId].append(historical_bar)
 
-    @override
     def historicalDataEnd(self, reqId: int, start: str, end: str) -> None:
         """Historical data download complete"""
         bars = self._historical_data.get(reqId, [])
         asyncio.create_task(self._historical_data_events.put((reqId, bars)))
 
     # Market data callbacks
-    @override
     def tickPrice(
         self, reqId: TickerId, tickType: int, price: float, attrib: Any
     ) -> None:
         """Real-time price tick"""
-        symbol = self._pending_requests.get(reqId, "UNKNOWN")
+        symbol: Symbol = self._pending_requests.get(reqId, Symbol("UNKNOWN"))
         tick_data = {
             "symbol": symbol,
             "tick_type": tickType,
@@ -273,14 +267,13 @@ class AsyncIBWrapper(EWrapper):
 
         # Store last price for reference
         if tickType in [1, 2, 4]:  # Bid, Ask, Last
-            self._last_prices[symbol] = Price(price)
+            self._last_prices[symbol] = float(price)
 
         asyncio.create_task(self._market_data_events.put(tick_data))
 
-    @override
     def tickSize(self, reqId: TickerId, tickType: int, size: int) -> None:
         """Real-time size tick"""
-        symbol = self._pending_requests.get(reqId, "UNKNOWN")
+        symbol: Symbol = self._pending_requests.get(reqId, Symbol("UNKNOWN"))
         tick_data = {
             "symbol": symbol,
             "tick_type": tickType,
@@ -290,7 +283,6 @@ class AsyncIBWrapper(EWrapper):
         asyncio.create_task(self._market_data_events.put(tick_data))
 
     # Market depth callbacks
-    @override
     def updateMktDepth(
         self,
         reqId: TickerId,
@@ -301,7 +293,7 @@ class AsyncIBWrapper(EWrapper):
         size: int,
     ) -> None:
         """Level 2 market depth update"""
-        symbol = self._pending_requests.get(reqId, "UNKNOWN")
+        symbol: Symbol = self._pending_requests.get(reqId, Symbol("UNKNOWN"))
         depth_data = {
             "symbol": symbol,
             "position": position,
@@ -317,13 +309,15 @@ class AsyncIBWrapper(EWrapper):
         depth_dict = self._market_depth[symbol][side_key]
 
         if operation == 0 or operation == 1:  # Insert or update
-            depth_dict[position] = {"price": Price(price), "size": Volume(size)}
+            depth_dict[position] = {
+                "price": float(price),
+                "size": int(size),
+            }
         elif operation == 2:  # Delete
             depth_dict.pop(position, None)
 
         asyncio.create_task(self._market_depth_events.put(depth_data))
 
-    @override
     def updateMktDepthL2(
         self,
         reqId: TickerId,
@@ -336,7 +330,7 @@ class AsyncIBWrapper(EWrapper):
         isSmartDepth: bool,
     ) -> None:
         """Level 2 market depth update with market maker"""
-        symbol = self._pending_requests.get(reqId, "UNKNOWN")
+        symbol: Symbol = self._pending_requests.get(reqId, Symbol("UNKNOWN"))
         depth_data = {
             "symbol": symbol,
             "position": position,
@@ -353,7 +347,7 @@ class AsyncIBWrapper(EWrapper):
 class AsyncIBClient(EClient):
     """
     Async client for IB API
-    Replaces ib_insync's connection management with pure asyncio
+    Pure asyncio-friendly connection management
     """
 
     def __init__(self, wrapper: AsyncIBWrapper):
@@ -412,7 +406,7 @@ class AsyncIBClient(EClient):
 
         return False
 
-    async def disconnect_async(self):
+    async def disconnect_async(self) -> None:
         """Async disconnect"""
         if self.state == ConnectionState.CONNECTED:
             self.disconnect()
@@ -421,9 +415,9 @@ class AsyncIBClient(EClient):
 
 class IBAsync:
     """
-    Main async IB interface - replaces ib_insync.IB
+    Main async IB interface for the IB API
 
-    Key improvements over ib_insync:
+    Highlights:
     - Pure asyncio implementation
     - Built-in rate limiting and pacing
     - Enhanced error handling and reconnection
@@ -470,12 +464,12 @@ class IBAsync:
         timeout: float = 30,
     ) -> bool:
         """
-        Connect to IB Gateway/TWS with automatic reconnection
+            Connect to IB Gateway/TWS with automatic reconnection
 
-        Key improvements over ib_insync:
-        - Explicit timeout handling
-        - Better error reporting
-        - Automatic pacing setup
+        Highlights:
+            - Explicit timeout handling
+            - Better error reporting
+            - Automatic pacing setup
         """
         self.host = host
         self.port = port
@@ -501,7 +495,7 @@ class IBAsync:
 
         return success
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         """Graceful disconnect"""
         if self.connected:
             # Cancel background tasks
@@ -514,7 +508,7 @@ class IBAsync:
             self.connected = False
             self.logger.info("Disconnected from IB")
 
-    async def _process_messages(self):
+    async def _process_messages(self) -> None:
         """Background task to process IB messages"""
         while self.connected:
             try:
@@ -525,7 +519,7 @@ class IBAsync:
                 self.logger.error(f"Error processing messages: {e}")
                 await asyncio.sleep(1)
 
-    async def _handle_errors(self):
+    async def _handle_errors(self) -> None:
         """Background task to handle IB errors"""
         while self.connected:
             try:
@@ -572,7 +566,7 @@ class IBAsync:
             except Exception as e:
                 self.logger.error(f"Error in custom error handler: {e}")
 
-    async def _attempt_reconnect(self):
+    async def _attempt_reconnect(self) -> None:
         """
         Automatic reconnection with exponential backoff
         Implements reconnection strategy from your checklist
@@ -588,7 +582,8 @@ class IBAsync:
 
         # Exponential backoff with jitter
         wait_time = min(300, 30 * (2 ** (self.reconnect_attempts - 1)))
-        jitter = np.random.uniform(0.8, 1.2)  # ±20% jitter
+        rng = np.random.default_rng()
+        jitter = rng.uniform(0.8, 1.2)  # ±20% jitter
         wait_time *= jitter
 
         self.logger.info(
@@ -600,7 +595,7 @@ class IBAsync:
         if not success:
             await self._attempt_reconnect()
 
-    async def _enforce_historical_pacing(self, contract_key: str):
+    async def _enforce_historical_pacing(self, contract_key: str) -> None:
         """
         Enforce IB historical data pacing rules from your checklist:
         - Max 60 requests per 10 minutes
@@ -636,7 +631,7 @@ class IBAsync:
     def create_stock_contract(
         self, symbol: str, exchange: str = "SMART", currency: str = "USD"
     ) -> Contract:
-        """Create stock contract - replaces ib_insync.Stock"""
+        """Create stock contract"""
         contract = Contract()
         contract.symbol = symbol
         contract.secType = "STK"
@@ -655,12 +650,12 @@ class IBAsync:
         keep_up_to_date: bool = False,
     ) -> pd.DataFrame | None:
         """
-        Request historical data with pacing control
+            Request historical data with pacing control
 
-        Key improvements over ib_insync:
-        - Automatic pacing enforcement
-        - Better error handling
-        - Returns pandas DataFrame directly
+        Highlights:
+            - Automatic pacing enforcement
+            - Better error handling
+            - Returns pandas DataFrame directly
         """
         if not self.connected:
             self.logger.error("Not connected to IB")
@@ -678,7 +673,7 @@ class IBAsync:
 
             # Get request ID and make request
             req_id = self.wrapper.get_next_request_id()
-            self.wrapper.set_pending_request(req_id, contract.symbol)
+            self.wrapper.set_pending_request(req_id, Symbol(contract.symbol))
 
             # Request historical data with proper typing
             cast(Any, self.client.reqHistoricalData)(
@@ -755,12 +750,12 @@ class IBAsync:
         self, contract: Contract, generic_tick_list: str = "", snapshot: bool = False
     ) -> int:
         """
-        Request real-time market data
+            Request real-time market data
 
-        Key improvements over ib_insync:
-        - Subscription limit checking
-        - Better error handling
-        - Returns request ID for tracking
+        Highlights:
+            - Subscription limit checking
+            - Better error handling
+            - Returns request ID for tracking
         """
         if not self.connected:
             self.logger.error("Not connected to IB")
@@ -775,7 +770,7 @@ class IBAsync:
 
         try:
             req_id = self.wrapper.get_next_request_id()
-            self.wrapper.set_pending_request(req_id, contract.symbol)
+            self.wrapper.set_pending_request(req_id, Symbol(contract.symbol))
 
             # Request market data with proper typing
             cast(Any, self.client.reqMktData)(
@@ -799,7 +794,7 @@ class IBAsync:
             self.logger.error(f"Market data request failed: {e}")
             return -1
 
-    async def cancel_market_data(self, req_id: int):
+    async def cancel_market_data(self, req_id: int) -> None:
         """Cancel market data subscription"""
         pending_requests = self.wrapper.get_pending_requests()
         if req_id in pending_requests:
@@ -813,12 +808,12 @@ class IBAsync:
         self, contract: Contract, num_rows: int = 10, is_smart_depth: bool = False
     ) -> int:
         """
-        Request Level 2 market depth data
+            Request Level 2 market depth data
 
-        Key improvements over ib_insync:
-        - Smart depth support
-        - Better subscription tracking
-        - Enhanced error handling
+        Highlights:
+            - Smart depth support
+            - Better subscription tracking
+            - Enhanced error handling
         """
         if not self.connected:
             self.logger.error("Not connected to IB")
@@ -826,7 +821,7 @@ class IBAsync:
 
         try:
             req_id = self.wrapper.get_next_request_id()
-            self.wrapper.set_pending_request(req_id, contract.symbol)
+            self.wrapper.set_pending_request(req_id, Symbol(contract.symbol))
 
             # Request market depth with proper typing
             cast(Any, self.client.reqMktDepth)(
@@ -846,7 +841,9 @@ class IBAsync:
             self.logger.error(f"Market depth request failed: {e}")
             return -1
 
-    async def cancel_market_depth(self, req_id: int, is_smart_depth: bool = False):
+    async def cancel_market_depth(
+        self, req_id: int, is_smart_depth: bool = False
+    ) -> None:
         """Cancel market depth subscription"""
         pending_requests = self.wrapper.get_pending_requests()
         if req_id in pending_requests:
@@ -855,13 +852,15 @@ class IBAsync:
             self.wrapper.remove_pending_request(req_id)
             self.logger.info(f"Cancelled market depth for {symbol} (ReqId: {req_id})")
 
-    def get_market_depth(self, symbol: str) -> dict[str, Any]:
+    def get_market_depth(self, symbol: Symbol | str) -> dict[str, Any]:
         """Get current market depth for symbol"""
-        return self.wrapper.get_market_depth(symbol)
+        sym: Symbol = Symbol(str(symbol))
+        return self.wrapper.get_market_depth(sym)
 
-    def get_last_price(self, symbol: str) -> float | None:
+    def get_last_price(self, symbol: Symbol | str) -> float | None:
         """Get last known price for symbol"""
-        return self.wrapper.get_last_price(symbol)
+        sym: Symbol = Symbol(str(symbol))
+        return self.wrapper.get_last_price(sym)
 
     async def stream_market_data(
         self, contract: Contract, callback: Callable[[dict[str, Any]], None]
@@ -874,7 +873,7 @@ class IBAsync:
 
         if req_id > 0:
             # Start background task to process ticks
-            async def tick_processor():
+            async def tick_processor() -> None:
                 pending_requests = self.wrapper.get_pending_requests()
                 while req_id in pending_requests:
                     try:
@@ -902,7 +901,7 @@ class IBAsync:
 
         if req_id > 0:
             # Start background task to process depth updates
-            async def depth_processor():
+            async def depth_processor() -> None:
                 pending_requests = self.wrapper.get_pending_requests()
                 while req_id in pending_requests:
                     try:
@@ -927,7 +926,7 @@ class IBAsync:
 
 # Convenience functions for compatibility with existing code
 def Stock(symbol: str, exchange: str = "SMART", currency: str = "USD") -> Contract:
-    """Create stock contract - direct replacement for ib_insync.Stock"""
+    """Create stock contract"""
     contract = Contract()
     contract.symbol = symbol
     contract.secType = "STK"
@@ -937,7 +936,7 @@ def Stock(symbol: str, exchange: str = "SMART", currency: str = "USD") -> Contra
 
 
 def util_df(bars: list[dict[str, Any]]) -> pd.DataFrame:
-    """Convert bars to DataFrame - replacement for ib_insync.util.df"""
+    """Convert bars to DataFrame"""
     data: list[dict[str, Any]] = []
     for bar in bars:
         data.append(
@@ -966,7 +965,7 @@ IB = IBAsync
 
 if __name__ == "__main__":
     # Demo usage
-    async def main():
+    async def main() -> None:
         ib = IBAsync()
 
         # Connect

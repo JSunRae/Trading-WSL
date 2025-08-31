@@ -1,3 +1,5 @@
+# ruff: noqa: N802, N803  # Preserve legacy public API names/args for compatibility
+
 """
 MasterPy - Utility functions for the trading system
 

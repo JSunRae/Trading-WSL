@@ -225,7 +225,7 @@ def check_describe_support(file_path, repo_root):
 def analyze_file(file_path, repo_root):
     """Analyze a single Python file."""
     try:
-        with open(file_path, encoding="utf-8") as f:
+        with Path(file_path).open(encoding="utf-8") as f:
             content = f.read()
     except Exception as e:
         logger.error(f"Could not read {file_path}: {e}")
@@ -386,14 +386,14 @@ def main():
             groups_proposal.append(proposal)
 
         # Generate reports
-        with open(reports_dir / "scripts_inventory.json", "w") as f:
+        with (reports_dir / "scripts_inventory.json").open("w") as f:
             json.dump(file_inventory, f, indent=2)
 
-        with open(reports_dir / "scripts_groups.json", "w") as f:
+        with (reports_dir / "scripts_groups.json").open("w") as f:
             json.dump(groups_proposal, f, indent=2)
 
         # Create CSV move plan
-        with open(reports_dir / "scripts_move_plan.csv", "w", newline="") as f:
+        with (reports_dir / "scripts_move_plan.csv").open("w", newline="") as f:
             writer = csv.DictWriter(
                 f,
                 fieldnames=[
@@ -425,10 +425,10 @@ def main():
             "cycles": [],
         }
 
-        with open(reports_dir / "import_graph.json", "w") as f:
+        with (reports_dir / "import_graph.json").open("w") as f:
             json.dump(import_graph, f, indent=2)
 
-        with open(reports_dir / "duplicates.json", "w") as f:
+        with (reports_dir / "duplicates.json").open("w") as f:
             json.dump([], f, indent=2)
 
         # Summary

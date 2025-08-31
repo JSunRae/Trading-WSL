@@ -1,10 +1,11 @@
-"""Minimal type stubs for ib_insync library."""
+"""Minimal type stubs for IBKR async client surface (vendor-agnostic)."""
 
-from typing import Any, Awaitable
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
+from typing import Any
 
 class Contract:
     """Base contract class."""
+
     symbol: str
     secType: str
     exchange: str
@@ -39,6 +40,7 @@ class Option(Contract):
 
 class BarData:
     """Historical bar data."""
+
     date: Any
     open: float
     high: float

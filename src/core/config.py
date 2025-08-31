@@ -193,7 +193,10 @@ class ConfigManager:
             "DATABENTO_DATASET": "NASDAQ.ITCH",
             "DATABENTO_SCHEMA": "mbp-10",
             "DATABENTO_TZ": "America/New_York",
-            "L2_BACKFILL_WINDOW_ET": "08:00-11:30",
+            "L2_BACKFILL_WINDOW_ET": "09:00-11:00",
+            # Enforced trading window for DataBento L2 fetches
+            "L2_ENFORCE_TRADING_WINDOW": "1",
+            "L2_TRADING_WINDOW_ET": "09:00-11:00",
             "L2_BACKFILL_CONCURRENCY": "2",
             "SYMBOL_MAPPING_FILE": "config/symbol_mapping.json",
         }

@@ -226,7 +226,7 @@ def main(argv: list[str] | None = None) -> int:
     if passed == total:
         print(f"✅ All {total} structure tests passed!")
         print("\n🎯 NEXT STEPS:")
-        print("   1. Install required dependencies (ib_insync, etc.)")
+        print("   1. Install required dependencies as needed (IB API, etc.)")
         print("   2. Run: python -m pytest tests/test_ml_infrastructure_priorities.py")
         print("   3. Check that Pyright shows fewer unknown type warnings")
         return 0

@@ -6,6 +6,7 @@ extracted from the monolithic MasterPy_Trading.py file.
 Provides safe DataFrame operations and data type handling.
 """
 
+import numbers
 from datetime import date, datetime
 from typing import Any
 
@@ -20,13 +21,13 @@ def safe_date_to_string(date_obj: datetime | date | str | None) -> str:
     try:
         if isinstance(date_obj, str):
             return date_obj
-        elif isinstance(date_obj, (datetime, date)):
+        elif isinstance(date_obj, (datetime, date)):  # noqa: UP038
             return date_obj.strftime("%Y-%m-%d")
         else:
             return str(date_obj)
     except (ValueError, AttributeError) as e:
         print(f"Warning: Error converting date to string: {e}")
-        return str(date_obj) if date_obj is not None else ""
+        return str(date_obj)
 
 
 def safe_datetime_to_string(datetime_obj: datetime | date | str | None) -> str:
@@ -45,10 +46,10 @@ def safe_datetime_to_string(datetime_obj: datetime | date | str | None) -> str:
             return str(datetime_obj)
     except (ValueError, AttributeError) as e:
         print(f"Warning: Error converting datetime to string: {e}")
-        return str(datetime_obj) if datetime_obj is not None else ""
+        return str(datetime_obj)
 
 
-def safe_df_scalar_access(
+def safe_df_scalar_access(  # noqa: C901
     df: pd.DataFrame, row: int | str, col: int | str, default: Any = None
 ) -> Any:
     """Safely access scalar value from DataFrame"""
@@ -115,7 +116,7 @@ def safe_numeric_conversion(value: Any, default: float = 0.0) -> float:
         if pd.isna(value) or value is None:
             return default
 
-        if isinstance(value, (int, float)):
+        if isinstance(value, numbers.Real):
             return float(value)
         elif isinstance(value, str):
             # Handle common string representations
@@ -139,7 +140,7 @@ def safe_string_conversion(value: Any, default: str = "") -> str:
 
         if isinstance(value, str):
             return value
-        elif isinstance(value, (datetime, date)):
+        elif isinstance(value, (datetime, date)):  # noqa: UP038
             return safe_datetime_to_string(value)
         else:
             return str(value)
@@ -157,7 +158,7 @@ def safe_boolean_conversion(value: Any, default: bool = False) -> bool:
 
         if isinstance(value, bool):
             return value
-        elif isinstance(value, (int, float)):
+        elif isinstance(value, numbers.Real):
             return bool(value)
         elif isinstance(value, str):
             cleaned = value.strip().lower()
@@ -234,7 +235,7 @@ def detect_and_convert_dtypes(df: pd.DataFrame) -> pd.DataFrame:
                         converted_df[col], errors="coerce"
                     )
                     continue
-            except:
+            except Exception:
                 pass
 
             # Try to convert to numeric
@@ -244,7 +245,7 @@ def detect_and_convert_dtypes(df: pd.DataFrame) -> pd.DataFrame:
                 if numeric_series.notna().sum() / len(converted_df[col]) > 0.8:
                     converted_df[col] = numeric_series
                     continue
-            except:
+            except Exception:
                 pass
 
     return converted_df
@@ -294,12 +295,12 @@ def remove_outliers_iqr(
             print(f"Warning: Column '{column}' not found in DataFrame")
             return df
 
-        Q1 = df[column].quantile(0.25)
-        Q3 = df[column].quantile(0.75)
-        IQR = Q3 - Q1
+        q1 = df[column].quantile(0.25)
+        q3 = df[column].quantile(0.75)
+        iqr = q3 - q1
 
-        lower_bound = Q1 - multiplier * IQR
-        upper_bound = Q3 + multiplier * IQR
+        lower_bound = q1 - multiplier * iqr
+        upper_bound = q3 + multiplier * iqr
 
         return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
 

@@ -26,6 +26,6 @@ def test_atomic_write_failure(tmp_path: Path, monkeypatch):
     except RuntimeError:
         pass
     else:  # pragma: no cover
-        assert False, "Expected failure"
+        raise AssertionError("Expected failure")
     assert not dest.exists()
     assert not dest.with_suffix(dest.suffix + ".tmp").exists()

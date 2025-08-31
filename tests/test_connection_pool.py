@@ -54,7 +54,9 @@ def test_acquire_release(pool):
 def test_pool_exhaustion(pool):
     conn1 = pool.get_connection(ConnectionPriority.NORMAL)
     conn2 = pool.get_connection(ConnectionPriority.NORMAL)
-    with pytest.raises(Exception):
+    from src.core.error_handler import TradingSystemError
+
+    with pytest.raises(TradingSystemError):
         pool.get_connection(ConnectionPriority.NORMAL, timeout=0.01)
     pool.return_connection(conn1.client_id)
     pool.return_connection(conn2.client_id)
@@ -63,17 +65,19 @@ def test_pool_exhaustion(pool):
 def test_circuit_breaker():
     cb = CircuitBreaker(failure_threshold=2, timeout=0.01)
 
+    from src.core.error_handler import TradingSystemError
+
     def fail():
-        raise Exception("fail")
+        raise TradingSystemError("fail")
 
     # Two failures should open breaker
-    with pytest.raises(Exception):
+    with pytest.raises(TradingSystemError):
         cb.call(fail)
-    with pytest.raises(Exception):
+    with pytest.raises(TradingSystemError):
         cb.call(fail)
     assert cb.state == ConnectionState.OPEN
     # Wait for timeout, should reset
     time.sleep(0.02)
-    with pytest.raises(Exception):
+    with pytest.raises(TradingSystemError):
         cb.call(fail)
     assert cb.state in [ConnectionState.HALF_OPEN, ConnectionState.OPEN]

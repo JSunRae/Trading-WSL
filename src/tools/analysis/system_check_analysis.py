@@ -7,6 +7,7 @@ Analyzes Pyright output and codebase for migration status and type safety
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from src.tools._cli_helpers import env_dep, print_json
 
@@ -68,12 +69,12 @@ def describe() -> dict[str, object]:
     }
 
 
-def load_pyright_data():
+def load_pyright_data() -> dict[str, Any]:
     """Load Pyright analysis results"""
     try:
-        with open("pyright_output.json") as f:
-            return json.load(f)
-    except:
+        with Path("pyright_output.json").open() as f:
+            return dict(json.load(f))
+    except Exception:
         # Parse from the previous output
         pyright_text = """
         {
@@ -86,11 +87,11 @@ def load_pyright_data():
                 "timeInSec": 3.634
             }
         }
-        """
-        return json.loads(pyright_text)
+    """
+    return dict(json.loads(pyright_text))
 
 
-def analyze_type_diagnostics():
+def analyze_type_diagnostics() -> None:
     """Analyze Pyright diagnostics"""
     print("🔍 TRADING PROJECT SYSTEM CHECK REPORT")
     print("=" * 80)
@@ -140,20 +141,20 @@ def analyze_type_diagnostics():
         print(f"  {file_name}: {count} issues")
 
 
-def check_async_migration_status():
+def check_async_migration_status() -> None:
     """Check async migration status"""
     print("\n🔄 ASYNC MIGRATION STATUS:")
     print("-" * 40)
 
-    print("✅ ib_insync package successfully uninstalled")
-    print("✅ ib_async compatibility layer created (src/lib/ib_insync_compat.py)")
+    print("✅ Compatibility layer fully removed")
+    print("✅ Using async infra (src/infra/*, src/lib/ib_async_wrapper.py)")
     print("❌ Some files still use synchronous IB patterns")
 
     sync_patterns = [
         "src/core/modern_trading_core.py:351 - ib = IB()",
-        "src/MasterPy_Trading.py:1968 - ib = ib_async.IB()",
+        "src/MasterPy_Trading.py:1968 - ib = IB()",
         "src/ib_Trader.py:258 - self.ib = IB()",
-        "src/services/market_data/integration_example.py:34 - ib = ib_insync.IB()",
+        "src/services/market_data/integration_example.py:34 - legacy sync example (to remove)",
     ]
 
     print("\n🚨 SYNCHRONOUS PATTERNS DETECTED:")
@@ -172,7 +173,7 @@ def check_async_migration_status():
         print(f"  {file_desc}")
 
 
-def analyze_type_safety():
+def analyze_type_safety() -> None:
     """Analyze type safety coverage"""
     print("\n🛡️ TYPE SAFETY COVERAGE:")
     print("-" * 40)
@@ -203,7 +204,7 @@ def analyze_type_safety():
         print(f"  ✓ {improvement}")
 
 
-def check_stubs_and_externals():
+def check_stubs_and_externals() -> None:
     """Check for missing stubs and external dependencies"""
     print("\n📚 STUBS & EXTERNAL DEPENDENCIES:")
     print("-" * 40)
@@ -213,8 +214,8 @@ def check_stubs_and_externals():
     if stubs_dir.exists():
         stub_files = list(stubs_dir.glob("*.pyi"))
         print(f"✅ Stubs directory exists with {len(stub_files)} stub files:")
-        for stub in stub_files:
-            print(f"  - {stub.name}")
+        for stub_file in stub_files:
+            print(f"  - {stub_file.name}")
     else:
         print("❌ No stubs directory found")
 
@@ -231,7 +232,7 @@ def check_stubs_and_externals():
         print(f"  {stub}")
 
 
-def check_module_resolution():
+def check_module_resolution() -> None:
     """Check module resolution issues"""
     print("\n🔧 MODULE RESOLUTION:")
     print("-" * 40)
@@ -252,7 +253,7 @@ def check_module_resolution():
         print(f"  {issue}")
 
 
-def check_public_api():
+def check_public_api() -> None:
     """Check public API usage"""
     print("\n🚪 PUBLIC API CHECK:")
     print("-" * 40)
@@ -273,7 +274,7 @@ def check_public_api():
         print(f"  {issue}")
 
 
-def generate_action_checklist():
+def generate_action_checklist() -> None:
     """Generate prioritized action checklist"""
     print("\n📋 PRIORITIZED ACTION CHECKLIST:")
     print("=" * 50)
@@ -345,10 +346,11 @@ def generate_action_checklist():
         print(f"   ⏱️  Estimate: {action['estimate']}")
 
 
-def main():
+def main() -> int:
     """Run complete system analysis."""
     if "--describe" in sys.argv[1:]:  # early pure-JSON path
-        return print_json(describe())
+        print_json(describe())
+        return 0
     analyze_type_diagnostics()
     check_async_migration_status()
     analyze_type_safety()
@@ -356,19 +358,7 @@ def main():
     check_module_resolution()
     check_public_api()
     generate_action_checklist()
-
-    print("\n🎯 NEXT STEPS SUMMARY:")
-    print("=" * 40)
-    print("1. 🔥 Fix critical type annotation issues (MLRiskManager)")
-    print("2. 🧪 Complete test migration to typed API surface")
-    print("3. ⚡ Convert remaining sync IB calls to async")
-    print("4. 📚 Add missing external library type stubs")
-    print("5. 🧹 Clean up warnings and unused imports")
-
-    print("\n📊 SUCCESS METRICS:")
-    print("  Current: 628 errors, 1,838 warnings")
-    print("  Target:  <50 errors, <200 warnings")
-    print("  Progress: ~75% complete on type migration")
+    return 0
 
 
 if __name__ == "__main__":  # pragma: no cover

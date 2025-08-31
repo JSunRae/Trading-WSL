@@ -1,10 +1,4 @@
-**NOTE:** Single authoritative README. Keep additions concise; link out for deep dives.
-
----
-
-# Trading Platform (Hybrid IBKR Automation & Research)
-
-Focused, modernized core for: (1) Headless automated IBKR sessions, (2) Structured market & Level 2 data capture, (3) Analysis & signal generation, (4) Safe migration away from legacy monolith scripts.
+**NOTE:** Single authoritative README.
 
 ---
 
@@ -25,32 +19,10 @@ Focused, modernized core for: (1) Headless automated IBKR sessions, (2) Structur
 13. [Data Flows](#data-flows)
 14. [Unified Environment Variables](#unified-environment-variables-authoritative)
 15. [Condensed Backfill Quickstart](#quickstart-condensed)
-16. [Focused Backfill Troubleshooting](#troubleshooting-focused)
 
 > Tip: All tools self‑document with `--describe`; see Section 6.
 
 ## 1. Quick Start (90% use‑case)
-
-```bash
-# Run full automated flow (headless gateway + data + analysis + teardown)
-python src/tools/run_trading_fully_automated.py --symbols AAPL
-
-# Multiple symbols & advanced analysis
-python src/tools/run_trading_fully_automated.py --symbols AAPL MSFT GOOGL --analysis advanced
-
-# Paper mode
-python src/tools/run_trading_fully_automated.py --symbols TSLA --paper
-```
-
-What happens automatically: start headless IB Gateway → login → request data → store (Parquet) → run analysis → produce signals → cleanup.
-
-Minimal setup (if fresh clone):
-
-```bash
-python src/tools/setup/setup_automated_trading.py
-```
-
-Copy/paste setup + run (local path convenience):
 
 ```bash
 cd "/home/jrae/wsl projects/Trading"
@@ -58,6 +30,49 @@ source .venv/bin/activate  # Linux/Mac
 python src/tools/setup/setup_automated_trading.py
 python src/tools/run_trading_fully_automated.py --symbols AAPL
 ```
+
+```bash
+python src/tools/run_trading_fully_automated.py [OPTIONS]
+```
+
+Options (common):
+
+- `--symbols SYM [SYM ...]` — Symbols to process (default: TSLA).
+- `--duration STR` — Data duration window (e.g., `"1 D"`, `"5 D"`, `"1 W"`; default: `"1 D"`).
+- `--bar-size STR` — Bar size (e.g., `"1 min"`, `"5 mins"`, `"1 hour"`; default: `"1 min"`).
+- `--live` — Use live trading mode (default is paper mode when omitted).
+- `--no-save` — Don’t write parquet/csv/summary outputs (analyze only).
+- `--verbose` — More logging.
+- `--describe` — Print tool metadata (inputs, outputs, env) and exit.
+
+What happens automatically: start headless IB Gateway → login → request data → store (Parquet) → run analysis → produce signals → cleanup.
+
+### Update Warrior (Quick Start)
+
+Ensure your Databento API key is configured (see Installation / Environment). Then run:
+
+```bash
+python src/tools/auto_backfill_from_warrior.py [OPTIONS]
+```
+
+Options (common):
+
+- `--dry-run` — Preview the scope (task count + first tasks); no vendor calls or writes.
+- `--max-workers N` — Parallel workers (default from `L2_MAX_WORKERS` or 4).
+- `--since DAYS` — Include tasks with `trading_day >= today - DAYS`.
+- `--last N` — Keep only the last N distinct trading days (after other filters).
+- `--strict` — Exit non‑zero if any errors occurred; still processes all tasks.
+- `--force` — Redownload even if destination files already exist (overwrites).
+- `--max-tasks N` — Cap total tasks processed (safety for large sets).
+
+Verification: you’ll see a single SUMMARY line in stdout; artifacts are written under your configured data base path:
+
+```
+backfill_l2_manifest.jsonl   # Append per-task results
+backfill_l2_summary.json     # Aggregate counts + concurrency
+```
+
+See details in [Warrior Historical L2 Backfill (Automation)](#warrior-historical-l2-backfill-automation).
 
 **Automated Trading Flow:**
 
@@ -116,8 +131,8 @@ graph LR
 graph TB
     subgraph "🚀 AUTOMATED CORE (Phase 1 - COMPLETE)"
         A[run_trading_fully_automated.py] --> B[src/automation/headless_gateway.py]
-        B --> C[src/lib/ib_async_wrapper.py]
-        C --> D[src/lib/ib_insync_compat.py]
+    B --> C[src/lib/ib_async_wrapper.py]
+  %% Removed legacy compatibility layer; using async infra only
         E[setup_automated_trading.py] --> A
     end
 
@@ -173,7 +188,6 @@ Trading/
 ├── 🚀 **AUTOMATED CORE** (Phase 1 - COMPLETE)
 │   ├── src/automation/headless_gateway.py    # Zero-intervention automation
 │   ├── src/lib/ib_async_wrapper.py          # Modern async IB API
-│   ├── src/lib/ib_insync_compat.py          # Backward compatibility
 │   ├── run_trading_fully_automated.py       # One-command trading
 │   └── setup_automated_trading.py           # Automated setup
 │
@@ -218,7 +232,6 @@ Key points:
 - Async-first IB client abstraction with safe fallback to a Fake IB for tests.
 - Data layer standardized on Parquet (performance + schema evolution).
 - Tools expose JSON `--describe` for automation.
-- Legacy UI / monolith isolated; phased extraction ongoing.
 
 ### Gap / RVOL Recorder UI (Prototype)
 
@@ -301,10 +314,10 @@ print(summary["counts"], summary["zero_row_tasks"])
 Automation CLI (single SUMMARY line; ideal for guardrails):
 
 ```bash
-python src/tools/auto_backfill_from_warrior.py --since 3 --max-tasks 200 --max-workers 4
-python src/tools/auto_backfill_from_warrior.py --last 5 --dry-run
-python src/tools/auto_backfill_from_warrior.py --since 2 --strict --max-workers 2
+python src/tools/auto_backfill_from_warrior.py [OPTIONS]
 ```
+
+See the options list in Update Warrior (Quick Start) above to avoid duplication.
 
 Key properties:
 
@@ -373,7 +386,8 @@ Useful env vars:
 python src/tools/run_trading_fully_automated.py --symbols AAPL
 
 # Advanced options (examples)
-python src/tools/run_trading_fully_automated.py --symbols AAPL MSFT --analysis volume_profile --bars "1 min" --duration 390 --paper
+python src/tools/run_trading_fully_automated.py --symbols AAPL MSFT --duration "5 D" --bar-size "5 mins"
+python src/tools/run_trading_fully_automated.py --symbols SPY --live --no-save
 ```
 
 Headless issues? Run manual gateway/TWS then re-run tool; it will detect existing session.
@@ -385,14 +399,6 @@ python tests/test_gateway_ready.py              # default
 python tests/test_gateway_ready.py --port 4002  # explicit
 ```
 
-Troubleshooting (quick):
-| Symptom | Check |
-|---------|-------|
-| Connection refused | Is gateway process running? (`ps aux | grep -i gateway`) |
-| Auth failed | Env credentials exported? |
-| API not enabled | TWS/Gateway: API Settings → Enable Socket Clients |
-| WSL access issues | Add WSL host IP to trusted IP list |
-
 ---
 
 ## 5. Level 2 (Order Book) Data
@@ -400,19 +406,53 @@ Troubleshooting (quick):
 Record:
 
 ```bash
-python src/data/record_depth.py --symbol AAPL --duration 60
+python src/tools/record_depth.py [OPTIONS]
 ```
+
+Options (common):
+
+- `--symbol, -s SYM` — Stock symbol to record (required).
+- `--levels, -l N` — Levels per side (default: 10).
+- `--interval, -i MS` — Snapshot interval in milliseconds (default: 100).
+- `--output, -o PATH` — Output directory (default: ./data/level2).
+- `--duration, -d MIN` — Duration in minutes (omit for indefinite session).
+- `--host HOST` — IB host (default from config).
+- `--port PORT` — IB port; auto-detected if omitted.
+- `--client-id N` — IB API client id (default: 1).
+- `--paper/--live` — Paper vs live mode (default: paper).
+- `--describe` — Print tool metadata and exit.
 
 Analyze:
 
 ```bash
-python src/data/analyze_depth.py --data-dir ./data/level2/AAPL --plot
+python src/tools/analyze_depth.py [OPTIONS]
 ```
 
-High frequency (50ms, 20 levels):
+Options (common):
+
+- `--data-dir, -d PATH` — Root data directory (e.g., ./data/level2).
+- `--symbol, -s SYM` — Symbol to analyze.
+- `--date YYYY-MM-DD` — Trading day to analyze.
+- `--output, -o FILE` — Write analysis report JSON.
+- `--plot` — Generate plots and display/save.
+- `--show-describe` — Print tool description and exit.
+
+Verification tip:
 
 ```bash
-python src/data/record_depth.py --symbol SPY --interval 50 --levels 20 --duration 30
+python src/tools/analyze_depth.py --show-describe
+```
+
+You should see a JSON schema with inputs/outputs; for a fast end-to-end check, run with a small sample once you have Level 2 data:
+
+```bash
+python src/tools/analyze_depth.py -d data/level2 -s SPY --date 2025-07-30 --output /dev/null
+```
+
+High frequency example (50ms, 20 levels, 30 minutes):
+
+```bash
+python src/tools/record_depth.py --symbol SPY --interval 50 --levels 20 --duration 30
 ```
 
 Outputs per symbol directory: snapshots parquet, messages json, session stats.
@@ -611,6 +651,40 @@ If depth slow: confirm Parquet usage:
 ls data/level2/*/*.parquet
 ```
 
+### Automated Trading & Gateway
+
+Common symptoms and actions:
+
+| Symptom            | Check                                                     |
+| ------------------ | --------------------------------------------------------- |
+| Connection refused | Is gateway process running? (`ps aux \| grep -i gateway`) |
+| Auth failed        | Env credentials exported?                                 |
+| API not enabled    | TWS/Gateway: API Settings → Enable Socket Clients         |
+| WSL access issues  | Add WSL host IP to trusted IP list                        |
+
+Tips:
+
+- If headless launch fails, start Gateway/TWS manually and re-run the tool; it will attach to the existing session.
+- Validate ports with the quick checks above; defaults are 4002 (paper), 4001 (live).
+
+### Level 2 Data (record/analyze)
+
+| Issue                    | Explanation                                   | Action                                                                                                |
+| ------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| No snapshots written     | Session ended early or no subscription        | Increase duration; confirm symbol is valid and market hours; check logs in `logs/`                    |
+| High CPU/memory          | Very small intervals (<=50ms) and many levels | Reduce `--levels` or increase `--interval`; ensure Parquet writes are enabled                         |
+| Analyzer can’t find data | Path/symbol/date mismatch                     | Verify directory layout under `data/level2/{SYMBOL}/` and the `--data-dir`, `--symbol`, `--date` args |
+
+### Backfill (DataBento / Warrior)
+
+| Issue                           | Explanation                                | Action                                                                                |
+| ------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Zero-row day (EMPTY)            | Vendor returned no rows in window          | Verify symbol/day activity; adjust `L2_BACKFILL_WINDOW_ET`; harmless unless strict    |
+| Rate-limit / retries            | Vendor 429 / transient network             | Backoff auto-handled; tune `L2_TASK_BACKOFF_BASE_MS/MAX_MS` or lower `L2_MAX_WORKERS` |
+| Strict mode non-zero exit       | `--strict` treats UNAVAIL/ERROR as failure | Re-run without `--strict` to proceed; inspect logs & SUMMARY counters                 |
+| Symbol-mapping identity warning | Mapping file missing or empty              | Provide `SYMBOL_MAPPING_FILE` with explicit vendor symbols if divergences exist       |
+| Mixed concurrency values        | Using legacy env only                      | Prefer `L2_MAX_WORKERS`; legacy `L2_BACKFILL_CONCURRENCY` used as fallback            |
+
 ---
 
 ## 10. Coverage & Incremental Targets
@@ -698,7 +772,9 @@ See also: `docs/ENVIRONMENT.md` (kept in sync) and `.env.example`.
 | DATABENTO_DATASET         | NASDAQ.ITCH                  | Dataset code                            | vendor adapter             |
 | DATABENTO_SCHEMA          | mbp-10                       | L2 schema                               | vendor adapter             |
 | DATABENTO_TZ              | America/New_York             | Vendor timezone                         | backfill window            |
-| L2_BACKFILL_WINDOW_ET     | 08:00-11:30                  | Historical slice window (ET)            | backfill_api               |
+| L2_BACKFILL_WINDOW_ET     | 09:00-11:00                  | Historical slice window (ET)            | backfill_api               |
+| L2_ENFORCE_TRADING_WINDOW | 1                            | Clamp L2 fetch to trading window (ET)   | backfill_api               |
+| L2_TRADING_WINDOW_ET      | 09:00-11:00                  | Trading window for Level 2 (ET)         | backfill_api               |
 | L2_BACKFILL_CONCURRENCY   | 2                            | Legacy CLI concurrency                  | backfill_l2_from_warrior   |
 | L2_MAX_WORKERS            | 4                            | Orchestrator workers                    | auto_backfill_from_warrior |
 | L2_TASK_BACKOFF_BASE_MS   | 250                          | Base backoff ms (vendor retry)          | databento_l2_service       |
@@ -714,29 +790,19 @@ cp .env.example .env
 # (edit IB creds / API keys as needed)
 
 # 2. Dry-run Warrior→DataBento task discovery (no writes)
-python src/tools/auto_backfill_from_warrior.py --since 3 --dry-run
+python src/tools/auto_backfill_from_warrior.py --dry-run
 
 # 3. Run strict backfill then inspect summary + first manifest lines
-python src/tools/auto_backfill_from_warrior.py --since 3 --max-workers 4 --strict
+python src/tools/auto_backfill_from_warrior.py --max-workers 4 --strict
 head -n 5 backfill_l2_manifest.jsonl
 cat backfill_l2_summary.json
 ```
 
-## Troubleshooting (Focused)
-
-| Issue                           | Explanation                                | Action                                                                                |
-| ------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Zero-row day (EMPTY)            | Vendor returned no rows in window          | Verify symbol/day activity; adjust `L2_BACKFILL_WINDOW_ET`; harmless unless strict    |
-| Rate-limit / retries            | Vendor 429 / transient network             | Backoff auto-handled; tune `L2_TASK_BACKOFF_BASE_MS/MAX_MS` or lower `L2_MAX_WORKERS` |
-| Strict mode non-zero exit       | `--strict` treats UNAVAIL/ERROR as failure | Re-run without `--strict` to proceed; inspect logs & SUMMARY counters                 |
-| Symbol-mapping identity warning | Mapping file missing or empty              | Provide `SYMBOL_MAPPING_FILE` with explicit vendor symbols if divergences exist       |
-| Mixed concurrency values        | Using legacy env only                      | Prefer `L2_MAX_WORKERS`; legacy `L2_BACKFILL_CONCURRENCY` used as fallback            |
-
-Cross-reference: detailed env descriptions in `docs/ENVIRONMENT.md`; architecture in `docs/ARCHITECTURE.md`.
+<!-- Consolidated into Section 9: Troubleshooting & Support -->
 
 ### Historical L2 Backfill (DataBento Optional)
 
-Updated: this section is superseded by Unified Environment Variables & Quickstart. Retained for legacy context; new users should follow the Quickstart above.
+Updated: this section is superseded by Unified Environment Variables & Quickstart. Retained for legacy context; new users should follow the Quickstart above. DataBento usage is restricted to historical Level 2 only. Other historical data paths use the standard sources to avoid extra vendor costs.
 
 Install extra (optional):
 
@@ -751,7 +817,9 @@ DATABENTO_API_KEY=your_key_here
 DATABENTO_ENABLE_BACKFILL=1
 DATABENTO_DATASET=NASDAQ.ITCH
 DATABENTO_SCHEMA=mbp-10
-L2_BACKFILL_WINDOW_ET=08:00-11:30
+L2_BACKFILL_WINDOW_ET=09:00-11:00
+L2_ENFORCE_TRADING_WINDOW=1
+L2_TRADING_WINDOW_ET=09:00-11:00
 L2_BACKFILL_CONCURRENCY=2
 SYMBOL_MAPPING_FILE=config/symbol_mapping.json
 ```

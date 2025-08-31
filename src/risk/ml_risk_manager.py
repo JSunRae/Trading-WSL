@@ -251,7 +251,9 @@ class MLRiskManager(RiskManager):
 
             # Risk factor based on signal confidence (inverse relationship)
             # Lower confidence = smaller position (more conservative)
-            risk_factor = max(0.1, signal.confidence)  # Use confidence directly as risk factor
+            risk_factor = max(
+                0.1, signal.confidence
+            )  # Use confidence directly as risk factor
 
             # Calculate risk-adjusted size
             risk_adjusted_size = int(

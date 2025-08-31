@@ -379,6 +379,31 @@
         "4"
       ],
       "problemMatcher": []
+    },
+    {
+      "label": "Notify TBS (finished)",
+      "type": "shell",
+      "command": "./scripts/notify_tbs.sh",
+      "args": [
+        "${workspaceFolderBasename}",
+        "${input:runId}",
+        "${input:usedPrompt}"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "runId",
+      "type": "promptString",
+      "description": "Run ID",
+      "default": "run-${currentTime}"
+    },
+    {
+      "id": "usedPrompt",
+      "type": "promptString",
+      "description": "Paste the prompt the agent executed"
     }
   ]
 }

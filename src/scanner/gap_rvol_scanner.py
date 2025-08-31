@@ -9,12 +9,35 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 
 from src.config import extensions as cfg_ext
-from src.lib.ib_insync_compat import IB, Stock  # type: ignore
 from src.observability import metrics
 from src.utils.time_utils import is_premarket, normalized_time_fraction, now_eastern
+
+try:
+    from src.infra.contract_factories import stock as _cf_stock
+except Exception:  # pragma: no cover
+    _cf_stock = None  # type: ignore[assignment]
+
+from typing import Any as _AnyAlias
+
+_real_stock: _AnyAlias | None = _cf_stock
+
+
+def _stock(symbol: str, exchange: str = "SMART", currency: str = "USD") -> Any:
+    try:
+        if _real_stock is not None:
+            return _real_stock(symbol, exchange, currency)
+    except Exception:
+        pass
+    return {"symbol": symbol, "exchange": exchange, "currency": currency}
+
+
+class IB(Protocol):  # minimal protocol
+    def isConnected(self) -> bool: ...  # noqa: D401,N802,E701
+    def reqHistoricalData(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: D401,N802,E701
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +57,7 @@ class Candidate:
 
 
 class GapRvolScanner:
-    def __init__(self, ib: IB | None = None) -> None:  # type: ignore[name-defined]
+    def __init__(self, ib: IB | None = None) -> None:
         self._prev_close_cache: dict[str, tuple[float, datetime]] = {}
         self._adv_cache: dict[str, tuple[int, datetime]] = {}
         self._hidden: set[str] = set()
@@ -99,9 +122,9 @@ class GapRvolScanner:
     # ------------------------------------------------------------------
     # Internal data acquisition helpers
     # ------------------------------------------------------------------
-    def _qualify(self, symbol: str):  # best-effort
+    def _qualify(self, symbol: str) -> Any | None:  # best-effort
         try:
-            return Stock(symbol, "SMART", "USD")  # type: ignore
+            return _stock(symbol, "SMART", "USD")
         except Exception:
             return None
 
@@ -116,7 +139,7 @@ class GapRvolScanner:
             return None
         try:
             # Request 2 days of daily bars to ensure we get previous trading day
-            df = self._ib.reqHistoricalData(  # type: ignore[attr-defined]
+            df = self._ib.reqHistoricalData(
                 contract, durationStr="2 D", barSizeSetting="1 day", whatToShow="TRADES"
             )
             if df is None or df.empty:
@@ -140,7 +163,7 @@ class GapRvolScanner:
         if contract is None:
             return None
         try:
-            df = self._ib.reqHistoricalData(  # type: ignore[attr-defined]
+            df = self._ib.reqHistoricalData(
                 contract,
                 durationStr="21 D",
                 barSizeSetting="1 day",
@@ -169,7 +192,7 @@ class GapRvolScanner:
             return None, 0
         try:
             # 1 day 1 min bars for intraday volume accumulation
-            df = self._ib.reqHistoricalData(  # type: ignore[attr-defined]
+            df = self._ib.reqHistoricalData(
                 contract,
                 durationStr="1 D",
                 barSizeSetting="1 min",

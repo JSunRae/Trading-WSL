@@ -140,18 +140,18 @@ def create_realistic_trading_data():
     # AAPL - had 4:1 split in August 2020
     print("📊 Creating AAPL data with 4:1 split...")
     dates = pd.date_range("2020-01-01", "2020-12-31", freq="D")
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
 
     aapl_prices: list[float] = []
     base_price = 75.0
     for date in dates:
-        base_price *= 1 + np.random.normal(0, 0.02)
+        base_price *= 1 + rng.normal(0, 0.02)
         # 4:1 split on Aug 31, 2020
         if date == pd.to_datetime("2020-08-31"):
             base_price /= 4.0
         aapl_prices.append(base_price)
 
-    aapl_volumes = np.random.normal(100000000, 20000000, len(dates))
+    aapl_volumes = rng.normal(100000000, 20000000, len(dates))
     # Volume spike on split day
     split_idx = list(dates).index(pd.to_datetime("2020-08-31"))
     aapl_volumes[split_idx] *= 6
@@ -165,13 +165,13 @@ def create_realistic_trading_data():
     tsla_prices = []
     base_price = 1500.0
     for date in dates:
-        base_price *= 1 + np.random.normal(0, 0.03)  # More volatile
+        base_price *= 1 + rng.normal(0, 0.03)  # More volatile
         # 5:1 split on Aug 31, 2020
         if date == pd.to_datetime("2020-08-31"):
             base_price /= 5.0
     tsla_prices.append(base_price)  # type: ignore[func-returns-value]
 
-    tsla_volumes = np.random.normal(50000000, 15000000, len(dates))
+    tsla_volumes = rng.normal(50000000, 15000000, len(dates))
     tsla_volumes[split_idx] *= 8  # Huge volume spike
 
     symbols_data["TSLA"] = pd.DataFrame(
@@ -183,10 +183,10 @@ def create_realistic_trading_data():
     msft_prices: list[float] = []
     base_price = 120.0
     for date in dates:
-        base_price *= 1 + np.random.normal(0, 0.015)
+        base_price *= 1 + rng.normal(0, 0.015)
         msft_prices.append(base_price)
 
-    msft_volumes = np.random.normal(30000000, 8000000, len(dates))
+    msft_volumes = rng.normal(30000000, 8000000, len(dates))
 
     symbols_data["MSFT"] = pd.DataFrame(
         {"close": msft_prices, "volume": msft_volumes}, index=dates
@@ -197,10 +197,10 @@ def create_realistic_trading_data():
     googl_prices: list[float] = []
     base_price = 2800.0
     for date in dates:
-        base_price *= 1 + np.random.normal(0, 0.018)
+        base_price *= 1 + rng.normal(0, 0.018)
         googl_prices.append(base_price)
 
-    googl_volumes = np.random.normal(2000000, 500000, len(dates))
+    googl_volumes = rng.normal(2000000, 500000, len(dates))
 
     symbols_data["GOOGL"] = pd.DataFrame(
         {"close": googl_prices, "volume": googl_volumes}, index=dates

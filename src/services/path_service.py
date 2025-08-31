@@ -6,7 +6,6 @@ extracted from the monolithic MasterPy_Trading.py file.
 Provides centralized path management with platform-specific handling.
 """
 
-import os
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -45,16 +44,16 @@ def handle_error(module: str, message: str, duration: int = 60) -> None:
 
             error = TradingSystemError(message)
             error_handler.handle_error(error, {"module": module, "duration": duration})
-        except:
+        except Exception:
             print(f"ERROR [{module}]: {message}")
     else:
         print(f"ERROR [{module}]: {message}")
 
 
-def ensure_directory_exists(location: str) -> None:
+def ensure_directory_exists(location: str | Path) -> None:
     """Ensure directory exists, create if necessary"""
     try:
-        os.makedirs(location, exist_ok=True)
+        Path(location).mkdir(parents=True, exist_ok=True)
     except Exception as e:
         print(f"Warning: Could not create directory {location}: {e}")
 
@@ -131,7 +130,7 @@ class PathService:
                 handle_error(__name__, "need start and end string")
                 date_str = ""
             else:
-                if isinstance(date_str, (date, datetime)):
+                if isinstance(date_str, date | datetime):
                     date_str = "_" + date_str.strftime("%Y-%m-%d")
                 else:
                     date_str = "_" + str(date_str)[:10]
@@ -353,15 +352,16 @@ class PathService:
         if name == "":
             name = "For Review"
 
-        base_path = self.base_path + f"Temp-{name}.xlsx"
-        path = base_path
+        # Build candidate path using pathlib and ensure uniqueness
+        base = Path(self.base_path) / f"Temp-{name}.xlsx"
+        path = base
         count = 1
 
-        while os.path.exists(path):
+        while path.exists():
             count += 1
-            path = self.base_path + f"Temp-{name}-{count}.xlsx"
+            path = Path(self.base_path) / f"Temp-{name}-{count}.xlsx"
 
-        return Path(path)
+        return path
 
     def get_warrior_trading_location(self) -> Path:
         """Get Warrior Trading Excel file location (centralized)"""
@@ -435,7 +435,7 @@ class PathService:
 
 
 # Backward compatibility functions
-def IB_Download_Loc(
+def IB_Download_Loc(  # noqa: N802 - legacy API name maintained for compatibility
     stock_code: str, bar_obj: Any, date_str: str = "", file_ext: str = ".ftr"
 ) -> Path:
     """Backward compatibility function for IB download location"""
@@ -443,7 +443,7 @@ def IB_Download_Loc(
     return service.get_ib_download_location(stock_code, bar_obj, date_str, file_ext)
 
 
-def IB_Df_Loc(
+def IB_Df_Loc(  # noqa: N802 - legacy API name maintained for compatibility
     stock_code: str,
     bar_obj: Any,
     date_str: str,
@@ -458,7 +458,7 @@ def IB_Df_Loc(
     )
 
 
-def IB_L2_Loc(
+def IB_L2_Loc(  # noqa: N802 - legacy API name maintained for compatibility
     stock_code: str,
     start_str: str | datetime | date,
     end_str: str | datetime | date,
@@ -473,7 +473,7 @@ def IB_L2_Loc(
     )
 
 
-def IB_Train_Loc(
+def IB_Train_Loc(  # noqa: N802 - legacy API name maintained for compatibility
     stock_code: str, date_str: str | datetime | date, train_type: str = ""
 ) -> Path:
     """Backward compatibility function for training location"""
@@ -481,7 +481,7 @@ def IB_Train_Loc(
     return service.get_training_location(stock_code, date_str, train_type)
 
 
-def IB_Scalar(
+def IB_Scalar(  # noqa: N802 - legacy API name maintained for compatibility
     scalar_type: str,
     scalar_what: str,
     load_scalar: bool = True,

@@ -703,7 +703,10 @@ class OrderManagementService:
             }
 
             # In real implementation, save to database or Parquet file
-            self.logger.debug(f"Saved order {order.order_id} to storage")
+            self.logger.debug(
+                "Saved order to storage: %s",
+                {k: v for k, v in order_data.items() if k != "commission"},
+            )
 
         except Exception as e:
             self.logger.error(f"Error saving order to storage: {e}")

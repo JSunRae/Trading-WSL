@@ -180,7 +180,7 @@ class GracefulExiterCLS:
         """Check if exit has been requested"""
         return self.handler.exit()
 
-    def keyboardInterruptHandler(self, signum: int, frame: Any):
+    def keyboardInterruptHandler(self, signum: int, frame: Any):  # noqa: N802
         """Handle keyboard interrupt - for backward compatibility"""
         self.handler._keyboard_interrupt_handler(signum, frame)
 

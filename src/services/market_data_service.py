@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from queue import Empty, Queue
+from queue import Empty, Full, Queue
 from typing import Any
 
 import pandas as pd
@@ -482,8 +482,12 @@ class MarketDataService:
                         for tick in ticks:
                             try:
                                 self.market_data_queue.put_nowait(tick)
-                            except:
-                                pass  # Queue full
+                            except Full:
+                                # Fallback to blocking put with short timeout; drop if still full
+                                try:
+                                    self.market_data_queue.put(tick, timeout=0.01)
+                                except Full:
+                                    pass
 
                         # Update base price slowly
                         base_price += random.uniform(-0.01, 0.01)
@@ -522,7 +526,7 @@ class MarketDataService:
 
                 # Convert snapshots to DataFrame
                 snapshot_data = []
-                for symbol, snapshot in self.snapshots.items():
+                for _symbol, snapshot in self.snapshots.items():
                     snapshot_data.append(
                         {
                             "symbol": snapshot.symbol,

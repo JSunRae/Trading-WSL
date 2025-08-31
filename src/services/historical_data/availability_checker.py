@@ -20,7 +20,6 @@ import pandas as pd
 # Import configuration management
 try:
     from ...core.config import get_config
-    from ...core.error_handler import DataError, ErrorSeverity, TradingSystemError
 except ImportError:
     # Fallback for direct execution
     sys.path.append(str(Path(__file__).parent.parent.parent.parent))
@@ -76,7 +75,7 @@ class AvailabilityChecker:
                 if isinstance(for_date, str) and for_date != "":
                     try:
                         check_date = datetime.strptime(for_date, "%Y-%m-%d %H:%M:%S")
-                    except:
+                    except ValueError:
                         check_date = datetime.strptime(for_date, "%Y-%m-%d %H:%M:%S.%f")
                 elif for_date == "":
                     # Handle blank date case
@@ -96,7 +95,7 @@ class AvailabilityChecker:
                     ]
                     if (
                         not pd.isnull(earliest_avail)
-                        and isinstance(earliest_avail, (datetime, pd.Timestamp))
+                        and isinstance(earliest_avail, datetime | pd.Timestamp)
                         and earliest_avail > check_date
                     ):
                         self._cache[cache_key] = False
@@ -154,7 +153,7 @@ class AvailabilityChecker:
             if not pd.isnull(earliest_avail):
                 try:
                     return pd.Timestamp(str(earliest_avail))
-                except:
+                except Exception:
                     pass
 
         # Check downloadable stocks data
@@ -169,7 +168,7 @@ class AvailabilityChecker:
             if not pd.isnull(earliest_avail):
                 try:
                     return pd.Timestamp(str(earliest_avail))
-                except:
+                except Exception:
                     pass
 
         # If we have an IB connection, we could make an API call here

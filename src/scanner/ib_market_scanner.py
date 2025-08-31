@@ -20,38 +20,33 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Protocol
 
 from src.config import extensions as cfg_ext
 
 logger = logging.getLogger(__name__)
 
-try:  # soft dependency; we only rely on a tiny subset of attributes
-    from src.lib.ib_insync_compat import IB, ScannerSubscription  # type: ignore
-except Exception:  # pragma: no cover - fallback shims for offline/testing
 
-    class ScannerSubscription:  # type: ignore[override]
-        # Using IB naming style intentionally; ignore style warnings.
-        def __init__(self, instrument: str, locationCode: str, scanCode: str):  # noqa: N803
-            self.instrument = instrument
-            self.locationCode = locationCode
-            self.scanCode = scanCode
-            self.abovePrice: float | None = None
-            self.belowPrice: float | None = None
+class ScannerSubscription:
+    # Using IB naming style intentionally; ignore style warnings.
+    def __init__(self, instrument: str, locationCode: str, scanCode: str):  # noqa: N803
+        self.instrument = instrument
+        self.locationCode = locationCode
+        self.scanCode = scanCode
+        self.abovePrice: float | None = None
+        self.belowPrice: float | None = None
 
-    class IB:  # type: ignore[override]
-        def isConnected(self) -> bool:  # noqa: D401,N802 - mimic IB API
-            return False
 
-        def reqScannerSubscription(self, _sub: ScannerSubscription) -> list[str]:  # noqa: D401,N802
-            return []
+class IB(Protocol):
+    def isConnected(self) -> bool: ...  # noqa: D401,N802,E701
+    def reqScannerSubscription(self, _sub: ScannerSubscription) -> list[Any]: ...  # noqa: D401,N802,E701
 
 
 PLACEHOLDER_SYMBOLS = ["AAPL", "MSFT", "TSLA", "AMD", "NVDA", "INTC", "MU"]
 
 
 class IBMarketScanner:
-    def __init__(self, ib: IB | None = None) -> None:  # type: ignore[name-defined]
+    def __init__(self, ib: IB | None = None) -> None:
         self._ib: IB | None = ib
 
     # ---------------- Public API -----------------
@@ -70,13 +65,13 @@ class IBMarketScanner:
     # --------------- Internal helpers ---------------
     def _is_connected(self) -> bool:
         try:
-            return bool(self._ib and self._ib.isConnected())  # type: ignore[call-arg]
+            return bool(self._ib and self._ib.isConnected())
         except Exception:  # pragma: no cover
             return False
 
     def _build_subscriptions(
         self, price_min: float, price_max: float
-    ) -> list[ScannerSubscription]:  # type: ignore[name-defined]
+    ) -> list[ScannerSubscription]:
         subs: list[ScannerSubscription] = []
         for scan_code in ("TOP_PERC_GAIN", "MOST_ACTIVE"):
             sub = ScannerSubscription(
@@ -91,7 +86,7 @@ class IBMarketScanner:
 
     def _scan_subscriptions(
         self, subs: list[ScannerSubscription], max_symbols: int
-    ) -> list[str]:  # type: ignore[name-defined]
+    ) -> list[str]:
         symbols: list[str] = []
         seen: set[str] = set()
         ib = self._ib
@@ -102,7 +97,7 @@ class IBMarketScanner:
             if idx > 0:
                 time.sleep(0.6)
             try:
-                results: list[Any] = ib.reqScannerSubscription(sub)  # type: ignore[attr-defined,assignment]
+                results: list[Any] = ib.reqScannerSubscription(sub)
             except Exception as e:  # noqa: BLE001
                 logger.debug(
                     "Scanner request failed %s: %s", getattr(sub, "scanCode", "?"), e
@@ -126,12 +121,12 @@ class IBMarketScanner:
         # Attempt nested contract / contractDetails.contract pattern
         contract = getattr(rec, "contract", None)
         if contract and isinstance(getattr(contract, "symbol", None), str):
-            return contract.symbol.upper()  # type: ignore[return-value]
+            return str(contract.symbol).upper()
         cdetails = getattr(rec, "contractDetails", None)
         if cdetails:
             contract2 = getattr(cdetails, "contract", None)
             if contract2 and isinstance(getattr(contract2, "symbol", None), str):
-                return contract2.symbol.upper()  # type: ignore[return-value]
+                return str(contract2.symbol).upper()
         return None
 
     def _fallback(self, max_symbols: int) -> list[str]:

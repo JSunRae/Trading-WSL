@@ -24,7 +24,6 @@ This **modernized** trading system provides:
 ## ⚠️ Prerequisites
 
 1. **Interactive Brokers TWS or Gateway must be running**
-
    - Paper trading: Port 7497
    - Live trading: Port 7496
    - API must be enabled in TWS/Gateway settings
@@ -388,7 +387,6 @@ mypy src/
 
 ### Core Dependencies
 
-- **ib-insync**: Modern Python API for Interactive Brokers
 - **ibapi**: Official Interactive Brokers Python API
 - **pandas**: Data manipulation and analysis
 - **numpy**: Numerical computing
@@ -415,7 +413,6 @@ mypy src/
    ```
 
 3. **Interactive Brokers connection issues:**
-
    - Verify TWS/Gateway is running
    - Check API settings in TWS/Gateway
    - Try connection test: `make level2-test`
@@ -470,5 +467,5 @@ This project is licensed under the MIT License. This software is provided "as is
 ## 🙏 Acknowledgments
 
 - Interactive Brokers for providing the API
-- The ib-insync library maintainers
+
 - Python trading community for inspiration and guidance

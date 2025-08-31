@@ -19,20 +19,20 @@ INPUT_SCHEMA = {
         "scan_path": {
             "type": "string",
             "default": ".",
-            "description": "Path to scan for data files"
+            "description": "Path to scan for data files",
         },
         "file_types": {
             "type": "array",
             "items": {"type": "string"},
             "default": ["ftr", "xlsx", "csv", "parquet", "json"],
-            "description": "File extensions to search for"
+            "description": "File extensions to search for",
         },
         "detailed_analysis": {
             "type": "boolean",
             "default": True,
-            "description": "Perform detailed analysis of found files"
-        }
-    }
+            "description": "Perform detailed analysis of found files",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -43,12 +43,12 @@ OUTPUT_SCHEMA = {
             "properties": {
                 "total_files": {"type": "integer"},
                 "file_types_found": {"type": "array", "items": {"type": "string"}},
-                "total_size_mb": {"type": "number"}
-            }
+                "total_size_mb": {"type": "number"},
+            },
         },
         "files_by_type": {
             "type": "object",
-            "description": "Files grouped by extension"
+            "description": "Files grouped by extension",
         },
         "feather_analysis": {
             "type": "object",
@@ -59,24 +59,24 @@ OUTPUT_SCHEMA = {
                     "type": "object",
                     "properties": {
                         "min": {"type": "string"},
-                        "max": {"type": "string"}
-                    }
+                        "max": {"type": "string"},
+                    },
                 },
                 "file_count": {"type": "integer"},
-                "total_size_mb": {"type": "number"}
-            }
+                "total_size_mb": {"type": "number"},
+            },
         },
         "recommendations": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Data management recommendations"
+            "description": "Data management recommendations",
         },
         "next_steps": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Suggested next actions"
-        }
-    }
+            "description": "Suggested next actions",
+        },
+    },
 }
 
 # Set up logging
@@ -275,7 +275,7 @@ def main() -> dict[str, Any]:
         "scan_summary": {
             "total_files": 0,
             "file_types_found": [],
-            "total_size_mb": 0.0
+            "total_size_mb": 0.0,
         },
         "files_by_type": {},
         "feather_analysis": {
@@ -283,14 +283,14 @@ def main() -> dict[str, Any]:
             "timeframes": [],
             "date_range": {"min": None, "max": None},
             "file_count": 0,
-            "total_size_mb": 0.0
+            "total_size_mb": 0.0,
         },
         "recommendations": [],
         "next_steps": [
             "To update recent data: make update-recent",
             "To update all data: make update-warrior",
-            "To record Level 2 data: make level2-test"
-        ]
+            "To record Level 2 data: make level2-test",
+        ],
     }
 
     try:
@@ -300,7 +300,9 @@ def main() -> dict[str, Any]:
         total_files = sum(len(files) for files in found_files.values())
         result["scan_summary"]["total_files"] = total_files
         result["scan_summary"]["file_types_found"] = list(found_files.keys())
-        result["files_by_type"] = {ext: len(files) for ext, files in found_files.items()}
+        result["files_by_type"] = {
+            ext: len(files) for ext, files in found_files.items()
+        }
 
         # Analyze feather files if found
         if "ftr" in found_files:
@@ -311,11 +313,17 @@ def main() -> dict[str, Any]:
 
         # Add recommendations based on findings
         if total_files == 0:
-            result["recommendations"].append("No data files found - run initial data collection")
+            result["recommendations"].append(
+                "No data files found - run initial data collection"
+            )
         elif "ftr" not in found_files:
-            result["recommendations"].append("No feather files found - consider converting existing data")
+            result["recommendations"].append(
+                "No feather files found - consider converting existing data"
+            )
         else:
-            result["recommendations"].append("Data files found - consider updating recent data")
+            result["recommendations"].append(
+                "Data files found - consider updating recent data"
+            )
 
         logger.info(f"Scan completed - found {total_files} files")
 
@@ -337,11 +345,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Data Scanner - Scan and report on existing trading data",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Data Scanner - Scan and report on existing trading data",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

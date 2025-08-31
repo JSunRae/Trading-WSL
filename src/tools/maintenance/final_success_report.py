@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """Final success report tool.
 
 Adds early --describe guard so test harness can discover metadata without
@@ -9,10 +10,10 @@ from typing import Any
 
 # --- ultra-early describe guard -------------------------------------------------
 try:  # Prefer shared helper
-    from src.tools._cli_helpers import emit_describe_early, print_json  # type: ignore
+    from src.tools._cli_helpers import emit_describe_early, print_json
 except Exception:  # pragma: no cover - minimal fallback
-    import json as _json  # type: ignore
-    import sys as _sys  # type: ignore
+    import json as _json
+    import sys as _sys
 
     def print_json(d: dict[str, Any]):  # type: ignore
         _sys.stdout.write(_json.dumps(d, indent=2, sort_keys=True) + "\n")
@@ -204,7 +205,7 @@ def summarize_critical_issues():
         },
     ]
 
-    for i, issue in enumerate(issues, 1):
+    for _i, issue in enumerate(issues, 1):
         print(f"{issue['id']}: {issue['problem']}")
         print(f"   🔴 Problem: {issue['impact']}")
         print(f"   🔧 Solution: {issue['solution']}")

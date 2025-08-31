@@ -3,13 +3,13 @@
 Simple Gateway Connection Test
 """
 
-import os
 import socket
 import sys
+from pathlib import Path
 
 # Add current directory to Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
+current_dir = Path(__file__).resolve().parent
+sys.path.insert(0, str(current_dir))
 
 
 def test_ports():
@@ -68,8 +68,8 @@ def main():
     if imports_ok:
         print("✅ Dependencies installed correctly")
     else:
-        print("❌ Missing dependencies")
-        print("   Run: pip install ib-insync ibapi")
+        print("❌ Missing optional dependencies")
+        print("   Optional: pip install ibapi ib_async")
 
 
 if __name__ == "__main__":

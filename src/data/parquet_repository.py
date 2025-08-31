@@ -76,7 +76,6 @@ class ParquetRepository:
                 date_obj = pd.to_datetime(date_str).date()
                 year = date_obj.year
                 month = f"{date_obj.month:02d}"
-                day = f"{date_obj.day:02d}"
 
                 # Use daily files for high-frequency data, monthly for lower frequency
                 if timeframe in ["1 sec", "5 secs", "10 secs", "30 secs"]:
@@ -318,12 +317,7 @@ class ParquetRepository:
 
             # Read metadata from Parquet file
             parquet_file = pq.ParquetFile(file_path)
-            # Get basic metadata (schema info)
-            schema = parquet_file.schema
-            metadata = {
-                "columns": len(schema),
-                "format_version": str(parquet_file.metadata.format_version),
-            }
+            # Get basic metadata (schema info) if needed
 
             # Get file stats
             stat = file_path.stat()
@@ -428,7 +422,7 @@ class ParquetRepository:
             if df.index.dtype == "object":
                 try:
                     df.index = pd.to_datetime(df.index)
-                except:
+                except Exception:
                     pass
 
             # Optimize numeric columns
@@ -535,7 +529,7 @@ class ParquetRepository:
 
             import json
 
-            with open(metadata_file, "w") as f:
+            with metadata_file.open("w") as f:
                 json.dump(full_metadata, f, indent=2)
 
         except Exception as e:

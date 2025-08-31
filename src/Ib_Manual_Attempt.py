@@ -332,10 +332,15 @@ class TestWrapper(EWrapper):
             "AuxPrice": order.auxPrice,
             "Status": orderState.status,
         }
-        openOrder_df = pd.DataFrame([oOrder_dict], columns=oOrder_dict.keys())
+        # Create a DataFrame for potential logging or future use
+        _ = pd.DataFrame([oOrder_dict])
         # main_df = pd.concat([main_df, acct_df], axis=0).reset_index()
 
-        order.contract = contract
+        # Attach contract for downstream processing if needed (silently ignore if not supported)
+        try:
+            order.contract = contract  # type: ignore[attr-defined]
+        except Exception:
+            pass
         # self.permId2ord[order.permId] = order
 
     def orderStatus(

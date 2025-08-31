@@ -99,6 +99,8 @@ def setup_trading_system(environment=None):
     return components
 
 
+# The following import is intentionally placed after initial exports to avoid circulars
+# ruff: noqa: E402
 from .error_handler import ConfigurationError, TradingError, error_context
 
 __all__ = [

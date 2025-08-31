@@ -25,7 +25,6 @@
     { "path": "src/data/data_manager.py", "lines": 625 },
     { "path": "src/automation/headless_gateway.py", "lines": 601 },
     { "path": "src/tools/maintenance/system_analysis.py", "lines": 600 },
-    { "path": "src/lib/ib_insync_compat.py", "lines": 595 },
     { "path": "src/risk/ml_risk_manager.py", "lines": 589 },
     { "path": "src/core/connection_pool.py", "lines": 570 },
     { "path": "src/services/historical_data_service.py", "lines": 565 },

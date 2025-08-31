@@ -22,25 +22,25 @@ INPUT_SCHEMA = {
         "project_root": {
             "type": "string",
             "default": "/home/jrae/wsl projects/Trading",
-            "description": "Root directory of the trading project to analyze"
+            "description": "Root directory of the trading project to analyze",
         },
         "include_detailed_analysis": {
             "type": "boolean",
             "default": True,
-            "description": "Include detailed code analysis and metrics"
+            "description": "Include detailed code analysis and metrics",
         },
         "include_transformation_roadmap": {
             "type": "boolean",
             "default": True,
-            "description": "Include complete transformation roadmap"
+            "description": "Include complete transformation roadmap",
         },
         "focus_areas": {
             "type": "array",
             "items": {"type": "string"},
             "default": ["architecture", "code_quality", "modernization", "performance"],
-            "description": "Specific areas to focus the review on"
-        }
-    }
+            "description": "Specific areas to focus the review on",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -53,8 +53,8 @@ OUTPUT_SCHEMA = {
                 "project_scope": {"type": "string"},
                 "overall_assessment": {"type": "string"},
                 "progress_percentage": {"type": "number"},
-                "critical_findings": {"type": "array", "items": {"type": "string"}}
-            }
+                "critical_findings": {"type": "array", "items": {"type": "string"}},
+            },
         },
         "architecture_analysis": {
             "type": "object",
@@ -62,8 +62,8 @@ OUTPUT_SCHEMA = {
                 "modern_systems": {"type": "array", "items": {"type": "string"}},
                 "legacy_components": {"type": "array", "items": {"type": "string"}},
                 "integration_patterns": {"type": "array", "items": {"type": "string"}},
-                "quality_metrics": {"type": "object"}
-            }
+                "quality_metrics": {"type": "object"},
+            },
         },
         "transformation_roadmap": {
             "type": "object",
@@ -71,15 +71,15 @@ OUTPUT_SCHEMA = {
                 "priority_phases": {"type": "array", "items": {"type": "object"}},
                 "effort_estimates": {"type": "object"},
                 "timeline_recommendations": {"type": "object"},
-                "success_metrics": {"type": "array", "items": {"type": "string"}}
-            }
+                "success_metrics": {"type": "array", "items": {"type": "string"}},
+            },
         },
         "next_steps": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommended immediate next steps"
-        }
-    }
+            "description": "Recommended immediate next steps",
+        },
+    },
 }
 
 
@@ -688,8 +688,8 @@ def main() -> dict[str, Any]:
                 "93% error reduction in modernized components",
                 "Mixed architecture with modern core + legacy monoliths",
                 "Well-defined modernization strategy exists",
-                "High ROI potential for completing transformation"
-            ]
+                "High ROI potential for completing transformation",
+            ],
         },
         "architecture_analysis": {
             "modern_systems": [
@@ -700,29 +700,29 @@ def main() -> dict[str, Any]:
                 "src/data/parquet_repository.py - High-performance storage",
                 "src/monitoring/comprehensive_monitoring.py - Real-time monitoring",
                 "src/automation/ - Professional automation services",
-                "src/risk/ - Enterprise risk management"
+                "src/risk/ - Enterprise risk management",
             ],
             "legacy_components": [
                 "src/MasterPy_Trading.py - 2,300+ line monolith",
                 "src/ib_Trader.py - 1,800+ line mixed-purpose file",
                 "Hardcoded paths and configuration scattered throughout",
                 "Inconsistent error handling patterns",
-                "Mixed business logic and data access"
+                "Mixed business logic and data access",
             ],
             "integration_patterns": [
                 "Service-oriented architecture for new components",
                 "Repository pattern for data access",
                 "Centralized configuration management",
                 "Comprehensive error handling with recovery",
-                "Performance monitoring and optimization"
+                "Performance monitoring and optimization",
             ],
             "quality_metrics": {
                 "modern_components_test_coverage": 85,
                 "legacy_components_test_coverage": 15,
                 "error_reduction_in_modern_code": 93,
                 "performance_improvement_factor": 50.0,
-                "code_maintainability_score": 7.5
-            }
+                "code_maintainability_score": 7.5,
+            },
         },
         "transformation_roadmap": {
             "priority_phases": [
@@ -733,8 +733,8 @@ def main() -> dict[str, Any]:
                     "deliverables": [
                         "Finish configuration migration",
                         "Complete error handling standardization",
-                        "Establish testing framework"
-                    ]
+                        "Establish testing framework",
+                    ],
                 },
                 {
                     "phase": "Phase 2: Data Layer Modernization",
@@ -743,8 +743,8 @@ def main() -> dict[str, Any]:
                     "deliverables": [
                         "Migrate all data access to DataManager",
                         "Implement comprehensive data validation",
-                        "Optimize performance critical paths"
-                    ]
+                        "Optimize performance critical paths",
+                    ],
                 },
                 {
                     "phase": "Phase 3: Monolith Decomposition",
@@ -753,8 +753,8 @@ def main() -> dict[str, Any]:
                     "deliverables": [
                         "Break down MasterPy_Trading.py",
                         "Extract business logic services",
-                        "Implement clean interfaces"
-                    ]
+                        "Implement clean interfaces",
+                    ],
                 },
                 {
                     "phase": "Phase 4: Production Readiness",
@@ -763,29 +763,29 @@ def main() -> dict[str, Any]:
                     "deliverables": [
                         "Complete test coverage",
                         "Performance optimization",
-                        "Documentation and deployment"
-                    ]
-                }
+                        "Documentation and deployment",
+                    ],
+                },
             ],
             "effort_estimates": {
                 "total_story_points": 110,
                 "estimated_weeks": 22,
                 "team_size_recommendation": 2,
-                "complexity_rating": "Medium-High"
+                "complexity_rating": "Medium-High",
             },
             "timeline_recommendations": {
                 "minimum_timeline": "20 weeks",
                 "recommended_timeline": "22 weeks",
                 "with_buffer": "26 weeks",
-                "critical_path": "Monolith decomposition"
+                "critical_path": "Monolith decomposition",
             },
             "success_metrics": [
                 "99% test coverage across all components",
                 "100x performance improvement in trading operations",
                 "Zero hardcoded paths or configurations",
                 "Sub-100ms response times for all critical operations",
-                "Production-ready deployment automation"
-            ]
+                "Production-ready deployment automation",
+            ],
         },
         "next_steps": [
             "Schedule architecture planning session with development team",
@@ -793,8 +793,8 @@ def main() -> dict[str, Any]:
             "Set up automated testing and CI/CD pipeline",
             "Begin Phase 1: Complete core infrastructure migration",
             "Define and implement coding standards and practices",
-            "Create detailed technical specifications for each phase"
-        ]
+            "Create detailed technical specifications for each phase",
+        ],
     }
 
     try:
@@ -825,11 +825,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Senior Software Architect Review - Comprehensive analysis and modernization roadmap",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Senior Software Architect Review - Comprehensive analysis and modernization roadmap",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

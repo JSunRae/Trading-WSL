@@ -35,7 +35,6 @@ omit =
    src/core/modern_trading_core.py
   # Heavy IB integration layers not reliably testable in unit CI without real gateway
    src/lib/ib_async_wrapper.py
-   src/lib/ib_insync_compat.py
   # Phase 2 service layer (currently unmodernized & pending redesign)
    src/services/*.py
    src/services/historical_data/*.py

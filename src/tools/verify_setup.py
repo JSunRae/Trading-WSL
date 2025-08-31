@@ -179,7 +179,7 @@ def check_ib_connection() -> bool:
         return asyncio.run(test_connection())
 
     except ImportError:
-        logger.debug("ib_insync not available")
+        logger.debug("IB client dependency not available")
         return False
 
 

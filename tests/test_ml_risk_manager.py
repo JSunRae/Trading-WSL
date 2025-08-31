@@ -47,7 +47,7 @@ def test_high_confidence(risk_manager):
 def test_rate_limit(risk_manager):
     # Simulate many signals in history
     now = datetime.now(UTC)
-    for i in range(101):
+    for _i in range(101):
         risk_manager.signal_history.append({"timestamp": now})
     signal = make_signal()
     valid, violations = risk_manager.validate_signal(signal)

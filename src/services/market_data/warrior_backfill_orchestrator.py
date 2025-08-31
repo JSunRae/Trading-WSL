@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 import warnings
 from collections.abc import Iterable
@@ -61,29 +62,119 @@ def _load_warrior_df() -> pd.DataFrame | None:
 
 
 def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
+    """Extract unique (symbol, trading_day) pairs from a Warrior list DataFrame.
+
+    This is resilient to varied column headings by:
+      - Recognizing common synonyms for symbol/date
+      - Falling back to simple heuristics (ticker-like strings vs. datelike values)
+      - Parsing dates robustly via pandas
+    """
     if df is None or df.empty:  # type: ignore[truthy-bool]
         return []
-    cols = {c.lower(): c for c in df.columns}
-    sym_col = cols.get("symbol") or list(df.columns)[0]
-    date_col = cols.get("date") or cols.get("trading_day") or list(df.columns)[1]
+
+    # Normalize column lookup
+    cols = {str(c).strip().lower(): c for c in df.columns}
+    sym_synonyms = [
+        "symbol",
+        "ticker",
+        "sym",
+        "stock",
+        "instrument",
+        "code",
+        "ticker symbol",
+    ]
+    date_synonyms = [
+        "date",
+        "trading_day",
+        "trading day",
+        "trade_date",
+        "execution_date",
+        "date executed",
+        "exec_date",
+        "day",
+    ]
+
+    sym_col_name = next((cols[n] for n in sym_synonyms if n in cols), None)
+    date_col_name = next((cols[n] for n in date_synonyms if n in cols), None)
+
+    # Heuristic fallback if not found explicitly
+    def _looks_like_ticker(val: object) -> bool:
+        if not isinstance(val, str):
+            # Some files store tickers as objects; try str conversion guardedly
+            try:
+                val = str(val)
+            except Exception:
+                return False
+        s = val.strip().upper()
+        # Typical US tickers: 1-6 chars with letters, digits, dash, dot
+        return bool(re.fullmatch(r"[A-Z][A-Z0-9\.-]{0,6}", s))
+
+    def _col_score_ticker(series: pd.Series) -> int:
+        sample = series.dropna().head(20)
+        return sum(1 for v in sample if _looks_like_ticker(v))
+
+    def _col_score_date(series: pd.Series) -> int:
+        sample = series.dropna().head(20)
+        ok = 0
+        for v in sample:
+            if isinstance(v, (datetime, pd.Timestamp, date)):
+                ok += 1
+            elif isinstance(v, str):
+                try:
+                    pd.to_datetime(v, errors="raise")
+                    ok += 1
+                except Exception:
+                    pass
+        return ok
+
+    if sym_col_name is None or date_col_name is None:
+        # Score all columns and pick most likely candidates
+        best_sym, best_sym_score = None, -1
+        best_date, best_date_score = None, -1
+        for c in df.columns:
+            s_t = _col_score_ticker(df[c])
+            if s_t > best_sym_score:
+                best_sym, best_sym_score = c, s_t
+            s_d = _col_score_date(df[c])
+            if s_d > best_date_score:
+                best_date, best_date_score = c, s_d
+        sym_col_name = sym_col_name or best_sym or df.columns[0]
+        # Prefer a different column for date when possible
+        if date_col_name is None:
+            date_col_name = (
+                best_date
+                if best_date is not None
+                else (df.columns[1] if len(df.columns) > 1 else df.columns[0])
+            )
+        if date_col_name == sym_col_name and len(df.columns) > 1:
+            # Avoid identical pick; fall back to the next column
+            date_col_name = df.columns[1]
+
     tasks: list[WarriorTask] = []
     for _, row in df.iterrows():
         try:
-            sym = str(row[sym_col]).upper().strip()
-            if not sym:
+            raw_sym = row[sym_col_name]
+            sym = str(raw_sym).upper().strip()
+            if not sym or not _looks_like_ticker(sym):
                 continue
-            d_raw = row[date_col]
-            if isinstance(d_raw, str):
-                d = datetime.strptime(d_raw.split()[0], "%Y-%m-%d").date()
-            elif isinstance(d_raw, datetime | pd.Timestamp):
+            d_raw = row[date_col_name]
+            if isinstance(d_raw, (datetime, pd.Timestamp)):
                 d = d_raw.date()
             elif isinstance(d_raw, date):  # pragma: no cover (rare path)
                 d = d_raw
             else:
-                continue
+                # Attempt robust parse
+                d_parsed = pd.to_datetime(str(d_raw), errors="coerce")
+                if pd.isna(d_parsed):
+                    continue
+                if isinstance(d_parsed, pd.Timestamp):
+                    d = d_parsed.date()
+                else:  # pragma: no cover - defensive
+                    d = datetime.fromtimestamp(d_parsed).date()  # type: ignore[arg-type]
             tasks.append(WarriorTask(symbol=sym, trading_day=d))
         except Exception:  # pragma: no cover - row level robustness
             continue
+
     # Deduplicate
     uniq: dict[tuple[str, date], WarriorTask] = {
         (t.symbol, t.trading_day): t for t in tasks

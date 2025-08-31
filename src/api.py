@@ -26,13 +26,13 @@ def _export(name: str):  # small decorator to register lazy resolvers
 from .data import (  # noqa: E402
     ensure_columns as ensure_columns,
 )
-from .data import (
+from .data import (  # noqa: E402
     load_excel as load_excel,
 )
-from .data import (
+from .data import (  # noqa: E402
     save_excel as save_excel,
 )
-from .data import (
+from .data import (  # noqa: E402
     to_records as to_records,
 )
 from .domain import interfaces as _ifc  # noqa: E402
@@ -193,7 +193,7 @@ def __getattr__(name: str) -> Any:  # noqa: D401
     raise AttributeError(name)
 
 
-__all__ = [
+__all__ = [  # noqa: F822 - names are provided lazily via __getattr__
     # Signal Types
     "SignalType",
     "SignalStatus",

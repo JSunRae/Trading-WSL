@@ -3,7 +3,6 @@
 import logging
 import time
 import traceback
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -59,7 +58,10 @@ class DataError(TradingSystemError):
     """Data processing and file operation errors"""
 
     def __init__(
-        self, message: str, severity: ErrorSeverity = ErrorSeverity.MEDIUM, **kwargs: Any
+        self,
+        message: str,
+        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+        **kwargs: Any,
     ):
         super().__init__(message, ErrorCategory.DATA, severity, **kwargs)
 
@@ -77,7 +79,10 @@ class ConfigurationError(TradingSystemError):
     """Configuration and setup errors"""
 
     def __init__(
-        self, message: str, severity: ErrorSeverity = ErrorSeverity.CRITICAL, **kwargs: Any
+        self,
+        message: str,
+        severity: ErrorSeverity = ErrorSeverity.CRITICAL,
+        **kwargs: Any,
     ):
         super().__init__(message, ErrorCategory.CONFIGURATION, severity, **kwargs)
 
@@ -262,7 +267,9 @@ def error_context(module: str, function: str = ""):
     return decorator
 
 
-def safe_execute(func: AnyFn, default: Any = None, context: dict[str, Any] | None = None) -> Any:
+def safe_execute(
+    func: AnyFn, default: Any = None, context: dict[str, Any] | None = None
+) -> Any:
     """Safely execute a function with error handling"""
     try:
         return func()
@@ -272,7 +279,9 @@ def safe_execute(func: AnyFn, default: Any = None, context: dict[str, Any] | Non
 
 
 # IB-specific error handling helpers
-def handle_ib_error(req_id: int, error_code: int, error_string: str, contract: Any = None) -> Any:
+def handle_ib_error(
+    req_id: int, error_code: int, error_string: str, contract: Any = None
+) -> Any:
     """Handle IB-specific errors with proper categorization"""
     context: dict[str, Any] = {
         "req_id": req_id,

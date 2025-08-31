@@ -8,15 +8,15 @@ Author: Interactive Brokers Trading System
 Created: December 2024 (Phase 2 Monolithic Decomposition)
 """
 
-import os
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-# Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+# Add src to path for imports using pathlib
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 try:
     from src.core.config import get_config
@@ -25,15 +25,13 @@ except ImportError:
     # Fallback for when running as standalone script
     print("Warning: Could not import core modules, using fallback implementations")
 
-    def get_config():
+    def get_config():  # type: ignore[override]
         """Fallback config function"""
 
         class FallbackConfig:
             def __init__(self):
                 self.ib_download_location = "./data/ib_downloads"
                 # Use config-compatible fallback paths
-                from pathlib import Path
-
                 data_dir = Path("./data")
                 self.failed_stocks_location = str(data_dir / "failed_stocks.csv")
                 self.downloadable_stocks_location = str(
@@ -176,15 +174,13 @@ class DataPersistenceService:
             )
         except Exception:
             # Last resort minimal fallback (should rarely happen)
-            base_path = os.path.expanduser("~/Machine Learning/")
-            os.makedirs(base_path, exist_ok=True)
-            self.failed_stocks_path = os.path.join(base_path, "IB Failed Stocks.xlsx")
-            self.downloadable_stocks_path = os.path.join(
-                base_path, "IB Downloadable Stocks.xlsx"
+            base_path = Path("~/Machine Learning/").expanduser()
+            base_path.mkdir(parents=True, exist_ok=True)
+            self.failed_stocks_path = str(base_path / "IB Failed Stocks.xlsx")
+            self.downloadable_stocks_path = str(
+                base_path / "IB Downloadable Stocks.xlsx"
             )
-            self.downloaded_stocks_path = os.path.join(
-                base_path, "IB Downloaded Stocks.xlsx"
-            )
+            self.downloaded_stocks_path = str(base_path / "IB Downloaded Stocks.xlsx")
 
     def _initialize_dataframes(self) -> None:
         """Initialize DataFrames from files or create empty ones."""
@@ -548,7 +544,7 @@ class DataPersistenceService:
                 )
 
                 # Ensure directory exists
-                os.makedirs(os.path.dirname(self.failed_stocks_path), exist_ok=True)
+                Path(self.failed_stocks_path).parent.mkdir(parents=True, exist_ok=True)
 
                 sorted_df.to_excel(
                     self.failed_stocks_path,
@@ -566,8 +562,8 @@ class DataPersistenceService:
         try:
             if self.df_downloadable is not None:
                 # Ensure directory exists
-                os.makedirs(
-                    os.path.dirname(self.downloadable_stocks_path), exist_ok=True
+                Path(self.downloadable_stocks_path).parent.mkdir(
+                    parents=True, exist_ok=True
                 )
 
                 self.df_downloadable.to_excel(
@@ -590,7 +586,9 @@ class DataPersistenceService:
         try:
             if self.df_downloaded is not None:
                 # Ensure directory exists
-                os.makedirs(os.path.dirname(self.downloaded_stocks_path), exist_ok=True)
+                Path(self.downloaded_stocks_path).parent.mkdir(
+                    parents=True, exist_ok=True
+                )
 
                 self.df_downloaded.to_excel(
                     self.downloaded_stocks_path,
@@ -668,13 +666,13 @@ class DataPersistenceAdapter:
         self.DownloadableChanges = 0
         self.DownloadedChanges = 0
 
-    def appendFailed(
+    def appendFailed(  # noqa: N802 - legacy name for compatibility
         self,
         symbol,
-        NonExistant=True,
-        EarliestAvailBar="",
-        BarSize="",
-        forDate="",
+        NonExistant=True,  # noqa: N803
+        EarliestAvailBar="",  # noqa: N803
+        BarSize="",  # noqa: N803
+        forDate="",  # noqa: N803
         comment="",
     ):
         """Legacy method - delegates to new service"""
@@ -687,13 +685,18 @@ class DataPersistenceAdapter:
             comment=comment,
         )
 
-    def is_failed(self, symbol, BarSize, forDate=""):
+    def is_failed(self, symbol, BarSize, forDate=""):  # noqa: N803
         """Legacy method - delegates to new service"""
         return self.data_service.is_failed(symbol, BarSize, forDate)
 
-    def appendDownloadable(
-        self, symbol, BarSize, EarliestAvailBar, StartDate="", EndDate=""
-    ):
+    def appendDownloadable(  # noqa: N802, N803 - legacy name/args for compatibility
+        self,
+        symbol: str,
+        BarSize: str,  # noqa: N803
+        EarliestAvailBar: str,  # noqa: N803
+        StartDate: str = "",  # noqa: N803
+        EndDate: str = "",  # noqa: N803
+    ) -> bool:
         """Legacy method - delegates to new service"""
         return self.data_service.append_downloadable(
             symbol=symbol,
@@ -703,11 +706,21 @@ class DataPersistenceAdapter:
             end_date=EndDate,
         )
 
-    def appendDownloaded(self, symbol, BarSize, forDate):
+    def appendDownloaded(  # noqa: N802, N803 - legacy name/args for compatibility
+        self,
+        symbol: str,
+        BarSize: str,  # noqa: N803
+        forDate: str,  # noqa: N803
+    ) -> bool:
         """Legacy method - delegates to new service"""
         return self.data_service.append_downloaded(symbol, BarSize, forDate)
 
-    def Download_Exists(self, symbol, BarSize, forDate=""):
+    def Download_Exists(  # noqa: N802, N803 - legacy name/args for compatibility
+        self,
+        symbol: str,
+        BarSize: str,  # noqa: N803
+        forDate: str = "",  # noqa: N803
+    ) -> bool:
         """Legacy method - delegates to new service"""
         return self.data_service.download_exists(symbol, BarSize, forDate)
 

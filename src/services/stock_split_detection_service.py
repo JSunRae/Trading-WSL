@@ -9,29 +9,36 @@ Created: July 2025 (ML Data Integrity Enhancement)
 """
 
 import logging
-import os
 import sys
 from datetime import date as date_type
 from datetime import datetime, timedelta
+
+# Add src to path for imports using pathlib
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-# Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 # Try to import core services
 try:
-    from src.core.config import get_config  # type: ignore[attr-defined]  # Dynamic path imports
-    from src.core.error_handler import handle_error  # type: ignore[attr-defined]  # Dynamic path imports
+    from src.core.config import (
+        get_config,  # type: ignore[attr-defined]  # Dynamic path imports
+    )
+    from src.core.error_handler import (
+        handle_error,  # type: ignore[attr-defined]  # Dynamic path imports
+    )
     from src.services.data_persistence_service import (
         DataPersistenceService,  # type: ignore[attr-defined]  # Dynamic path imports
     )
 
     # Try to get the real DataError
     try:
-        from src.core.error_handler import DataError  # type: ignore[attr-defined]  # Dynamic path imports
+        from src.core.error_handler import (
+            DataError,  # type: ignore[attr-defined]  # Dynamic path imports
+        )
     except ImportError:
         # Keep fallback if import fails
         class DataError(Exception):  # type: ignore[misc]  # Fallback class definition
@@ -679,7 +686,7 @@ if __name__ == "__main__":
 
     # Create sample data with a simulated 2:1 split
     dates = pd.date_range(start="2023-01-01", end="2023-12-31", freq="D")
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
 
     # Generate price data with a CLEAR 4:1 split on 2023-06-15 (like AAPL)
     split_date = pd.to_datetime("2023-06-15")
@@ -689,15 +696,15 @@ if __name__ == "__main__":
     for date in dates:
         # Pre-split: stable around $160
         if date < split_date:
-            price = 160.0 + np.random.normal(0, 5)
+            price = 160.0 + rng.normal(0, 5)
         # Post-split: immediately drop to ~$40 (160/4)
         else:
-            price = 40.0 + np.random.normal(0, 2)
+            price = 40.0 + rng.normal(0, 2)
 
         prices.append(max(1.0, price))  # Ensure positive prices
 
     # Create volume data with massive spike on split date
-    volumes = np.random.normal(1000000, 200000, len(dates))
+    volumes = rng.normal(1000000, 200000, len(dates))
     for i, date in enumerate(dates):
         if date == split_date:
             volumes[i] *= 10  # Huge volume spike on split date

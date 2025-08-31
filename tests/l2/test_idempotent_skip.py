@@ -3,12 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.core.config import get_config
 from src.services.market_data.l2_paths import atomic_write_parquet, with_source_suffix
 
 
-def test_idempotent_skip_and_force(tmp_path: Path, monkeypatch):
-    cfg = get_config()
+def test_idempotent_skip_and_force(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     # Create a fake base path in tmp
     base = tmp_path / "Level2" / "AAPL"
     base.mkdir(parents=True, exist_ok=True)

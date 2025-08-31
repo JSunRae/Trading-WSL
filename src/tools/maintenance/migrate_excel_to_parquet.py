@@ -25,6 +25,7 @@ try:
     from src.core.config import get_config
     from src.core.error_handler import DataError, get_error_handler, handle_error
     from src.data.parquet_repository import ParquetRepository
+
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
     # Graceful degradation for missing dependencies
@@ -67,30 +68,30 @@ INPUT_SCHEMA = {
         "dry_run": {
             "type": "boolean",
             "default": False,
-            "description": "Show what would be migrated without doing it"
+            "description": "Show what would be migrated without doing it",
         },
         "source_directory": {
             "type": "string",
             "default": "",
-            "description": "Source directory to scan for Excel files (empty for default data directory)"
+            "description": "Source directory to scan for Excel files (empty for default data directory)",
         },
         "target_format": {
             "type": "string",
             "default": "parquet",
             "enum": ["parquet"],
-            "description": "Target format for migration"
+            "description": "Target format for migration",
         },
         "include_subdirectories": {
             "type": "boolean",
             "default": True,
-            "description": "Include subdirectories in migration scan"
+            "description": "Include subdirectories in migration scan",
         },
         "verify_data_integrity": {
             "type": "boolean",
             "default": True,
-            "description": "Verify data integrity after migration"
-        }
-    }
+            "description": "Verify data integrity after migration",
+        },
+    },
 }
 
 OUTPUT_SCHEMA = {
@@ -106,8 +107,8 @@ OUTPUT_SCHEMA = {
                 "total_size_before_mb": {"type": "number"},
                 "total_size_after_mb": {"type": "number"},
                 "compression_ratio": {"type": "number"},
-                "duration_seconds": {"type": "number"}
-            }
+                "duration_seconds": {"type": "number"},
+            },
         },
         "discovered_files": {
             "type": "array",
@@ -118,29 +119,29 @@ OUTPUT_SCHEMA = {
                     "file_size_mb": {"type": "number"},
                     "estimated_rows": {"type": "integer"},
                     "data_type": {"type": "string"},
-                    "migration_status": {"type": "string"}
-                }
-            }
+                    "migration_status": {"type": "string"},
+                },
+            },
         },
         "performance_improvements": {
             "type": "object",
             "properties": {
                 "file_size_reduction_percentage": {"type": "number"},
                 "estimated_read_speed_improvement": {"type": "number"},
-                "estimated_query_speed_improvement": {"type": "number"}
-            }
+                "estimated_query_speed_improvement": {"type": "number"},
+            },
         },
         "errors": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "List of errors encountered during migration"
+            "description": "List of errors encountered during migration",
         },
         "recommendations": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommendations for optimizing migrated data"
-        }
-    }
+            "description": "Recommendations for optimizing migrated data",
+        },
+    },
 }
 
 
@@ -322,7 +323,7 @@ class ExcelToParquetMigrator:
                 # Strategy 1: Standard read
                 try:
                     df = pd.read_excel(excel_path, index_col=0, parse_dates=True)
-                except:
+                except Exception:
                     # Strategy 2: No index column
                     try:
                         df = pd.read_excel(excel_path)
@@ -330,7 +331,7 @@ class ExcelToParquetMigrator:
                         datetime_cols = df.select_dtypes(include=["datetime64"]).columns
                         if len(datetime_cols) > 0:
                             df = df.set_index(datetime_cols[0])
-                    except:
+                    except Exception:
                         # Strategy 3: Read as-is
                         df = pd.read_excel(excel_path)
 
@@ -338,7 +339,7 @@ class ExcelToParquetMigrator:
                     raise DataError("Failed to read Excel file or file is empty")
 
             except Exception as e:
-                raise DataError(f"Excel read error: {e}")
+                raise DataError(f"Excel read error: {e}") from e
 
             # Determine appropriate storage parameters
             symbol = file_info["symbol"] or "UNKNOWN"
@@ -557,20 +558,22 @@ def main() -> dict[str, Any]:
                 "total_size_before_mb": 0.0,
                 "total_size_after_mb": 0.0,
                 "compression_ratio": 0.0,
-                "duration_seconds": 0.0
+                "duration_seconds": 0.0,
             },
             "discovered_files": [],
             "performance_improvements": {
                 "file_size_reduction_percentage": 85.0,
                 "estimated_read_speed_improvement": 50.0,
-                "estimated_query_speed_improvement": 100.0
+                "estimated_query_speed_improvement": 100.0,
             },
-            "errors": ["Dependencies not available - pandas and trading system modules required"],
+            "errors": [
+                "Dependencies not available - pandas and trading system modules required"
+            ],
             "recommendations": [
                 "Install required dependencies: pandas, src.core modules",
                 "Ensure trading system core modules are available",
-                "Run migration after dependency resolution"
-            ]
+                "Run migration after dependency resolution",
+            ],
         }
 
     result = {
@@ -582,7 +585,7 @@ def main() -> dict[str, Any]:
             "total_size_before_mb": 45.2,
             "total_size_after_mb": 6.8,
             "compression_ratio": 85.0,
-            "duration_seconds": 12.5
+            "duration_seconds": 12.5,
         },
         "discovered_files": [
             {
@@ -590,41 +593,41 @@ def main() -> dict[str, Any]:
                 "file_size_mb": 15.3,
                 "estimated_rows": 50000,
                 "data_type": "trading_data",
-                "migration_status": "successful"
+                "migration_status": "successful",
             },
             {
                 "file_path": "data/ib_download/TSLA_1min.xlsx",
                 "file_size_mb": 12.8,
                 "estimated_rows": 40000,
                 "data_type": "trading_data",
-                "migration_status": "successful"
+                "migration_status": "successful",
             },
             {
                 "file_path": "data/failed_downloads.xlsx",
                 "file_size_mb": 8.1,
                 "estimated_rows": 25000,
                 "data_type": "error_tracking",
-                "migration_status": "successful"
+                "migration_status": "successful",
             },
             {
                 "file_path": "data/analysis/portfolio.xlsx",
                 "file_size_mb": 6.2,
                 "estimated_rows": 8000,
                 "data_type": "portfolio_data",
-                "migration_status": "successful"
+                "migration_status": "successful",
             },
             {
                 "file_path": "data/corrupted_file.xlsx",
                 "file_size_mb": 2.8,
                 "estimated_rows": 0,
                 "data_type": "unknown",
-                "migration_status": "failed"
-            }
+                "migration_status": "failed",
+            },
         ],
         "performance_improvements": {
             "file_size_reduction_percentage": 85.0,
             "estimated_read_speed_improvement": 50.0,
-            "estimated_query_speed_improvement": 100.0
+            "estimated_query_speed_improvement": 100.0,
         },
         "errors": [
             "Failed to migrate data/corrupted_file.xlsx: File appears to be corrupted"
@@ -634,8 +637,8 @@ def main() -> dict[str, Any]:
             "Set up automated monitoring for large Excel files",
             "Consider using Parquet format for all new data storage",
             "Implement data validation pipeline for migrated files",
-            "Archive original Excel files after successful migration"
-        ]
+            "Archive original Excel files after successful migration",
+        ],
     }
 
     try:
@@ -645,12 +648,16 @@ def main() -> dict[str, Any]:
 
         # Update result with actual migration data if available
         if migration_report:
-            result["migration_summary"].update({
-                "files_processed": migration_report.get("files_processed", 0),
-                "files_successful": migration_report.get("files_successful", 0),
-                "files_failed": migration_report.get("files_failed", 0),
-                "total_rows_migrated": migration_report.get("total_rows_migrated", 0)
-            })
+            result["migration_summary"].update(
+                {
+                    "files_processed": migration_report.get("files_processed", 0),
+                    "files_successful": migration_report.get("files_successful", 0),
+                    "files_failed": migration_report.get("files_failed", 0),
+                    "total_rows_migrated": migration_report.get(
+                        "total_rows_migrated", 0
+                    ),
+                }
+            )
             logger.info("Actual migration analysis completed")
 
     except Exception as e:
@@ -670,11 +677,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.describe:
-        print(json.dumps({
-            "description": "Excel to Parquet Migration Tool - Migrates Excel files to high-performance Parquet format",
-            "input_schema": INPUT_SCHEMA,
-            "output_schema": OUTPUT_SCHEMA
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "description": "Excel to Parquet Migration Tool - Migrates Excel files to high-performance Parquet format",
+                    "input_schema": INPUT_SCHEMA,
+                    "output_schema": OUTPUT_SCHEMA,
+                },
+                indent=2,
+            )
+        )
     else:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

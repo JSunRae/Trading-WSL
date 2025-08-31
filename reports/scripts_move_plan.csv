@@ -59,7 +59,6 @@ src/ib_Warror_dl.py,src/ib_Warror_dl.py,Default placement,0.5,
 src/integrations/ml_data_integrity.py,src/models/ml_data_integrity.py,ML/data model,0.8,internal_dependencies
 src/lib/__init__.py,src/__init__.py,Default placement,0.5,
 src/lib/ib_async_wrapper.py,src/ib_async_wrapper.py,Default placement,0.5,
-src/lib/ib_insync_compat.py,src/ib_insync_compat.py,Default placement,0.5,
 src/migration_helper.py,src/utils/migration_helper.py,Utility module,0.8,
 src/monitoring/__init__.py,src/__init__.py,Default placement,0.5,
 src/monitoring/ml_performance_monitor.py,src/models/ml_performance_monitor.py,ML/data model,0.8,internal_dependencies

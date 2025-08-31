@@ -349,7 +349,8 @@ class ConnectionPool:
             try:
                 # This would call actual IB API disconnect
                 connection["connected"] = False
-            except:
+            except Exception:
+                # Swallow any cleanup error to ensure removal proceeds
                 pass
 
             del self._connections[client_id]

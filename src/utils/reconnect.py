@@ -11,12 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-try:
-    import ib_insync  # type: ignore
-    from ib_insync.client import Client  # type: ignore
-except Exception:  # pragma: no cover - optional dependency path
-    ib_insync = None  # type: ignore
-    Client = object  # type: ignore
+from ibapi.client import EClient as Client  # type: ignore
 
 try:
     from ibapi.wrapper import EWrapper  # type: ignore
@@ -53,11 +48,6 @@ def Initiate_Auto_Reconnect():  # noqa: N802 (legacy name retained)
                 _logger.error("Unexpected connect error: %s", e)
 
         def apierror(self, msg):  # type: ignore[no-untyped-def]
-            try:
-                if ib_insync is not None:
-                    ib_insync.util.patchAsyncio()  # type: ignore[attr-defined]
-            except Exception:  # pragma: no cover
-                pass
             _logger.warning(
                 "apierror: %s, waiting 5 seconds and attempting reconnect", msg
             )

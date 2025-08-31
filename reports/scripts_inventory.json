@@ -2,12 +2,7 @@
   {
     "path": "analyze_scripts.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/analyze_scripts.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli", "cli"],
     "entrypoint": true,
     "cli_framework": "argparse",
     "describe_support": {
@@ -35,9 +30,7 @@
   {
     "path": "async_utils.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/async_utils.py",
-    "role_tags": [
-      "utils"
-    ],
+    "role_tags": ["utils"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -62,9 +55,7 @@
   {
     "path": "async_utils_new.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/async_utils_new.py",
-    "role_tags": [
-      "utils"
-    ],
+    "role_tags": ["utils"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -89,9 +80,7 @@
   {
     "path": "contract_factories.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/contract_factories.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -99,12 +88,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "project_types",
-      "typing",
-      "ib_async",
-      "__future__"
-    ],
+    "deps_external": ["project_types", "typing", "ib_async", "__future__"],
     "metrics": {
       "loc": 38,
       "functions": 3,
@@ -114,9 +98,7 @@
   {
     "path": "ib_client.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/ib_client.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -124,12 +106,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "typing",
-      "asyncio",
-      "ib_async",
-      "__future__"
-    ],
+    "deps_external": ["typing", "asyncio", "ib_async", "__future__"],
     "metrics": {
       "loc": 24,
       "functions": 0,
@@ -139,9 +116,7 @@
   {
     "path": "ib_requests.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/ib_requests.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -167,9 +142,7 @@
   {
     "path": "pandas_helpers.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/pandas_helpers.py",
-    "role_tags": [
-      "utils"
-    ],
+    "role_tags": ["utils"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -177,11 +150,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "pandas",
-      "typing",
-      "__future__"
-    ],
+    "deps_external": ["pandas", "typing", "__future__"],
     "metrics": {
       "loc": 88,
       "functions": 10,
@@ -191,9 +160,7 @@
   {
     "path": "project_types.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/project_types.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -217,9 +184,7 @@
   {
     "path": "quick_start.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/quick_start.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -227,10 +192,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "sys",
-      "pathlib"
-    ],
+    "deps_external": ["sys", "pathlib"],
     "metrics": {
       "loc": 138,
       "functions": 5,
@@ -240,9 +202,7 @@
   {
     "path": "run_trading_fully_automated.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/run_trading_fully_automated.py",
-    "role_tags": [
-      "cli"
-    ],
+    "role_tags": ["cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -271,11 +231,7 @@
   {
     "path": "scripts/demo_stock_split_integration.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/demo_stock_split_integration.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -304,20 +260,14 @@
   {
     "path": "scripts/integration_examples.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/integration_examples.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
       "has_describe": true,
       "valid_json": true
     },
-    "deps_internal": [
-      "src.core.config"
-    ],
+    "deps_internal": ["src.core.config"],
     "deps_external": [
       "pandas",
       "typing",
@@ -336,11 +286,7 @@
   {
     "path": "scripts/maintenance/architecture_demo.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/architecture_demo.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -373,11 +319,7 @@
   {
     "path": "scripts/maintenance/critical_issues_summary.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/critical_issues_summary.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -407,11 +349,7 @@
   {
     "path": "scripts/maintenance/final_success_report.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/final_success_report.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -419,13 +357,7 @@
       "valid_json": true
     },
     "deps_internal": [],
-    "deps_external": [
-      "typing",
-      "logging",
-      "datetime",
-      "argparse",
-      "json"
-    ],
+    "deps_external": ["typing", "logging", "datetime", "argparse", "json"],
     "metrics": {
       "loc": 507,
       "functions": 9,
@@ -435,11 +367,7 @@
   {
     "path": "scripts/maintenance/migrate_excel_to_parquet.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/migrate_excel_to_parquet.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -472,11 +400,7 @@
   {
     "path": "scripts/maintenance/run_data_update.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/run_data_update.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -503,11 +427,7 @@
   {
     "path": "scripts/maintenance/scan_data.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/scan_data.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -532,11 +452,7 @@
   {
     "path": "scripts/maintenance/senior_architect_review.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/senior_architect_review.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -561,11 +477,7 @@
   {
     "path": "scripts/maintenance/system_analysis.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/system_analysis.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -590,11 +502,7 @@
   {
     "path": "scripts/maintenance/update_data.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/maintenance/update_data.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -627,21 +535,14 @@
   {
     "path": "scripts/migration_guide.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/migration_guide.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
       "has_describe": true,
       "valid_json": true
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
     "deps_external": [
       "re",
       "typing",
@@ -660,11 +561,7 @@
   {
     "path": "scripts/phase2_progress_demo.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/phase2_progress_demo.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -693,11 +590,7 @@
   {
     "path": "scripts/quick_start.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/quick_start.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -722,9 +615,7 @@
   {
     "path": "scripts/setup/fix_hardcoded_paths.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/setup/fix_hardcoded_paths.py",
-    "role_tags": [
-      "tool"
-    ],
+    "role_tags": ["tool"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -732,11 +623,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "sys",
-      "re",
-      "pathlib"
-    ],
+    "deps_external": ["sys", "re", "pathlib"],
     "metrics": {
       "loc": 376,
       "functions": 8,
@@ -746,26 +633,15 @@
   {
     "path": "scripts/setup/setup_critical_fixes.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/setup/setup_critical_fixes.py",
-    "role_tags": [
-      "tool"
-    ],
+    "role_tags": ["tool"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": true,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.dataframe_safety"
-    ],
-    "deps_external": [
-      "pandas",
-      "importlib",
-      "subprocess",
-      "sys",
-      "pathlib"
-    ],
+    "deps_internal": ["src.core.config", "src.core.dataframe_safety"],
+    "deps_external": ["pandas", "importlib", "subprocess", "sys", "pathlib"],
     "metrics": {
       "loc": 332,
       "functions": 9,
@@ -775,11 +651,7 @@
   {
     "path": "scripts/verify_setup.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/scripts/verify_setup.py",
-    "role_tags": [
-      "tool",
-      "tool",
-      "cli"
-    ],
+    "role_tags": ["tool", "tool", "cli"],
     "entrypoint": false,
     "cli_framework": "argparse",
     "describe_support": {
@@ -807,9 +679,7 @@
   {
     "path": "setup_automated_trading.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/setup_automated_trading.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -820,13 +690,7 @@
       "src.lib.ib_async_wrapper",
       "src.automation.headless_gateway"
     ],
-    "deps_external": [
-      "getpass",
-      "subprocess",
-      "sys",
-      "os",
-      "pathlib"
-    ],
+    "deps_external": ["getpass", "subprocess", "sys", "os", "pathlib"],
     "metrics": {
       "loc": 345,
       "functions": 8,
@@ -836,9 +700,7 @@
   {
     "path": "setup_ib_gateway.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/setup_ib_gateway.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -846,12 +708,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "json",
-      "typing",
-      "pathlib",
-      "os"
-    ],
+    "deps_external": ["json", "typing", "pathlib", "os"],
     "metrics": {
       "loc": 465,
       "functions": 8,
@@ -861,9 +718,7 @@
   {
     "path": "src/Ib_Manual_Attempt.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/Ib_Manual_Attempt.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -892,9 +747,7 @@
   {
     "path": "src/MasterPy.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/MasterPy.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -902,10 +755,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "logging",
-      "pathlib"
-    ],
+    "deps_external": ["logging", "pathlib"],
     "metrics": {
       "loc": 139,
       "functions": 11,
@@ -915,18 +765,14 @@
   {
     "path": "src/MasterPy_Trading.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/MasterPy_Trading.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config"
-    ],
+    "deps_internal": ["src.core.config"],
     "deps_external": [
       "pandas_market_calendars",
       "asyncio",
@@ -959,9 +805,7 @@
   {
     "path": "src/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -969,10 +813,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "MasterPy_Trading",
-      "ib_Trader"
-    ],
+    "deps_external": ["MasterPy_Trading", "ib_Trader"],
     "metrics": {
       "loc": 21,
       "functions": 0,
@@ -982,9 +823,7 @@
   {
     "path": "src/api.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/api.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -992,13 +831,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "risk",
-      "execution",
-      "domain",
-      "monitoring",
-      "services"
-    ],
+    "deps_external": ["risk", "execution", "domain", "monitoring", "services"],
     "metrics": {
       "loc": 102,
       "functions": 0,
@@ -1008,9 +841,7 @@
   {
     "path": "src/automation/headless_gateway.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/automation/headless_gateway.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1043,9 +874,7 @@
   {
     "path": "src/core/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1053,11 +882,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "performance",
-      "error_handler",
-      "config"
-    ],
+    "deps_external": ["performance", "error_handler", "config"],
     "metrics": {
       "loc": 119,
       "functions": 1,
@@ -1067,9 +892,7 @@
   {
     "path": "src/core/config.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/config.py",
-    "role_tags": [
-      "config"
-    ],
+    "role_tags": ["config"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1077,14 +900,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "dataclasses",
-      "typing",
-      "os",
-      "json",
-      "pathlib",
-      "enum"
-    ],
+    "deps_external": ["dataclasses", "typing", "os", "json", "pathlib", "enum"],
     "metrics": {
       "loc": 272,
       "functions": 18,
@@ -1094,19 +910,14 @@
   {
     "path": "src/core/connection_pool.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/connection_pool.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
     "deps_external": [
       "threading",
       "dataclasses",
@@ -1128,26 +939,15 @@
   {
     "path": "src/core/dataframe_safety.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/dataframe_safety.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.error_handler"
-    ],
-    "deps_external": [
-      "pandas",
-      "typing",
-      "sys",
-      "numpy",
-      "core",
-      "pathlib"
-    ],
+    "deps_internal": ["src.core.error_handler"],
+    "deps_external": ["pandas", "typing", "sys", "numpy", "core", "pathlib"],
     "metrics": {
       "loc": 473,
       "functions": 12,
@@ -1157,9 +957,7 @@
   {
     "path": "src/core/error_handler.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/error_handler.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1187,9 +985,7 @@
   {
     "path": "src/core/integrated_error_handling.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/integrated_error_handling.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1224,9 +1020,7 @@
   {
     "path": "src/core/modern_trading_core.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/modern_trading_core.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1249,13 +1043,7 @@
       "src.core.error_handler",
       "src.core.ib_client"
     ],
-    "deps_external": [
-      "typing",
-      "ib_async",
-      "datetime",
-      "sys",
-      "pathlib"
-    ],
+    "deps_external": ["typing", "ib_async", "datetime", "sys", "pathlib"],
     "metrics": {
       "loc": 385,
       "functions": 7,
@@ -1265,9 +1053,7 @@
   {
     "path": "src/core/performance.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/performance.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1304,18 +1090,14 @@
   {
     "path": "src/core/retry_manager.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/core/retry_manager.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.error_handler"
-    ],
+    "deps_internal": ["src.core.error_handler"],
     "deps_external": [
       "project_types",
       "dataclasses",
@@ -1339,9 +1121,7 @@
   {
     "path": "src/data/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/data/__init__.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1349,9 +1129,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "record_depth"
-    ],
+    "deps_external": ["record_depth"],
     "metrics": {
       "loc": 10,
       "functions": 0,
@@ -1361,10 +1139,7 @@
   {
     "path": "src/data/analyze_depth.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/data/analyze_depth.py",
-    "role_tags": [
-      "data_io",
-      "cli"
-    ],
+    "role_tags": ["data_io", "cli"],
     "entrypoint": false,
     "cli_framework": "click",
     "describe_support": {
@@ -1391,9 +1166,7 @@
   {
     "path": "src/data/data_manager.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/data/data_manager.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1419,19 +1192,14 @@
   {
     "path": "src/data/parquet_repository.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/data/parquet_repository.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
     "deps_external": [
       "dataclasses",
       "pandas",
@@ -1453,10 +1221,7 @@
   {
     "path": "src/data/record_depth.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/data/record_depth.py",
-    "role_tags": [
-      "data_io",
-      "cli"
-    ],
+    "role_tags": ["data_io", "cli"],
     "entrypoint": false,
     "cli_framework": "click",
     "describe_support": {
@@ -1490,9 +1255,7 @@
   {
     "path": "src/domain/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/domain/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1500,9 +1263,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "ml_types"
-    ],
+    "deps_external": ["ml_types"],
     "metrics": {
       "loc": 54,
       "functions": 0,
@@ -1512,22 +1273,15 @@
   {
     "path": "src/domain/interfaces.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/domain/interfaces.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.domain.ml_types"
-    ],
-    "deps_external": [
-      "typing",
-      "__future__"
-    ],
+    "deps_internal": ["src.domain.ml_types"],
+    "deps_external": ["typing", "__future__"],
     "metrics": {
       "loc": 140,
       "functions": 9,
@@ -1537,9 +1291,7 @@
   {
     "path": "src/domain/ml_types.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/domain/ml_types.py",
-    "role_tags": [
-      "model"
-    ],
+    "role_tags": ["model"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1563,9 +1315,7 @@
   {
     "path": "src/execution/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/execution/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1573,9 +1323,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "ml_signal_executor"
-    ],
+    "deps_external": ["ml_signal_executor"],
     "metrics": {
       "loc": 19,
       "functions": 0,
@@ -1585,9 +1333,7 @@
   {
     "path": "src/execution/ml_signal_executor.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/execution/ml_signal_executor.py",
-    "role_tags": [
-      "model"
-    ],
+    "role_tags": ["model"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1625,9 +1371,7 @@
   {
     "path": "src/ib_Main.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/ib_Main.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1650,9 +1394,7 @@
   {
     "path": "src/ib_Trader.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/ib_Trader.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1680,9 +1422,7 @@
   {
     "path": "src/ib_Warror_dl.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/ib_Warror_dl.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1708,9 +1448,7 @@
   {
     "path": "src/integrations/ml_data_integrity.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/integrations/ml_data_integrity.py",
-    "role_tags": [
-      "model"
-    ],
+    "role_tags": ["model"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1739,9 +1477,7 @@
   {
     "path": "src/lib/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/lib/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1749,10 +1485,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "ib_insync_compat",
-      "ib_async_wrapper"
-    ],
+    "deps_external": ["ib_async_wrapper"],
     "metrics": {
       "loc": 22,
       "functions": 0,
@@ -1762,9 +1495,7 @@
   {
     "path": "src/lib/ib_async_wrapper.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/lib/ib_async_wrapper.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1794,11 +1525,7 @@
     }
   },
   {
-    "path": "src/lib/ib_insync_compat.py",
-    "absolute_path": "/home/jrae/wsl projects/Trading/src/lib/ib_insync_compat.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1830,9 +1557,7 @@
   {
     "path": "src/migration_helper.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/migration_helper.py",
-    "role_tags": [
-      "utils"
-    ],
+    "role_tags": ["utils"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1858,9 +1583,7 @@
   {
     "path": "src/monitoring/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/monitoring/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1868,9 +1591,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "ml_performance_monitor"
-    ],
+    "deps_external": ["ml_performance_monitor"],
     "metrics": {
       "loc": 19,
       "functions": 0,
@@ -1880,9 +1601,7 @@
   {
     "path": "src/monitoring/ml_performance_monitor.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/monitoring/ml_performance_monitor.py",
-    "role_tags": [
-      "model"
-    ],
+    "role_tags": ["model"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1922,9 +1641,7 @@
   {
     "path": "src/notifications.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/notifications.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1932,12 +1649,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "subprocess",
-      "sys",
-      "logging",
-      "plyer"
-    ],
+    "deps_external": ["subprocess", "sys", "logging", "plyer"],
     "metrics": {
       "loc": 263,
       "functions": 11,
@@ -1947,9 +1659,7 @@
   {
     "path": "src/risk/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/risk/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -1957,9 +1667,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "ml_risk_manager"
-    ],
+    "deps_external": ["ml_risk_manager"],
     "metrics": {
       "loc": 7,
       "functions": 0,
@@ -1969,9 +1677,7 @@
   {
     "path": "src/risk/ml_risk_manager.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/risk/ml_risk_manager.py",
-    "role_tags": [
-      "model"
-    ],
+    "role_tags": ["model"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2005,9 +1711,7 @@
   {
     "path": "src/services/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/__init__.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2025,24 +1729,15 @@
   {
     "path": "src/services/bar_configuration_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/bar_configuration_service.py",
-    "role_tags": [
-      "config"
-    ],
+    "role_tags": ["config"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
-    "deps_external": [
-      "pandas",
-      "typing",
-      "core"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
+    "deps_external": ["pandas", "typing", "core"],
     "metrics": {
       "loc": 454,
       "functions": 20,
@@ -2052,26 +1747,15 @@
   {
     "path": "src/services/contract_manager_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/contract_manager_service.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
-    "deps_external": [
-      "typing",
-      "ib_async",
-      "datetime",
-      "sys",
-      "pathlib"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
+    "deps_external": ["typing", "ib_async", "datetime", "sys", "pathlib"],
     "metrics": {
       "loc": 458,
       "functions": 13,
@@ -2081,9 +1765,7 @@
   {
     "path": "src/services/data_management_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/data_management_service.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2108,19 +1790,14 @@
   {
     "path": "src/services/data_persistence_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/data_persistence_service.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
     "deps_external": [
       "dataclasses",
       "pandas",
@@ -2138,9 +1815,7 @@
   {
     "path": "src/services/historical_data/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/historical_data/__init__.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2162,18 +1837,14 @@
   {
     "path": "src/services/historical_data/availability_checker.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/historical_data/availability_checker.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config"
-    ],
+    "deps_internal": ["src.core.config"],
     "deps_external": [
       "re",
       "pandas",
@@ -2192,27 +1863,15 @@
   {
     "path": "src/services/historical_data/download_tracker.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/historical_data/download_tracker.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
-    "deps_external": [
-      "pandas",
-      "typing",
-      "datetime",
-      "sys",
-      "core",
-      "pathlib"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
+    "deps_external": ["pandas", "typing", "datetime", "sys", "core", "pathlib"],
     "metrics": {
       "loc": 344,
       "functions": 12,
@@ -2222,18 +1881,14 @@
   {
     "path": "src/services/historical_data/historical_data_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/historical_data/historical_data_service.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config"
-    ],
+    "deps_internal": ["src.core.config"],
     "deps_external": [
       "dataclasses",
       "joblib",
@@ -2254,22 +1909,15 @@
   {
     "path": "src/services/historical_data/test_historical_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/historical_data/test_historical_service.py",
-    "role_tags": [
-      "test"
-    ],
+    "role_tags": ["test"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": false,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.services.historical_data"
-    ],
-    "deps_external": [
-      "sys",
-      "pathlib"
-    ],
+    "deps_internal": ["src.services.historical_data"],
+    "deps_external": ["sys", "pathlib"],
     "metrics": {
       "loc": 232,
       "functions": 6,
@@ -2279,9 +1927,7 @@
   {
     "path": "src/services/historical_data_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/historical_data_service.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2315,19 +1961,14 @@
   {
     "path": "src/services/market_calendar_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_calendar_service.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": true,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
     "deps_external": [
       "pandas_market_calendars",
       "typing",
@@ -2345,9 +1986,7 @@
   {
     "path": "src/services/market_data/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_data/__init__.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2355,9 +1994,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "market_data_service"
-    ],
+    "deps_external": ["market_data_service"],
     "metrics": {
       "loc": 36,
       "functions": 0,
@@ -2367,9 +2004,7 @@
   {
     "path": "src/services/market_data/integration_example.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_data/integration_example.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2381,10 +2016,7 @@
       "src.services.market_data",
       "src.core.ib_client"
     ],
-    "deps_external": [
-      "sys",
-      "pathlib"
-    ],
+    "deps_external": ["sys", "pathlib"],
     "metrics": {
       "loc": 113,
       "functions": 1,
@@ -2394,9 +2026,7 @@
   {
     "path": "src/services/market_data/market_data_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_data/market_data_service.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2406,7 +2036,6 @@
     "deps_internal": [
       "src.data.parquet_repository",
       "src.notifications",
-      "src.lib.ib_insync_compat",
       "src.core.config",
       "src.core.error_handler"
     ],
@@ -2431,9 +2060,7 @@
   {
     "path": "src/services/market_data/test_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_data/test_service.py",
-    "role_tags": [
-      "test"
-    ],
+    "role_tags": ["test"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2444,10 +2071,7 @@
       "src.services.market_data.market_data_service",
       "src.services.market_data"
     ],
-    "deps_external": [
-      "sys",
-      "pathlib"
-    ],
+    "deps_external": ["sys", "pathlib"],
     "metrics": {
       "loc": 86,
       "functions": 3,
@@ -2457,9 +2081,7 @@
   {
     "path": "src/services/market_data/types.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_data/types.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2467,10 +2089,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "typing",
-      "datetime"
-    ],
+    "deps_external": ["typing", "datetime"],
     "metrics": {
       "loc": 73,
       "functions": 0,
@@ -2480,9 +2099,7 @@
   {
     "path": "src/services/market_data_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_data_service.py",
-    "role_tags": [
-      "data_io"
-    ],
+    "role_tags": ["data_io"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2518,9 +2135,7 @@
   {
     "path": "src/services/market_info_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/market_info_service.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2544,9 +2159,7 @@
   {
     "path": "src/services/ml_order_management_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/ml_order_management_service.py",
-    "role_tags": [
-      "model"
-    ],
+    "role_tags": ["model"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2579,9 +2192,7 @@
   {
     "path": "src/services/order_management_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/order_management_service.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2614,9 +2225,7 @@
   {
     "path": "src/services/path_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/path_service.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2642,19 +2251,14 @@
   {
     "path": "src/services/request_manager_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/request_manager_service.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
       "has_describe": true,
       "valid_json": false
     },
-    "deps_internal": [
-      "src.core.config",
-      "src.core.error_handler"
-    ],
+    "deps_internal": ["src.core.config", "src.core.error_handler"],
     "deps_external": [
       "joblib",
       "typing",
@@ -2674,9 +2278,7 @@
   {
     "path": "src/services/service_manager.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/service_manager.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2712,9 +2314,7 @@
   {
     "path": "src/services/stock_split_detection_service.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/services/stock_split_detection_service.py",
-    "role_tags": [
-      "service"
-    ],
+    "role_tags": ["service"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2744,9 +2344,7 @@
   {
     "path": "src/types/__init__.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/types/__init__.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2773,9 +2371,7 @@
   {
     "path": "src/utils/data_utils.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/utils/data_utils.py",
-    "role_tags": [
-      "utils"
-    ],
+    "role_tags": ["utils"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2783,11 +2379,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "pandas",
-      "typing",
-      "datetime"
-    ],
+    "deps_external": ["pandas", "typing", "datetime"],
     "metrics": {
       "loc": 372,
       "functions": 19,
@@ -2797,9 +2389,7 @@
   {
     "path": "src/utils/exit_handler.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/src/utils/exit_handler.py",
-    "role_tags": [
-      "utils"
-    ],
+    "role_tags": ["utils"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2807,13 +2397,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "typing",
-      "collections",
-      "datetime",
-      "sys",
-      "signal"
-    ],
+    "deps_external": ["typing", "collections", "datetime", "sys", "signal"],
     "metrics": {
       "loc": 190,
       "functions": 27,
@@ -2823,9 +2407,7 @@
   {
     "path": "system_check_analysis.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/system_check_analysis.py",
-    "role_tags": [
-      "unknown"
-    ],
+    "role_tags": ["unknown"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2833,10 +2415,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "json",
-      "pathlib"
-    ],
+    "deps_external": ["json", "pathlib"],
     "metrics": {
       "loc": 302,
       "functions": 9,
@@ -2846,9 +2425,7 @@
   {
     "path": "test_ib_async_stubs.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/test_ib_async_stubs.py",
-    "role_tags": [
-      "test"
-    ],
+    "role_tags": ["test"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2856,9 +2433,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "os"
-    ],
+    "deps_external": ["os"],
     "metrics": {
       "loc": 58,
       "functions": 1,
@@ -2868,9 +2443,7 @@
   {
     "path": "test_ml_imports.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/test_ml_imports.py",
-    "role_tags": [
-      "test"
-    ],
+    "role_tags": ["test"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2878,14 +2451,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "risk",
-      "execution",
-      "datetime",
-      "sys",
-      "api",
-      "os"
-    ],
+    "deps_external": ["risk", "execution", "datetime", "sys", "api", "os"],
     "metrics": {
       "loc": 118,
       "functions": 3,
@@ -2895,9 +2461,7 @@
   {
     "path": "validate_ml_structure.py",
     "absolute_path": "/home/jrae/wsl projects/Trading/validate_ml_structure.py",
-    "role_tags": [
-      "model"
-    ],
+    "role_tags": ["model"],
     "entrypoint": false,
     "cli_framework": "none",
     "describe_support": {
@@ -2905,10 +2469,7 @@
       "valid_json": false
     },
     "deps_internal": [],
-    "deps_external": [
-      "sys",
-      "pathlib"
-    ],
+    "deps_external": ["sys", "pathlib"],
     "metrics": {
       "loc": 169,
       "functions": 5,

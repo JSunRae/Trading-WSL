@@ -5,7 +5,7 @@ provides a minimal but extensible service layer for:
   - Level 2 (market depth) data
   - Tick-by-tick data
 
-Runtime dependencies on Interactive Brokers (ibapi/ib_insync) are guarded so
+Runtime dependencies on Interactive Brokers (IBKR API) are guarded so
 tests that only import the module (without a live IB connection) won't fail.
 """
 
@@ -14,30 +14,46 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from time import perf_counter
-from typing import Any
+from typing import Any, Protocol
 
 import pandas as pd
 import pytz
 
 from src.core.config import get_config
 from src.core.error_handler import handle_error
-from src.data.parquet_repository import ParquetRepository
 from src.notifications import get_notification_manager
 
-try:  # pragma: no cover - runtime dependency may be absent in some test envs
-    from src.lib.ib_insync_compat import IB, Stock  # type: ignore
-except Exception:  # Fallback lightweight stubs
+try:  # Prefer async infra: typed client and contract factories
+    from src.infra.contract_factories import stock as _cf_stock
+except Exception:  # pragma: no cover - fallback shim
+    _cf_stock = None  # type: ignore[assignment]
 
-    class IB:  # type: ignore
+from typing import Any as _AnyAlias
+
+_real_stock: _AnyAlias | None = _cf_stock
+
+
+def build_stock(symbol: str, exchange: str = "SMART", currency: str = "USD") -> Any:
+    """Create a stock contract via infra when available; else return a stub."""
+    try:
+        if _real_stock is not None:
+            return _real_stock(symbol, exchange, currency)
+    except Exception:
         pass
+    return {"symbol": symbol, "exchange": exchange, "currency": currency}
 
-    class Stock:  # type: ignore
-        def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
-            pass
+
+class IB(Protocol):  # Minimal protocol of methods we use (vendor-style names kept)
+    def isConnected(self) -> bool: ...  # noqa: D401,N802,E701
+    def qualifyContracts(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: D401,N802,E701
+    def reqMktDepth(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: D401,N802,E701
+    def cancelMktDepth(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: D401,N802,E701
+    def reqTickByTickData(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: D401,N802,E701
+    def cancelTickByTickData(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: D401,N802,E701
 
 
 try:  # Local wrappers (present in infra)
-    from src.infra.ib_requests import (  # type: ignore
+    from src.infra.ib_requests import (
         req_mkt_depth,
         req_tick_by_tick_data,
     )
@@ -71,15 +87,15 @@ class MarketDepthManager:
         self.num_levels = num_levels
         self.update_interval = update_interval
 
-        # Optional components
+        # Optional components (predeclare optionals for type checker)
+        self.config: Any | None = None
+        self.data_repo: Any | None = None
+        self.notifications: Any | None = None
         try:
             self.config = get_config()
-            self.data_repo: ParquetRepository | None = ParquetRepository()
             self.notifications = get_notification_manager()
         except Exception:  # pragma: no cover - keep import cheap for tests
-            self.config = None
-            self.data_repo = None
-            self.notifications = None
+            pass
 
         # Runtime state
         self.contract: Any | None = None
@@ -121,21 +137,21 @@ class MarketDepthManager:
         if self.is_active:
             return True
         try:
-            self.contract = Stock(self.symbol, "SMART", "USD")  # type: ignore[arg-type]
+            self.contract = build_stock(self.symbol, "SMART", "USD")
             try:
-                self.ib.qualifyContracts(self.contract)  # type: ignore[attr-defined]
+                self.ib.qualifyContracts(self.contract)
             except Exception:
                 pass  # Qualification is best-effort in test environments
 
-            self.ticker = req_mkt_depth(  # type: ignore[func-returns-value]
-                self.ib,  # pyright: ignore[reportArgumentType]
-                self.contract,  # pyright: ignore[reportArgumentType]
+            self.ticker = req_mkt_depth(
+                self.ib,
+                self.contract,
                 num_rows=self.num_levels,
                 is_smart_depth=True,
             )
             if self.ticker is not None:
                 try:
-                    self.ticker.updateEvent.connect(self._on_update)  # type: ignore[attr-defined]
+                    self.ticker.updateEvent.connect(self._on_update)
                 except Exception:
                     pass
 
@@ -168,7 +184,7 @@ class MarketDepthManager:
         try:
             if self.ticker and self.contract:
                 try:
-                    self.ib.cancelMktDepth(self.contract)  # type: ignore[attr-defined]
+                    self.ib.cancelMktDepth(self.contract)
                 except Exception:
                     pass
             self.is_active = False
@@ -270,14 +286,19 @@ class TickByTickManager:
     def __init__(self, ib: IB, symbol: str) -> None:
         self.ib = ib
         self.symbol = symbol
+        self.config: Any | None = None
+        self.data_repo: Any | None = None
+        self.notifications: Any | None = None
         try:
             self.config = get_config()
-            self.data_repo: ParquetRepository | None = ParquetRepository()
+            from src.data.parquet_repository import ParquetRepository
+
+            # Avoid calling an untyped constructor in a typed context.
+            repo_cls: Any = ParquetRepository
+            self.data_repo = repo_cls()
             self.notifications = get_notification_manager()
         except Exception:  # pragma: no cover
-            self.config = None
-            self.data_repo = None
-            self.notifications = None
+            pass
         self.contract: Any | None = None
         self.ticker: Any | None = None
         self.is_active = False
@@ -290,12 +311,12 @@ class TickByTickManager:
         if self.is_active:
             return True
         try:
-            self.contract = Stock(self.symbol, "SMART", "USD")  # type: ignore[arg-type]
+            self.contract = build_stock(self.symbol, "SMART", "USD")
             try:
-                self.ib.qualifyContracts(self.contract)  # type: ignore[attr-defined]
+                self.ib.qualifyContracts(self.contract)
             except Exception:
                 pass
-            self.ticker = req_tick_by_tick_data(  # type: ignore[func-returns-value]
+            self.ticker = req_tick_by_tick_data(
                 self.ib,
                 self.contract,
                 tick_type=tick_type,
@@ -304,7 +325,7 @@ class TickByTickManager:
             )
             if self.ticker is not None:
                 try:
-                    self.ticker.updateEvent.connect(self._on_update)  # type: ignore[attr-defined]
+                    self.ticker.updateEvent.connect(self._on_update)
                 except Exception:
                     pass
             self.tick_type = tick_type
@@ -325,7 +346,7 @@ class TickByTickManager:
                 try:
                     self.ib.cancelTickByTickData(
                         self.contract, self.tick_type or "AllLast"
-                    )  # type: ignore[attr-defined]
+                    )
                 except Exception:
                     pass
             if self.data_repo and not self.tick_data.empty:
@@ -374,12 +395,13 @@ class MarketDataService:
 
     def __init__(self, ib: IB) -> None:
         self.ib = ib
+        self.config: Any | None = None
+        self.notifications: Any | None = None
         try:
             self.config = get_config()
             self.notifications = get_notification_manager()
         except Exception:  # pragma: no cover
-            self.config = None
-            self.notifications = None
+            pass
         self.depth: dict[str, MarketDepthManager] = {}
         self.ticks: dict[str, TickByTickManager] = {}
 
