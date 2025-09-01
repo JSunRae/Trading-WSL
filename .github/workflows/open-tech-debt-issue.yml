@@ -1,0 +1,69 @@
+name: Open Tech Debt Issue
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - ISSUE.md
+
+jobs:
+  create_or_update_issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Read ISSUE.md
+        id: read
+        run: |
+          echo 'ISSUE_BODY<<EOF' >> $GITHUB_OUTPUT
+          cat ISSUE.md >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+      - name: Find existing issue
+        id: find
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const title = 'Tech debt: ruff C901 & mypy in high-traffic modules';
+            const found = issues.find(i => i.title === title);
+            return { id: found?.number || 0 };
+      - name: Create or update
+        if: steps.find.outputs.result == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Tech debt: ruff C901 & mypy in high-traffic modules';
+            const body = process.env.ISSUE_BODY;
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['tech-debt']
+            });
+            core.setOutput('issue_number', issue.number.toString());
+        env:
+          ISSUE_BODY: ${{ steps.read.outputs.ISSUE_BODY }}
+      - name: Comment update
+        if: steps.find.outputs.result != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = JSON.parse(core.getInput('find-result')).id;
+            const body = process.env.ISSUE_BODY;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body: `Update pushed to ISSUE.md; syncing latest content.\n\n${body}`,
+            });
+        env:
+          ISSUE_BODY: ${{ steps.read.outputs.ISSUE_BODY }}

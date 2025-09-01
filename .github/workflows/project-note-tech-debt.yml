@@ -1,0 +1,60 @@
+name: Add Tech Debt Project Note
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_number:
+        description: GitHub Projects (classic) project number
+        required: false
+      project_id:
+        description: GitHub Projects (beta) node id (v2)
+        required: false
+
+jobs:
+  add-note:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      projects: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Read ISSUE.md
+        id: read
+        run: |
+          echo 'ISSUE_BODY<<EOF' >> $GITHUB_OUTPUT
+          cat ISSUE.md >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+      - name: Add note to classic project (optional)
+        if: inputs.project_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const project_number = Number(core.getInput('project_number'));
+            const { data: projects } = await github.rest.projects.listForRepo({ owner, repo });
+            const proj = projects.find(p => p.number === project_number);
+            if (!proj) { core.warning('Project not found'); return; }
+            const { data: columns } = await github.rest.projects.listColumns({ project_id: proj.id });
+            const column = columns[0];
+            await github.rest.projects.createCard({ column_id: column.id, note: process.env.ISSUE_BODY });
+        env:
+          ISSUE_BODY: ${{ steps.read.outputs.ISSUE_BODY }}
+      - name: Add note to Projects v2 (optional)
+        if: inputs.project_id != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const projectId = core.getInput('project_id');
+            const body = process.env.ISSUE_BODY;
+            await github.graphql(`
+              mutation($projectId: ID!, $note: String!) {
+                addProjectV2DraftIssue(input: { projectId: $projectId, title: "Tech debt: ruff C901 & mypy in high-traffic modules", body: $note }) {
+                  projectItem { id }
+                }
+              }
+            `, { projectId, note: body });
+        env:
+          ISSUE_BODY: ${{ steps.read.outputs.ISSUE_BODY }}
