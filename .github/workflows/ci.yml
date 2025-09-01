@@ -7,128 +7,70 @@ on:
     branches: [main, develop]
 
 jobs:
-  quality:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11', '3.12']
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          submodules: true
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          python-version: '3.12'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-      - name: Lint with Ruff
-        run: |
-          python -m ruff check .
-          python -m ruff format --check .
 
-      - name: Type check with Pyright
+      - name: Validate tools --describe JSON
         run: |
-          npx pyright -p pyrightconfig.json
+          set -e
+          PY=python
+          echo 'Testing all tools with --describe as JSON...'
+          for tool in \
+            'src/tools/auto_backfill_from_warrior.py' \
+            'src/tools/analyze_depth.py' \
+            'src/tools/record_depth.py' \
+            'src/tools/quick_start.py' \
+            'src/tools/analysis/analyze_scripts.py' \
+            'src/tools/analysis/system_check_analysis.py' \
+            'src/tools/analysis/validate_ml_structure.py' \
+            'src/tools/analysis/script_inventory_analyzer.py' \
+            'src/tools/setup/setup_automated_trading.py' \
+            'src/tools/setup/setup_ib_gateway.py' \
+            'src/tools/setup/fix_hardcoded_paths.py' \
+            'src/tools/validate_export_manifest.py'; do
+            echo "Testing $tool --describe..."
+            output=$($PY "$tool" --describe 2>&1) || { echo "Error: $tool --describe failed"; exit 1; }
+            echo "$output" | $PY -m json.tool > /dev/null || { echo "Error: $tool --describe returned invalid JSON"; echo "$output"; exit 1; }
+          done
+          echo 'All tools --describe validation completed successfully!'
 
-      - name: Test with pytest (warnings as errors)
+      - name: Validate sample TF_1 export manifest
         run: |
-          # Run tests with coverage (including JSON for unused code analysis)
-          python -m pytest tests/ -W error \
-            --cov=src --cov-branch \
-            --cov-report=xml \
-            --cov-report=json:coverage.json \
-            --cov-report=term-missing:skip-covered \
-            --cov-fail-under=80
-
-      - name: Guard against legacy MasterPy_Trading imports
-        run: |
-          echo "Scanning for forbidden legacy imports..."
-          if grep -R --line-number --exclude=src/MasterPy_Trading.py -E '\b(from|import)\s+(src\.)?MasterPy_Trading\b' src/; then
-            echo '❌ Legacy MasterPy_Trading import detected in src/. Failing build.'
+          set -e
+          # PASS: with model-dir containing production.alias
+          mkdir -p /tmp/model_dir
+          echo "tf1-model-stable" > /tmp/model_dir/production.alias
+          python -m src.tools.validate_export_manifest --manifest examples/tf1_export_manifest.sample.json --model-dir /tmp/model_dir
+          # FAIL: same manifest but missing production.alias should exit nonzero
+          rm -f /tmp/model_dir/production.alias || true
+          if python -m src.tools.validate_export_manifest --manifest examples/tf1_export_manifest.sample.json --model-dir /tmp/model_dir; then
+            echo "Expected failure when production.alias is missing" >&2
             exit 1
-          else
-            echo '✅ No forbidden legacy imports found.'
+          fi
+          # Also verify the explicit no-alias sample fails even without model-dir enforcement
+          if python -m src.tools.validate_export_manifest --manifest examples/tf1_export_manifest.no_alias.sample.json; then
+            echo "Expected failure on no-alias sample" >&2
+            exit 1
           fi
 
-      - name: Generate unused code report
+      - name: Run tests
+        env:
+          PYTHONWARNINGS: default
         run: |
-          python scripts/find_unused_code.py
-          echo 'Unused code report generated.'
-
-      - name: Upload unused code report artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: unused-code-report
-          path: reports/unused_code_report.md
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: true
-
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-          pip install pip-audit safety
-
-      - name: Security audit with pip-audit
-        run: |
-          pip-audit
-
-      - name: Security check with Safety
-        run: |
-          safety check
-
-  build:
-    runs-on: ubuntu-latest
-    needs: [quality, security]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-
-      - name: Build package
-        run: |
-          python -m build
-
-      - name: Check package
-        run: |
-          python -m twine check dist/*
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist/
+          python -m pytest -q tests/

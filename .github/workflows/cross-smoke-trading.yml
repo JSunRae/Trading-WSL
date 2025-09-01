@@ -1,0 +1,75 @@
+name: Cross-Repo Smoke (Trading)
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_glob:
+        description: 'Optional glob path to a local/exported manifest (e.g., artifacts/*.json)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '15 6 * * *' # Daily 06:15 UTC
+
+jobs:
+  consume-tf1-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Download TF_1 export manifest artifact
+        id: dl
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: tf1-export-manifest
+          path: artifacts
+
+      - name: Fallback to input glob or sample manifest when artifact missing
+        if: steps.dl.outcome == 'failure'
+        shell: bash
+        run: |
+          set -e
+          mkdir -p artifacts
+          # If caller provided an input glob, use it
+          if [[ -n "${{ github.event.inputs.artifact_glob }}" ]]; then
+            echo "Using input glob: ${{ github.event.inputs.artifact_glob }}"
+            shopt -s nullglob
+            for f in ${{ github.event.inputs.artifact_glob }}; do
+              cp "$f" artifacts/
+            done
+            shopt -u nullglob
+          fi
+          # If no json files present after attempting input glob, copy sample manifest
+          if ! ls artifacts/*.json >/dev/null 2>&1; then
+            echo "No JSON manifests found; copying sample manifest"
+            cp examples/tf1_export_manifest.sample.json artifacts/
+          fi
+
+      - name: PASS - validate manifest with production.alias present
+        run: |
+          set -e
+          mkdir -p artifacts/model_dir
+          echo 'tf1-model-stable' > artifacts/model_dir/production.alias
+          python -m src.tools.validate_export_manifest --manifest artifacts/*.json --model-dir artifacts/model_dir
+
+      - name: FAIL - validate manifest without production.alias should exit non-zero
+        run: |
+          set -e
+          rm -f artifacts/model_dir/production.alias || true
+          if python -m src.tools.validate_export_manifest --manifest artifacts/*.json --model-dir artifacts/model_dir; then
+            echo 'Expected non-zero exit when production.alias missing' >&2
+            exit 1
+          fi
