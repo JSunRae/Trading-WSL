@@ -1,0 +1,4 @@
+[submodule "contracts"]
+	path = contracts
+	url = git@github.com:JSunRae/ml-contracts.git
+	branch = main
