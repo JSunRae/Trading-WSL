@@ -1,0 +1,6 @@
+{
+  "min_sharpe": 1.5,
+  "min_f1": 0.4,
+  "min_max_drawdown": -0.15,
+  "notes": "Trading repository acceptance thresholds for TF_1 model promotion."
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "model": {
+    "id": "tf1-model-demo",
+    "version": "v2025.08.31",
+    "metadata": {
+      "production": { "alias": "tf1-model-stable" }
+    }
+  },
+  "artifacts": [
+    {
+      "type": "feature_parquet",
+      "path": "data/features/demo_features.parquet",
+      "schema": { "version": "1" }
+    }
+  ],
+  "metrics": {
+    "sharpe": 1.7,
+    "f1": 0.42,
+    "max_drawdown": -0.1
+  }
+}

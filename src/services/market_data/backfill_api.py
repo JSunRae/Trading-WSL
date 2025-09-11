@@ -29,7 +29,7 @@ from src.services.market_data.databento_l2_service import (
 )
 from src.services.market_data.l2_paths import atomic_write_parquet, with_source_suffix
 from src.services.market_data.l2_schema_adapter import to_ibkr_l2
-from src.services.symbol_mapping import to_vendor
+from src.services.symbol_mapping import resolve_vendor_params
 
 __all__ = ["backfill_l2"]
 
@@ -71,10 +71,12 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
     date_str = trading_day.strftime("%Y-%m-%d")
 
     # Resolve vendor mapping + window + dataset/schema
-    vendor_symbol = to_vendor(symbol, "databento", cfg.get_symbol_mapping_path())
     api_key = cfg.databento_api_key()
     dataset = cfg.get_env("DATABENTO_DATASET")
     schema = cfg.get_env("DATABENTO_SCHEMA")
+    vendor_symbol, dataset, schema = resolve_vendor_params(
+        symbol, "databento", cfg.get_symbol_mapping_path(), dataset, schema
+    )
     start_et_str, end_et_str = cfg.get_l2_backfill_window()
     from datetime import time as _time_cls
 

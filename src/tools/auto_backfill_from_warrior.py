@@ -10,13 +10,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from datetime import UTC, datetime
 from typing import Any
 
 from src.services.market_data.warrior_backfill_orchestrator import (
     find_warrior_tasks,
     run_warrior_backfill,
 )
-from src.tools._cli_helpers import emit_describe_early  # type: ignore
+from src.tools._cli_helpers import emit_describe_early
 
 
 def tool_describe() -> dict[str, Any]:
@@ -97,16 +98,31 @@ def _emit_summary_line(summary: dict[str, Any]) -> None:
 
 def main() -> int:
     args = _parse_args()
+    run_id = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
+    t0 = datetime.now(UTC).timestamp()
     tasks = find_warrior_tasks(since_days=args.since, last=args.last)
+    discovery_ms = int((datetime.now(UTC).timestamp() - t0) * 1000)
     if args.max_tasks:
         tasks = tasks[: args.max_tasks]
     if args.dry_run:
+        # Pull requested window for observability
+        try:
+            from src.core.config import get_config
+
+            win_start, win_end = get_config().get_l2_backfill_window()
+        except Exception:
+            win_start, win_end = None, None
+        symbols = sorted({sym for sym, _ in tasks})
         preview = {
             "task_count": len(tasks),
             "first_tasks": [(sym, d.strftime("%Y-%m-%d")) for sym, d in tasks[:10]],
             "since_days": args.since,
             "last": args.last,
             "max_tasks": args.max_tasks,
+            "run_id": run_id,
+            "requested_window_et": {"start": win_start, "end": win_end},
+            "stage_latency_ms": {"discovery": discovery_ms},
+            "symbols": symbols,
         }
         print(json.dumps(preview, indent=2))
         return 0

@@ -390,7 +390,21 @@
         "${input:usedPrompt}"
       ],
       "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "windows": {
+        "command": "wsl",
+        "args": [
+          "bash",
+          "-lc",
+          "./scripts/notify_tbs.sh \"${workspaceFolderBasename}\" \"${input:runId}\" \"${input:usedPrompt}\""
+        ],
+        "options": { "cwd": "${workspaceFolder}" }
+      }
+    },
+    {
+      "label": "Run Tests → Notify",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Run Tests", "Notify TBS (finished)"]
     }
   ],
   "inputs": [

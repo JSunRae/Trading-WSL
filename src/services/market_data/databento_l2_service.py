@@ -8,7 +8,6 @@ Designed to be an optional dependency: importing this module must NOT crash when
 from __future__ import annotations
 
 import os
-import random
 import time as _time
 from dataclasses import dataclass
 from datetime import date, datetime, time
@@ -56,15 +55,13 @@ class DataBentoL2Service:
         ts_event, action, side, price, size, level, exchange, symbol
         """
         # Enforce L2-only usage to avoid unintended vendor costs
-        allowed_l2_schemas = {"mbp-1", "mbp-10", "mbp-20", "mbp-50"}
+        allowed_l2_schemas = {"mbp-1", "mbp-10", "mbp-20", "mbp-50", "book"}
         if req.schema.lower() not in allowed_l2_schemas:
             raise VendorUnavailable(
                 f"DataBento is restricted to Level 2 schemas only; requested '{req.schema}'."
             )
 
-        if not self.is_available(
-            self.api_key
-        ):  # pragma: no cover - guard tested separately
+        if not self.is_available(self.api_key):  # pragma: no cover
             raise VendorUnavailable("DataBento client or API key not available")
 
         et = ZoneInfo("America/New_York")
@@ -74,49 +71,53 @@ class DataBentoL2Service:
         end_iso = end_dt.isoformat()
 
         last_err: Exception | None = None
-        # Backoff knobs (milliseconds) exposed via env with defaults
         try:
             base_ms = int(os.getenv("L2_TASK_BACKOFF_BASE_MS", "250") or 250)
-        except ValueError:  # pragma: no cover - defensive
+        except ValueError:
             base_ms = 250
         try:
             max_ms = int(os.getenv("L2_TASK_BACKOFF_MAX_MS", "2000") or 2000)
-        except ValueError:  # pragma: no cover - defensive
+        except ValueError:
             max_ms = 2000
-        if max_ms < base_ms:  # simple guard
+        if max_ms < base_ms:
             max_ms = base_ms
-        for attempt in range(1, 4):  # max 3 attempts
+
+        for attempt in range(1, 4):
             try:
-                client = Historical(api_key=self.api_key)  # type: ignore[call-arg]
-                df: pd.DataFrame = client.timeseries.get_range(  # type: ignore[attr-defined]
+                try:
+                    client = Historical(key=self.api_key)  # type: ignore[call-arg]
+                except TypeError:
+                    try:
+                        client = Historical(self.api_key)  # type: ignore[misc]
+                    except TypeError:
+                        client = Historical()  # type: ignore[call-arg]
+
+                # DataBento does not accept 'smart' for stype_in; use 'raw_symbol' consistently
+                stype_in = "raw_symbol"
+                stype_out = "instrument_id"
+                store = client.timeseries.get_range(
                     dataset=req.dataset,
-                    schema=req.schema,
-                    symbols=req.symbol,
                     start=start_iso,
                     end=end_iso,
-                    stype_in="raw_symbol",
-                    stype_out="native",
+                    symbols=req.symbol,
+                    schema=req.schema,
+                    stype_in=stype_in,
+                    stype_out=stype_out,
                     limit=None,
-                    encoding="df",
                 )
+                df: pd.DataFrame = store.to_df()
                 break
-            except Exception as e:  # pragma: no cover - network errors nondeterministic
+            except Exception as e:
                 last_err = e
                 if attempt == 3:
                     raise
-                # Jittered exponential backoff bounded by env-configured ms
-                # Effective base grows exponentially but capped by max_ms
-                exp_ms = base_ms * (2 ** (attempt - 1))
-                exp_ms = min(exp_ms, max_ms)
-                jitter = random.uniform(0.75, 1.25)
-                sleep_for = (exp_ms / 1000.0) * jitter
-                _time.sleep(sleep_for)
-        else:  # pragma: no cover - logically unreachable
+                exp_ms = min(base_ms * (2 ** (attempt - 1)), max_ms)
+                _time.sleep(exp_ms / 1000.0)
+        else:
             if last_err:
                 raise last_err
             raise RuntimeError("Unknown DataBento fetch failure")
 
-        # Light normalization (idempotent if already correct)
         df = df.rename(
             columns={
                 "act": "action",
@@ -125,7 +126,6 @@ class DataBentoL2Service:
                 "publisher_id": "exchange",
             }
         )
-        # Column defaults
         for col, default in [
             ("ts_event", 0),
             ("action", "U"),
@@ -139,7 +139,6 @@ class DataBentoL2Service:
             if col not in df.columns:
                 df[col] = default
 
-        # Return only required order
         return df[
             [
                 "ts_event",

@@ -203,7 +203,9 @@ class SafeDataFrameAccessor:
             return True
 
         except Exception as e:
-            print(f"Warning: Safe fillna failed for row {row_index}: {e}")
+            print(
+                f"Warning: Safe fillna failed for row {row_index}: {e}", file=sys.stderr
+            )
             return False
 
     @staticmethod
@@ -223,11 +225,13 @@ class SafeDataFrameAccessor:
                 file_path = Path(file_path)
 
             if not file_path.exists():
-                print(f"Warning: Excel file does not exist: {file_path}")
+                print(
+                    f"Warning: Excel file does not exist: {file_path}", file=sys.stderr
+                )
                 return None
 
             if file_path.stat().st_size == 0:
-                print(f"Warning: Excel file is empty: {file_path}")
+                print(f"Warning: Excel file is empty: {file_path}", file=sys.stderr)
                 return None
 
             # Default parameters for safety
@@ -245,16 +249,24 @@ class SafeDataFrameAccessor:
             )
 
             if df.empty:
-                print(f"Warning: Loaded DataFrame is empty from {file_path}")
+                print(
+                    f"Warning: Loaded DataFrame is empty from {file_path}",
+                    file=sys.stderr,
+                )
                 return df  # Return empty DF rather than None
 
             return df
 
         except (FileNotFoundError, PermissionError, ValueError, ImportError) as e:
-            print(f"Warning: Could not read Excel file {file_path}: {e}")
+            print(
+                f"Warning: Could not read Excel file {file_path}: {e}", file=sys.stderr
+            )
             return None
         except Exception as e:
-            print(f"Error: Unexpected error reading Excel file {file_path}: {e}")
+            print(
+                f"Error: Unexpected error reading Excel file {file_path}: {e}",
+                file=sys.stderr,
+            )
             return None
 
     @staticmethod

@@ -13,7 +13,6 @@ Integrates with all ML trading components to provide unified monitoring.
 """
 
 import logging
-import math
 import statistics
 import sys
 import threading
@@ -33,6 +32,11 @@ import pandas as pd
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.analytics.financial_metrics import (
+    compute_equity_curve,
+    compute_max_drawdown,
+    compute_sharpe_ratio,
+)
 from src.core.config import get_config
 from src.core.integrated_error_handling import handle_error, with_error_handling
 from src.data.parquet_repository import ParquetRepository
@@ -198,19 +202,21 @@ class MLPerformanceMonitor:
         self.max_drawdown_threshold = monitor_config.get("max_drawdown_threshold", 0.1)
 
         # Real-time data storage
-        self.metrics: dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=10000)
+        self.metrics: dict[str, deque[PerformanceMetric]] = defaultdict(
+            lambda: deque[PerformanceMetric](maxlen=10000)
         )  # metric_name -> values
-        self.alerts: deque = deque(maxlen=1000)  # Recent alerts
+        self.alerts: deque[Alert] = deque(maxlen=1000)  # Recent alerts
 
         # Performance tracking
-        self.strategy_performance: dict[str, dict] = defaultdict(
+        self.strategy_performance: dict[str, dict[str, Any]] = defaultdict(
             dict
         )  # strategy -> metrics
-        self.model_performance: dict[str, dict] = defaultdict(
+        self.model_performance: dict[str, dict[str, Any]] = defaultdict(
             dict
         )  # model_version -> metrics
-        self.signal_outcomes: dict[str, dict] = {}  # signal_id -> outcome data
+        self.signal_outcomes: dict[
+            str, dict[str, Any]
+        ] = {}  # signal_id -> outcome data
 
         # Real-time dashboard data
         self.dashboard_data: dict[str, Any] = {}
@@ -712,14 +718,35 @@ class MLPerformanceMonitor:
             confidences = [s["signal"].confidence for s in relevant_signals.values()]
             avg_confidence = statistics.mean(confidences) if confidences else 0
 
-            # Calculate additional metrics (simplified for demo)
-            sharpe_ratio = (
-                total_pnl / (statistics.stdev(pnl_values) * math.sqrt(252))
-                if len(pnl_values) > 1
-                else 0
+            # Build equity curve from P&L sequence (start at 1.0 as normalized equity)
+            equity_curve: list[float] = (
+                compute_equity_curve(pnl_values, as_returns=False, starting_equity=1.0)
+                .astype(float)
+                .tolist()
+                if pnl_values
+                else []
             )
+            # Returns derived from equity curve: r_t = E_t / E_{t-1} - 1
+            returns: list[float] = (
+                [
+                    (equity_curve[i] / equity_curve[i - 1] - 1.0)
+                    for i in range(1, len(equity_curve))
+                    if equity_curve[i - 1] != 0
+                ]
+                if equity_curve
+                else []
+            )
+
+            # Financial risk metrics
             max_drawdown = (
-                min(pnl_values) / max(max(pnl_values), 1) if pnl_values else 0
+                float(compute_max_drawdown(np.asarray(equity_curve)))
+                if len(equity_curve) > 0
+                else 0.0
+            )
+            sharpe_ratio = (
+                compute_sharpe_ratio(returns, periods_per_year=252)
+                if len(returns) > 1
+                else 0.0
             )
             profit_factor = (
                 sum(wins) / abs(sum(losses)) if losses else float("inf") if wins else 0

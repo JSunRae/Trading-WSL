@@ -13,7 +13,7 @@ def test_vendor_unavailable_without_key():
     svc = DataBentoL2Service(api_key=None)
     assert not svc.is_available(None)
     req = VendorL2Request(
-        dataset="NASDAQ.ITCH",
+        dataset="XNAS.ITCH",
         schema="mbp-10",
         symbol="AAPL",
         start_et=time(8, 0),

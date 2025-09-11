@@ -26,7 +26,8 @@ import warnings
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -49,16 +50,42 @@ class WarriorTask:
 
 
 def _load_warrior_df() -> pd.DataFrame | None:
-    # Access via compatibility surface so tests / monkeypatching work
+    """Load Warrior list DataFrame using a test-friendly resolution order.
+
+    We intentionally try the legacy WarriorList() shim first so tests can
+    monkeypatch it without needing to intercept the newer service path. If that
+    is unavailable or fails, we fall back to the newer data_service API.
+    """
+
+    # 1) Legacy path (commonly monkeypatched in tests)
     warrior_list = getattr(data_management_service, "WarriorList", None)
-    if warrior_list is None:  # pragma: no cover - defensive
-        return None
+    if callable(warrior_list):
+        try:
+            df = warrior_list("Load")  # type: ignore[call-arg]
+            if df is not None:
+                return df
+        except FileNotFoundError:
+            return None
+        except Exception:
+            # Proceed to try modern API
+            pass
+
+    # 2) Modern service API
     try:
-        return warrior_list("Load")  # type: ignore[call-arg]
+        get_svc = getattr(data_management_service, "get_data_service", None)
+        if callable(get_svc):
+            svc = get_svc()
+            dm = getattr(svc, "data_manager", None)
+            if dm is not None and hasattr(dm, "warrior_list_operations"):
+                df = dm.warrior_list_operations("load")  # type: ignore[attr-defined]
+                if df is not None:
+                    return df
     except FileNotFoundError:
         return None
-    except Exception:  # pragma: no cover - unexpected
+    except Exception:
         return None
+
+    return None
 
 
 def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
@@ -99,6 +126,14 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
 
     # Heuristic fallback if not found explicitly
     def _looks_like_ticker(val: object) -> bool:
+        # Reject explicit missing values early
+        try:
+            import pandas as _pd  # local import to avoid global dependency in type checkers
+
+            if _pd.isna(val):  # type: ignore[attr-defined]
+                return False
+        except Exception:
+            pass
         if not isinstance(val, str):
             # Some files store tickers as objects; try str conversion guardedly
             try:
@@ -106,6 +141,11 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
             except Exception:
                 return False
         s = val.strip().upper()
+        if not s:
+            return False
+        # Explicitly exclude placeholder tokens that arise from NA/NaT coercion
+        if s in {"NAN", "NAT", "NA", "NONE", "NULL"}:
+            return False
         # Typical US tickers: 1-6 chars with letters, digits, dash, dot
         return bool(re.fullmatch(r"[A-Z][A-Z0-9\.-]{0,6}", s))
 
@@ -151,6 +191,8 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
             date_col_name = df.columns[1]
 
     tasks: list[WarriorTask] = []
+    # Collect raw pairs for debugging before dedupe
+    debug_raw: list[tuple[str, str]] = []
     for _, row in df.iterrows():
         try:
             raw_sym = row[sym_col_name]
@@ -172,6 +214,9 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
                 else:  # pragma: no cover - defensive
                     d = datetime.fromtimestamp(d_parsed).date()  # type: ignore[arg-type]
             tasks.append(WarriorTask(symbol=sym, trading_day=d))
+            # For debug: capture first N raw pairs
+            if len(debug_raw) < 100:
+                debug_raw.append((sym, d.isoformat()))
         except Exception:  # pragma: no cover - row level robustness
             continue
 
@@ -179,7 +224,49 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
     uniq: dict[tuple[str, date], WarriorTask] = {
         (t.symbol, t.trading_day): t for t in tasks
     }
-    return list(uniq.values())
+    result = list(uniq.values())
+
+    # Emit lightweight debug snapshot to help diagnose column selection mismatches
+    try:
+        cfg = get_config()
+        base = cfg.data_paths.base_path
+    except Exception:  # pragma: no cover - defensive
+        base = None
+    try:
+        debug_payload = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "columns": list(df.columns),
+            "symbol_column": str(sym_col_name),
+            "date_column": str(date_col_name),
+            "sample_symbol_values": [
+                str(v) for v in df[sym_col_name].dropna().astype(str).head(10).tolist()
+            ]
+            if sym_col_name in df.columns
+            else [],
+            "sample_date_values": [
+                (
+                    str(v)
+                    if not isinstance(v, (pd.Timestamp, datetime))
+                    else v.date().isoformat()
+                )
+                for v in df[date_col_name].dropna().head(10).tolist()
+            ]
+            if date_col_name in df.columns
+            else [],
+            "raw_pairs_sample": debug_raw[:20],
+            "pre_dedupe_count": len(tasks),
+            "post_dedupe_count": len(result),
+        }
+        if base is not None:
+            out_path = base / "warrior_task_debug.json"
+        else:
+            out_path = Path("~/warrior_task_debug.json").expanduser()
+        with out_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(debug_payload) + "\n")
+    except Exception:  # pragma: no cover - best effort
+        pass
+
+    return result
 
 
 def _apply_symbol_mapping_validator() -> None:
@@ -222,6 +309,18 @@ def find_warrior_tasks(
     if since_days is not None and since_days >= 0:
         cutoff = date.today() - timedelta(days=since_days)
         tasks = [t for t in tasks if t.trading_day >= cutoff]
+
+    # Optionally skip weekend dates at discovery time (disabled by default to keep tests deterministic)
+    skip_weekends = get_config().get_env_bool("L2_SKIP_WEEKENDS", False)
+    weekend_skipped = 0
+    if skip_weekends:
+
+        def _is_weekend(d: date) -> bool:
+            # Monday=0 ... Sunday=6
+            return d.weekday() >= 5
+
+        weekend_skipped = sum(1 for t in tasks if _is_weekend(t.trading_day))
+        tasks = [t for t in tasks if not _is_weekend(t.trading_day)]
     # Sort by date then symbol for deterministic ordering
     tasks.sort(key=lambda t: (t.trading_day.toordinal(), t.symbol))
     if last is not None and last > 0:
@@ -230,6 +329,28 @@ def find_warrior_tasks(
         tasks = [t for t in tasks if t.trading_day in keep]
     # Run mapping validator (warning emission only)
     _apply_symbol_mapping_validator()
+    # Emit a brief summary debug file with counts and source path to Warrior sheet
+    try:
+        cfg = get_config()
+        base = cfg.data_paths.base_path
+        try:
+            warrior_path = cfg.get_data_file_path("warrior_trading_trades")
+        except Exception:
+            warrior_path = None
+        summary_debug = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "total_tasks_after_filters": len(tasks),
+            "weekend_skipped": int(weekend_skipped),
+            "since_days": since_days,
+            "last": last,
+            "warrior_sheet_path": str(warrior_path) if warrior_path else None,
+            "first_tasks": [(t.symbol, t.trading_day.isoformat()) for t in tasks[:10]],
+        }
+        (base / "warrior_task_summary.json").write_text(
+            json.dumps(summary_debug, indent=2)
+        )
+    except Exception:  # pragma: no cover - best effort
+        pass
     return [(t.symbol, t.trading_day) for t in tasks]
 
 
@@ -270,6 +391,7 @@ def run_warrior_backfill(
         logger.setLevel(level)
 
     start = time.time()
+    run_id = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
     ordered: list[tuple[str, date]] = list(tasks)
     ordered.sort(key=lambda x: (x[1].toordinal(), x[0]))
     if max_tasks is not None and max_tasks > 0:
@@ -378,6 +500,12 @@ def run_warrior_backfill(
         for line in manifest_lines:
             _append_manifest(json.loads(line))
     duration = round(time.time() - start, 3)
+    # Capture requested window from config for observability
+    try:
+        win_start, win_end = get_config().get_l2_backfill_window()
+    except Exception:
+        win_start, win_end = None, None
+
     summary = {
         "counts": counts,
         "zero_row_tasks": zero_row_tasks,
@@ -388,6 +516,8 @@ def run_warrior_backfill(
         "force": force,
         "max_tasks": max_tasks,
         "concurrency": used_workers,
+        "run_id": run_id,
+        "requested_window_et": {"start": win_start, "end": win_end},
     }
     try:
         summary_path.write_text(json.dumps(summary, indent=2))

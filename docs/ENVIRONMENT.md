@@ -42,7 +42,7 @@ Single authoritative list of environment variables. Defaults sourced from `Confi
 | RETRY_ATTEMPTS                  | 3                            | Generic retry attempts                    | retry logic                |
 | DATABENTO_API_KEY               | (empty)                      | DataBento API key (optional)              | databento service          |
 | DATABENTO_ENABLE_BACKFILL       | 0                            | Enable DataBento-powered backfill         | orchestrator, backfill_api |
-| DATABENTO_DATASET               | NASDAQ.ITCH                  | Dataset code                              | databento service          |
+| DATABENTO_DATASET               | XNAS.ITCH                    | Dataset code                              | databento service          |
 | DATABENTO_SCHEMA                | mbp-10                       | L2 schema selection                       | databento service          |
 | DATABENTO_TZ                    | America/New_York             | Timezone for vendor window parse          | backfill window logic      |
 | L2_BACKFILL_WINDOW_ET           | 08:00-11:30                  | ET window for historical slice extraction | backfill_api               |
@@ -95,3 +95,22 @@ L2_MAX_WORKERS=2
 - Security: Omit `IB_USERNAME` / `IB_PASSWORD` from committed files; use a secrets manager in production.
 
 All variables documented here must stay in sync with the main README and `.env.example`.
+
+## Timezones and DST (ET windows)
+
+Historical backfill and trading windows are defined in Eastern Time (America/New_York) and converted to UTC per trading day with DST awareness:
+
+- L2_BACKFILL_WINDOW_ET: ET window used to slice historical Level 2 data for backfill (for example, 08:00-11:30). The system converts this ET window to UTC for the specified trading day, accounting for DST.
+- L2_TRADING_WINDOW_ET: ET trading window enforced for Level 2 capture when enabled. Same DST-aware conversion semantics apply.
+- DATABENTO_TZ: Vendor timezone used to parse vendor-side inputs; internal conversions for execution and storage still normalize to UTC.
+
+Implementation details:
+
+- Conversion uses America/New_York with per-day DST application via a dedicated utility. See src/utils/timezones.py: et_session_window_utc(trading_day, start_et, end_et) -> (start_utc, end_utc).
+- All persisted timestamps are stored in UTC (nanoseconds for Level 2 schema). File names index sessions by trading day in ET to avoid ambiguity.
+- Window boundaries clamp safely across DST transitions (for example, spring forward reduces the effective UTC span by one hour; fall back increases it). Tests cover the boundary change behavior.
+
+Operational guidance:
+
+- For deterministic backfills, prefer explicit trading days and ET windows. Avoid mixing vendor local definitions with ET unless you’ve set DATABENTO_TZ appropriately.
+- If your automation spans the DST boundary, schedule separate runs for pre-/post‑boundary dates to simplify validation and monitoring.

@@ -190,7 +190,7 @@ class ConfigManager:
             # DataBento optional backfill settings (defaults empty/off)
             "DATABENTO_API_KEY": "",
             "DATABENTO_ENABLE_BACKFILL": "0",
-            "DATABENTO_DATASET": "NASDAQ.ITCH",
+            "DATABENTO_DATASET": "XNAS.ITCH",
             "DATABENTO_SCHEMA": "mbp-10",
             "DATABENTO_TZ": "America/New_York",
             "L2_BACKFILL_WINDOW_ET": "09:00-11:00",

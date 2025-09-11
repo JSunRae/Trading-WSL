@@ -11,6 +11,8 @@ src/ib_Trader.py
 src/ib_Warror_dl.py
 src/migration_helper.py
 src/notifications.py
+src/analytics/__init__.py
+src/analytics/financial_metrics.py
 src/automation/headless_gateway.py
 src/config/extensions.py
 src/core/__init__.py
@@ -86,10 +88,12 @@ src/services/market_data/depth_service.py
 src/services/market_data/integration_example.py
 src/services/market_data/l2_paths.py
 src/services/market_data/l2_schema_adapter.py
+src/services/market_data/l2_schema_checker.py
 src/services/market_data/market_data_service.py
 src/services/market_data/test_service.py
 src/services/market_data/types.py
 src/services/market_data/warrior_backfill_orchestrator.py
+src/services/ml_contracts/export_manifest_validator.py
 src/tools/__init__.py
 src/tools/_cli_helpers.py
 src/tools/analyze_depth.py
@@ -102,8 +106,10 @@ src/tools/phase2_progress_demo.py
 src/tools/quick_start.py
 src/tools/record_depth.py
 src/tools/run_trading_fully_automated.py
+src/tools/self_check.py
 src/tools/system_analysis.py
 src/tools/validate_env.py
+src/tools/validate_export_manifest.py
 src/tools/verify_setup.py
 src/tools/warrior_update.py
 src/tools/analysis/analyze_root_files.py
@@ -139,6 +145,7 @@ src/utils/exit_handler.py
 src/utils/ib_connection_helper.py
 src/utils/reconnect.py
 src/utils/time_utils.py
+src/utils/timezones.py
 tests/test__ib_availability.py
 tests/test_api_surface.py
 tests/test_async_utils.py
@@ -150,7 +157,10 @@ tests/test_data_manager_download_tracker_edges.py
 tests/test_dataframe_safety.py
 tests/test_dataframe_safety_extras.py
 tests/test_describe_schema.py
+tests/test_dst_session_rules.py
 tests/test_error_handler.py
+tests/test_export_manifest_validator.py
+tests/test_financial_metrics.py
 tests/test_gateway_ready.py
 tests/test_ib_async_stubs.py
 tests/test_ib_availability.py
@@ -158,6 +168,8 @@ tests/test_ib_compat_errors.py
 tests/test_infra_smoke.py
 tests/test_integrated_error_handling.py
 tests/test_integrated_error_handling_extended.py
+tests/test_l2_fixture_schema.py
+tests/test_l2_schema_fixture.py
 tests/test_lazy_import_req_hist.py
 tests/test_masterpy_trading_interval.py
 tests/test_ml_imports.py
@@ -169,12 +181,15 @@ tests/test_ml_signal_executor_monitoring.py
 tests/test_ml_signal_executor_more.py
 tests/test_ml_signal_executor_unit.py
 tests/test_more_coverage_unit.py
+tests/test_observability_and_dst.py
+tests/test_observability_fields.py
 tests/test_performance_and_related.py
 tests/test_performance_cache_and_monitor.py
 tests/test_retry_manager.py
 tests/test_retry_manager_more_branches.py
 tests/test_setup.py
 tests/test_system_analysis.py
+tests/test_tool_observability.py
 tests/test_typed_ml_services.py
 trading.egg-info/PKG-INFO
 trading.egg-info/SOURCES.txt

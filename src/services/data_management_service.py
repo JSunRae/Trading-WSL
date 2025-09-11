@@ -8,6 +8,7 @@ extracted from the monolithic MasterPy_Trading.py file.
 Provides centralized data management with error handling and format support.
 """
 
+import sys
 from pathlib import Path
 from typing import Any, Literal
 
@@ -133,7 +134,9 @@ class ExcelManager:
                 index_col=index_col,
             )
         except (FileNotFoundError, PermissionError, ValueError) as e:
-            print(f"Warning: Could not load Excel file {file_path}: {e}")
+            print(
+                f"Warning: Could not load Excel file {file_path}: {e}", file=sys.stderr
+            )
             return None
 
     def get_temp_review_path(self, name: str = "") -> Path:
@@ -178,7 +181,10 @@ class FeatherManager:
         try:
             return pd.read_feather(str(file_path))
         except Exception as e:
-            print(f"Warning: Could not load Feather file {file_path}: {e}")
+            print(
+                f"Warning: Could not load Feather file {file_path}: {e}",
+                file=sys.stderr,
+            )
             return None
 
 
@@ -233,7 +239,12 @@ class DataManager:
         self, file_path: str | Path, format_type: str | None = None, **kwargs: Any
     ) -> pd.DataFrame | None:
         if not Path(file_path).exists():
-            print(f"Warning: File does not exist: {file_path}")
+            # Keep stdout clean for tools that emit machine-readable JSON.
+            # Opt-in to warnings by setting DATA_IO_WARN_MISSING=1.
+            import os as _os
+
+            if _os.getenv("DATA_IO_WARN_MISSING", "0") == "1":
+                print(f"Warning: File does not exist: {file_path}", file=sys.stderr)
             return None
         if format_type is None:
             format_type = DataFormat.get_format_from_extension(file_path)
@@ -250,10 +261,10 @@ class DataManager:
                 return pd.read_pickle(str(file_path), **kwargs)
             if format_type == "json":
                 return pd.read_json(str(file_path), **kwargs)
-            print(f"Warning: Unsupported load format: {format_type}")
+            print(f"Warning: Unsupported load format: {format_type}", file=sys.stderr)
             return None
         except Exception as e:  # pragma: no cover - defensive
-            print(f"Warning: Failed to load file {file_path}: {e}")
+            print(f"Warning: Failed to load file {file_path}: {e}", file=sys.stderr)
             return None
 
     def warrior_list_operations(

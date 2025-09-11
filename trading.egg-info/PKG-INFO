@@ -46,6 +46,7 @@ Requires-Dist: isort>=5.10.0; extra == "dev"
 Requires-Dist: pre-commit>=3.0.0; extra == "dev"
 Requires-Dist: pip-audit>=2.6.0; extra == "dev"
 Requires-Dist: safety>=2.3.0; extra == "dev"
+Requires-Dist: jsonschema>=4.18.0; extra == "dev"
 Requires-Dist: types-requests>=2.31.0; extra == "dev"
 Requires-Dist: types-setuptools>=68.0.0; extra == "dev"
 Requires-Dist: pandas-stubs>=2.0.0; extra == "dev"
@@ -64,6 +65,11 @@ Dynamic: license-file
 
 ---
 
+## Status
+
+[![CI](https://github.com/JSunRae/Trading/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JSunRae/Trading/actions/workflows/ci.yml)
+[![Cross-Repo Smoke (Trading)](https://github.com/JSunRae/Trading/actions/workflows/cross-smoke-trading.yml/badge.svg?branch=main)](https://github.com/JSunRae/Trading/actions/workflows/cross-smoke-trading.yml)
+
 ## Table of Contents (Quick Navigation)
 
 1. [Quick Start](#1-quick-start-90-use-case)
@@ -81,6 +87,8 @@ Dynamic: license-file
 13. [Data Flows](#data-flows)
 14. [Unified Environment Variables](#unified-environment-variables-authoritative)
 15. [Condensed Backfill Quickstart](#quickstart-condensed)
+16. [VS Code Tasks (One-click)](#vs-code-tasks-one-click)
+17. [TF_1 ML Alignment](#tf_1-ml-alignment)
 
 > Tip: All tools self‑document with `--describe`; see Section 6.
 
@@ -108,6 +116,13 @@ Options (common):
 - `--describe` — Print tool metadata (inputs, outputs, env) and exit.
 
 What happens automatically: start headless IB Gateway → login → request data → store (Parquet) → run analysis → produce signals → cleanup.
+
+Prerequisites:
+
+- Linux/WSL or macOS recommended; Windows supported via WSL.
+- Python 3.10+ in a virtualenv at `.venv/` (auto-created by setup tool).
+- Interactive Brokers Gateway or TWS installed and API enabled.
+- Paths with spaces are supported; quote them (as shown above).
 
 ### Update Warrior (Quick Start)
 
@@ -259,7 +274,7 @@ Trading/
 │   ├── ib_requests.py                      # Typed request wrappers
 │   └── project_types.py                    # Core type definitions
 │
-├── �📊 **ENTERPRISE DATA LAYER** (COMPLETE)
+├── 📊 **ENTERPRISE DATA LAYER** (COMPLETE)
 │   ├── src/core/
 │   │   ├── config.py                       # Environment-based config
 │   │   ├── error_handler.py                # Enterprise error management
@@ -396,6 +411,8 @@ Key properties:
 
 All files still use the `_databento` suffix for provenance; schema unchanged.
 
+Note: The orchestrator and programmatic API classify vendor zero-row results as `EMPTY` (tracked separately from normal `SKIP`). This distinction is important for ML ingestion quality checks.
+
 ### Legacy Deprecation Notice
 
 Legacy helper `WarriorList` now issues a `DeprecationWarning`. Use the programmatic API (`backfill_l2`) or the CLI tool instead. Additional legacy accessors will be deprecated in place—migration keeps surface stable while emitting warnings.
@@ -438,6 +455,8 @@ Useful env vars:
 | `FORCE_FAKE_IB` | Force fake client (CI / offline) |
 | `IB_USERNAME`, `IB_PASSWORD` | Automated headless auth |
 | `IB_GATEWAY_HEADLESS` | Force headless launch (default on in automation tool) |
+
+See also: `docs/ENVIRONMENT.md` for the authoritative list and examples. Boolean-like values accept `1/0`, `true/false`, or `yes/no`.
 
 ---
 
@@ -640,6 +659,8 @@ pytest tests/ --cov=src --cov-report=html
 
 Fake client used by default; integration tests requiring real IB are marked and skipped when unavailable.
 
+VS Code users: tasks exist for one-click runs (Install, Lint, Tests, Coverage). See section "VS Code Tasks" below.
+
 Performance / diagnostics (optional): `tests/test_parquet_performance.py`, `tests/test_memory_usage.py`.
 
 Pre-commit:
@@ -747,6 +768,8 @@ Tips:
 | Symbol-mapping identity warning | Mapping file missing or empty              | Provide `SYMBOL_MAPPING_FILE` with explicit vendor symbols if divergences exist       |
 | Mixed concurrency values        | Using legacy env only                      | Prefer `L2_MAX_WORKERS`; legacy `L2_BACKFILL_CONCURRENCY` used as fallback            |
 
+Note on timezones: All backfill session windows are specified in ET with DST respected. The configured ET windows (e.g., `L2_BACKFILL_WINDOW_ET`, `L2_TRADING_WINDOW_ET`) are enforced per trading day and converted to UTC internally to ensure correct boundaries across DST changes.
+
 ---
 
 ## 10. Coverage & Incremental Targets
@@ -831,7 +854,7 @@ See also: `docs/ENVIRONMENT.md` (kept in sync) and `.env.example`.
 | RETRY_ATTEMPTS            | 3                            | Generic retry attempts                  | retry logic                |
 | DATABENTO_ENABLE_BACKFILL | 0                            | Enable DataBento backfill               | orchestrator               |
 | DATABENTO_API_KEY         | (empty)                      | DataBento API key                       | vendor adapter             |
-| DATABENTO_DATASET         | NASDAQ.ITCH                  | Dataset code                            | vendor adapter             |
+| DATABENTO_DATASET         | XNAS.ITCH                    | Dataset code                            | vendor adapter             |
 | DATABENTO_SCHEMA          | mbp-10                       | L2 schema                               | vendor adapter             |
 | DATABENTO_TZ              | America/New_York             | Vendor timezone                         | backfill window            |
 | L2_BACKFILL_WINDOW_ET     | 09:00-11:00                  | Historical slice window (ET)            | backfill_api               |
@@ -877,7 +900,7 @@ Environment keys (add to `.env` or leave defaults):
 ```
 DATABENTO_API_KEY=your_key_here
 DATABENTO_ENABLE_BACKFILL=1
-DATABENTO_DATASET=NASDAQ.ITCH
+DATABENTO_DATASET=XNAS.ITCH
 DATABENTO_SCHEMA=mbp-10
 L2_BACKFILL_WINDOW_ET=09:00-11:00
 L2_ENFORCE_TRADING_WINDOW=1
@@ -922,3 +945,102 @@ Flags:
 - `--last N` keep only the last N distinct trading days after other filters (e.g. recent days).
 
 Exit summary line always includes a `concurrency=N` indicator for testability.
+
+---
+
+## VS Code Tasks (One-click)
+
+Common tasks are preconfigured in `.vscode/tasks.json` and surfaced in this workspace:
+
+- Install Dependencies: set up the virtual environment with dev extras.
+- Lint with Ruff: static analysis of `src/`, `tests/`, and `examples/`.
+- Format with Ruff: format code consistently.
+- Type Check with mypy / Pyright: static types for Python.
+- Run Tests / Run Tests with Coverage: execute the test suite and generate `coverage.json`.
+- Describe All Tools: validate every `--describe` output is valid JSON.
+- Nightly L2 Backfill: example batch settings for Warrior → DataBento automation.
+
+You can run tasks via Terminal → Run Task… in VS Code.
+
+---
+
+## TF_1 ML Alignment
+
+A dedicated document captures all hand-offs and contracts between this trading platform and the ML-centric project TF_1. See `docs/TF_1_ALIGNMENT.md` for:
+
+- Data contracts (parquet schemas, filenames, and directories)
+- Manifests and run artifacts (`backfill_l2_manifest.jsonl`, `backfill_l2_summary.json`)
+- Environment variables and path conventions shared across repos
+- Programmatic APIs available for ML ingestion (e.g., `backfill_l2`, discovery APIs)
+- Operational concerns (concurrency, idempotence, zero-row handling)
+- CI/CD and versioning recommendations to avoid breaking changes
+
+This section is intentionally brief; refer to the doc for full details.
+
+### Contracts and Validator
+
+- The directory `contracts/` is a git submodule that hosts shared ML contracts: schemas, rules, and canonical fixtures. Do not edit files under `contracts/` locally; propose changes upstream in the contracts repo.
+- All session windows are specified in ET and respect DST transitions. Backfill logic enforces ET windows and converts to UTC internally.
+- The TF_1 export manifest validator rejects unknown `schema_version` values and fails when the `production.alias` is missing for promoted models. A `production.alias` file in the model directory is required for non-dry emissions.
+
+🌟 North-Star: Trading + ML Ecosystem Alignment
+
+This ecosystem is designed around clear separation of concerns with a single shared source of truth for contracts.
+
+Repositories & Roles
+
+ml-contracts
+
+Scope: Canonical schemas, promotion rules, and L2 fixtures.
+
+Governance: Versioned, tagged, CODEOWNERS enforced.
+
+Responsibility: Defines what “valid” looks like. No model code, no trading logic.
+
+TF_1 (Machine Learning)
+
+Scope: Data preparation, deep learning models (CNN/LSTM/Transformers), evaluation, export.
+
+Responsibility: Train → evaluate → export → promote ML models.
+
+Boundary: Consumes contracts/ as a submodule. Produces manifests + models.
+
+Explicit Non-Goals: No execution, no broker logic, no order routing.
+
+Trading Platform
+
+Scope: Market data ingestion, backfill, execution orchestration, observability.
+
+Responsibility: Use validated contracts + manifests from TF_1.
+
+Boundary: No ML training or experiment management.
+
+🔄 Flow of Responsibility
+
+Contracts: Define schemas + promotion thresholds (ml-contracts).
+
+Modeling: Train, evaluate, and export models (TF_1) → validated against contracts.
+
+Execution: Consume model manifests + signals (Trading) → enforce risk, P&L, compliance.
+
+🚧 Guardrails
+
+Contracts-first: All schema/rule/fixture evolution starts in ml-contracts.
+
+Pre-commit hooks: Prevent local drift (no duplicate schema/rules in TF_1 or Trading).
+
+Cross-repo smoke CI: Each repo validates artifacts against contracts.
+
+Branch protection: Only reviewed, green builds hit main.
+
+🎯 North-Star
+
+Keep each repo laser-focused:
+
+ml-contracts = the law.
+
+TF_1 = build the brains.
+
+Trading = run the business.
+
+This preserves velocity, enforces trust, and ensures Future You (and collaborators) always know where to look.
