@@ -57,76 +57,92 @@ class AvailabilityChecker:
         if not symbol:
             return False
 
-        # Use cache key for performance
         cache_key = f"{symbol}_{bar_size}_{for_date}"
-        if cache_key in self._cache:
-            return self._cache[cache_key]
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return cached
 
-        # Check if it's marked as failed
-        if self.download_tracker and self.download_tracker.is_failed(
-            symbol, bar_size, for_date
-        ):
+        if self._is_marked_failed(symbol, bar_size, for_date):
             self._cache[cache_key] = False
             return False
 
-        # Check date-based availability
-        if for_date:
-            try:
-                if isinstance(for_date, str) and for_date != "":
-                    try:
-                        check_date = datetime.strptime(for_date, "%Y-%m-%d %H:%M:%S")
-                    except ValueError:
-                        check_date = datetime.strptime(for_date, "%Y-%m-%d %H:%M:%S.%f")
-                elif for_date == "":
-                    # Handle blank date case
-                    self._cache[cache_key] = True
-                    return True
-                else:
-                    check_date = for_date
+        if not for_date:
+            self._cache[cache_key] = True
+            return True
 
-                # Check against earliest available data if we have tracking info
-                if (
-                    self.download_tracker
-                    and hasattr(self.download_tracker, "df_failed")
-                    and symbol in self.download_tracker.df_failed.index
-                ):
-                    earliest_avail = self.download_tracker.df_failed.loc[
-                        symbol, "EarliestAvailBar"
-                    ]
-                    if (
-                        not pd.isnull(earliest_avail)
-                        and isinstance(earliest_avail, datetime | pd.Timestamp)
-                        and earliest_avail > check_date
-                    ):
-                        self._cache[cache_key] = False
-                        return False
-
-                    # Check for specific bar size failures
-                    latest_failed_col = f"{bar_size}-LatestFailed"
-                    if (
-                        latest_failed_col in self.download_tracker.df_failed.columns
-                        and not pd.isnull(
-                            self.download_tracker.df_failed.loc[
-                                symbol, latest_failed_col
-                            ]
-                        )
-                    ):
-                        latest_failed = self.download_tracker.df_failed.loc[
-                            symbol, latest_failed_col
-                        ]
-                        if latest_failed < for_date:  # Failed for a later date
-                            self._cache[cache_key] = False
-                            return False
-
-            except Exception as e:
-                print(f"Warning: Error checking date availability for {symbol}: {e}")
-                # Default to available if we can't check properly
+        try:
+            check_date = self._parse_date_safe(for_date)
+            if check_date is None:
                 self._cache[cache_key] = True
                 return True
 
-        # Default to available
+            if self._is_before_earliest_available(symbol, check_date):
+                self._cache[cache_key] = False
+                return False
+
+            if self._has_late_failure(symbol, bar_size, for_date):
+                self._cache[cache_key] = False
+                return False
+
+        except Exception as e:
+            print(f"Warning: Error checking date availability for {symbol}: {e}")
+            self._cache[cache_key] = True
+            return True
+
         self._cache[cache_key] = True
         return True
+
+    # -------------- helpers (extracted for clarity) --------------
+    def _is_marked_failed(self, symbol: str, bar_size: str, for_date: str) -> bool:
+        return bool(
+            self.download_tracker
+            and hasattr(self.download_tracker, "is_failed")
+            and self.download_tracker.is_failed(symbol, bar_size, for_date)
+        )
+
+    def _parse_date_safe(self, s: str):
+        if s == "":
+            return None
+        try:
+            return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            try:
+                return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                return pd.to_datetime(s, errors="coerce")
+
+    def _is_before_earliest_available(self, symbol: str, check_date: datetime) -> bool:
+        if (
+            self.download_tracker
+            and hasattr(self.download_tracker, "df_failed")
+            and symbol in self.download_tracker.df_failed.index
+        ):
+            earliest_avail = self.download_tracker.df_failed.loc[
+                symbol, "EarliestAvailBar"
+            ]
+            if not pd.isnull(earliest_avail):
+                try:
+                    ts = pd.Timestamp(str(earliest_avail))
+                    if isinstance(ts, pd.Timestamp) and ts.to_pydatetime() > check_date:
+                        return True
+                except Exception:
+                    return False
+        return False
+
+    def _has_late_failure(self, symbol: str, bar_size: str, for_date: str) -> bool:
+        if not (
+            self.download_tracker
+            and hasattr(self.download_tracker, "df_failed")
+            and symbol in self.download_tracker.df_failed.index
+        ):
+            return False
+        latest_failed_col = f"{bar_size}-LatestFailed"
+        if latest_failed_col not in self.download_tracker.df_failed.columns:
+            return False
+        latest_failed = self.download_tracker.df_failed.loc[symbol, latest_failed_col]
+        if pd.isnull(latest_failed):
+            return False
+        return str(latest_failed) < str(for_date)
 
     def get_earliest_available_bar(
         self, symbol: str, ib_connection=None

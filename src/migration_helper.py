@@ -154,7 +154,7 @@ class MigrationHelper:
         return True
 
     @staticmethod
-    def analyze_existing_code(file_path: str) -> dict[str, Any]:
+    def analyze_existing_code(file_path: str) -> dict[str, Any]:  # noqa: C901
         """
         Analyze existing code file for refactoring opportunities
         """

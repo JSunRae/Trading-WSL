@@ -13,6 +13,7 @@ import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Any, NoReturn
 
 from src.tools._cli_helpers import env_dep, print_json
 
@@ -120,9 +121,9 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-def find_python_files(repo_root):
+def find_python_files(repo_root: Path) -> list[Path]:
     """Find all Python files in target directories."""
-    python_files = []
+    python_files: list[Path] = []
 
     # Search in src/, scripts/, and root
     patterns = ["src/**/*.py", "scripts/**/*.py", "*.py"]
@@ -141,46 +142,54 @@ def find_python_files(repo_root):
     return sorted(python_files)
 
 
-def detect_role_tags(file_path, content):
-    """Detect role tags for the file based on heuristics."""
-    tags = []
+def _tags_from_path(file_path: Path) -> list[str]:
+    """Tags based on path only (priority order, first match wins)."""
     path_str = str(file_path).lower()
-
-    # Path-based detection
     if "test" in path_str:
-        tags.append("test")
-    elif "script" in path_str or file_path.parent.name == "scripts":
-        tags.append("tool")
-    elif "util" in path_str or "helper" in path_str:
-        tags.append("utils")
-    elif "config" in path_str:
-        tags.append("config")
-    elif "model" in path_str or "ml" in path_str:
-        tags.append("model")
-    elif "data" in path_str:
-        tags.append("data_io")
-    elif "service" in path_str:
-        tags.append("service")
-    elif "legacy" in path_str or "deprecated" in path_str:
-        tags.append("deprecated")
+        return ["test"]
+    if "script" in path_str or file_path.parent.name == "scripts":
+        return ["tool"]
+    if "util" in path_str or "helper" in path_str:
+        return ["utils"]
+    if "config" in path_str:
+        return ["config"]
+    if "model" in path_str or "ml" in path_str:
+        return ["model"]
+    if "data" in path_str:
+        return ["data_io"]
+    if "service" in path_str:
+        return ["service"]
+    if "legacy" in path_str or "deprecated" in path_str:
+        return ["deprecated"]
+    return []
 
-    # Content-based detection
+
+def _tags_from_content(content: str) -> list[str]:
+    """Tags inferred from file content."""
+    tags: list[str] = []
     if "@agent.tool" in content:
         tags.append("tool")
     if "if __name__ == '__main__'" in content:
         tags.append("cli")
-    if "argparse" in content or "click" in content:
+    if "argparse" in content or "click" in content or "typer" in content:
         tags.append("cli")
+    return tags
 
-    return tags if tags else ["unknown"]
+
+def detect_role_tags(file_path: Path, content: str) -> list[str]:
+    """Detect role tags for the file based on heuristics."""
+    tags = _tags_from_path(file_path) + _tags_from_content(content)
+    # De-duplicate while preserving order
+    ordered = list(dict.fromkeys(tags))
+    return ordered if ordered else ["unknown"]
 
 
-def check_entrypoint(content):
+def check_entrypoint(content: str) -> bool:
     """Check if file has an executable entry point."""
     return "if __name__ == '__main__'" in content
 
 
-def detect_cli_framework(content):
+def detect_cli_framework(content: str) -> str:
     """Detect which CLI framework is used."""
     if "argparse" in content:
         return "argparse"
@@ -194,7 +203,7 @@ def detect_cli_framework(content):
         return "none"
 
 
-def check_describe_support(file_path, repo_root):
+def check_describe_support(file_path: Path, repo_root: Path) -> dict[str, bool]:
     """Check if file supports --describe flag."""
     has_describe = False
     valid_json = False
@@ -222,7 +231,7 @@ def check_describe_support(file_path, repo_root):
     return {"has_describe": has_describe, "valid_json": valid_json}
 
 
-def analyze_file(file_path, repo_root):
+def analyze_file(file_path: Path, repo_root: Path) -> dict[str, Any] | None:
     """Analyze a single Python file."""
     try:
         with Path(file_path).open(encoding="utf-8") as f:
@@ -238,8 +247,8 @@ def analyze_file(file_path, repo_root):
         return None
 
     # Extract imports
-    internal_deps = []
-    external_deps = []
+    internal_deps: list[str] = []
+    external_deps: list[str] = []
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -274,13 +283,19 @@ def analyze_file(file_path, repo_root):
     return file_info
 
 
-def propose_target_path(file_info):
+def propose_target_path(file_info: dict[str, Any]) -> dict[str, Any]:
     """Propose a target path for a file."""
     current_path = file_info["path"]
-    role_tags = file_info["role_tags"]
+    role_tags: list[str] = file_info["role_tags"]
+    entrypoint: bool = bool(file_info["entrypoint"])  # explicit
 
+    target_dir = "src/"
+    confidence = 0.5
+    rationale = "Default placement"
+
+    # Special-case tools: prefer scripts/ when they are executable
     if "tool" in role_tags or "cli" in role_tags:
-        if file_info["entrypoint"]:
+        if entrypoint:
             target_dir = "scripts/"
             confidence = 0.9
             rationale = "Executable tool/CLI script"
@@ -288,45 +303,24 @@ def propose_target_path(file_info):
             target_dir = "src/tools/"
             confidence = 0.7
             rationale = "Tool module"
-    elif "test" in role_tags:
-        target_dir = "tests/"
-        confidence = 0.95
-        rationale = "Test file"
-    elif "config" in role_tags:
-        target_dir = "src/config/"
-        confidence = 0.8
-        rationale = "Configuration module"
-    elif "model" in role_tags:
-        target_dir = "src/models/"
-        confidence = 0.8
-        rationale = "ML/data model"
-    elif "data_io" in role_tags:
-        target_dir = "src/data/"
-        confidence = 0.8
-        rationale = "Data processing"
-    elif "utils" in role_tags:
-        target_dir = "src/utils/"
-        confidence = 0.8
-        rationale = "Utility module"
-    elif "service" in role_tags:
-        target_dir = "src/services/"
-        confidence = 0.8
-        rationale = "Service module"
-    elif "deprecated" in role_tags:
-        target_dir = "archive/legacy/"
-        confidence = 0.9
-        rationale = "Deprecated code"
     else:
-        target_dir = "src/"
-        confidence = 0.5
-        rationale = "Default placement"
+        # Ordered tag preference mapping (first match wins)
+        tag_to_target = [
+            ("test", ("tests/", 0.95, "Test file")),
+            ("config", ("src/config/", 0.8, "Configuration module")),
+            ("model", ("src/models/", 0.8, "ML/data model")),
+            ("data_io", ("src/data/", 0.8, "Data processing")),
+            ("utils", ("src/utils/", 0.8, "Utility module")),
+            ("service", ("src/services/", 0.8, "Service module")),
+            ("deprecated", ("archive/legacy/", 0.9, "Deprecated code")),
+        ]
+        for tag, (dir_, conf, why) in tag_to_target:
+            if tag in role_tags:
+                target_dir, confidence, rationale = dir_, conf, why
+                break
 
-    file_name = Path(current_path).name
-    target_path = target_dir + file_name
-
-    blockers = []
-    if file_info["deps_internal"]:
-        blockers.append("internal_dependencies")
+    target_path = target_dir + Path(current_path).name
+    blockers = ["internal_dependencies"] if file_info["deps_internal"] else []
 
     return {
         "current_path": current_path,
@@ -337,10 +331,108 @@ def propose_target_path(file_info):
     }
 
 
-def main():
-    if "--describe" in sys.argv[1:]:
-        return print_json(describe())
-    """Main entry point."""
+def _write_json(path: Path, obj: object) -> None:
+    with path.open("w") as f:
+        json.dump(obj, f, indent=2)
+
+
+def _generate_reports(
+    repo_root: Path, file_inventory: list[dict[str, Any]]
+) -> list[str]:
+    reports_dir = repo_root / "reports"
+    reports_dir.mkdir(exist_ok=True)
+
+    groups_proposal = [propose_target_path(f) for f in file_inventory]
+    _write_json(reports_dir / "scripts_inventory.json", file_inventory)
+    _write_json(reports_dir / "scripts_groups.json", groups_proposal)
+
+    # CSV move plan
+    with (reports_dir / "scripts_move_plan.csv").open("w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "current_path",
+                "target_path",
+                "reason",
+                "confidence",
+                "blockers",
+            ],
+        )
+        writer.writeheader()
+        for proposal in groups_proposal:
+            writer.writerow(
+                {
+                    "current_path": proposal["current_path"],
+                    "target_path": proposal["target_path"],
+                    "reason": proposal["rationale"],
+                    "confidence": proposal["confidence"],
+                    "blockers": "; ".join(proposal["blockers"]),
+                }
+            )
+
+    # Simple import graph + duplicates placeholder
+    import_graph = {
+        "nodes": [
+            {"id": f["path"], "role_tags": f["role_tags"]} for f in file_inventory
+        ],
+        "edges": [],
+        "cycles": [],
+    }
+    _write_json(reports_dir / "import_graph.json", import_graph)
+    _write_json(reports_dir / "duplicates.json", [])
+
+    return [
+        "scripts_inventory.json",
+        "scripts_groups.json",
+        "scripts_move_plan.csv",
+        "import_graph.json",
+        "duplicates.json",
+    ]
+
+
+def _summarize_inventory(file_inventory: list[dict[str, Any]]) -> dict[str, Any]:
+    role_counts: dict[str, int] = defaultdict(int)
+    for f in file_inventory:
+        for role in f["role_tags"]:
+            role_counts[role] += 1
+    return {
+        "total_files": len(file_inventory),
+        "by_role": dict(role_counts),
+        "executable_files": sum(1 for f in file_inventory if f["entrypoint"]),
+        "files_with_describe": sum(
+            1 for f in file_inventory if f["describe_support"]["has_describe"]
+        ),
+    }
+
+
+def run_analysis(verbose: bool = False) -> None:
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    repo_root = Path(__file__).parent
+    python_files = find_python_files(repo_root)
+    logger.info(f"Found {len(python_files)} Python files to analyze")
+
+    file_inventory: list[dict[str, Any]] = []
+    for file_path in python_files:
+        file_info = analyze_file(file_path, repo_root)
+        if file_info:
+            file_inventory.append(file_info)
+
+    logger.info(f"Successfully analyzed {len(file_inventory)} files")
+    reports = _generate_reports(repo_root, file_inventory)
+    summary = _summarize_inventory(file_inventory)
+
+    result = {
+        "success": True,
+        "files_analyzed": len(file_inventory),
+        "reports_generated": reports,
+        "summary": summary,
+    }
+    print(json.dumps(result, indent=2))
+
+
+def _parse_args() -> Any:
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -353,128 +445,37 @@ def main():
         "--skip-pyright", action="store_true", help="Skip pyright analysis"
     )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    return parser.parse_args()
 
-    args = parser.parse_args()
 
-    if args.describe:  # secondary path (argparse) still returns canonical schema
-        return print_json(describe())
+def _print_error_and_exit(e: Exception) -> NoReturn:
+    error_result = {
+        "success": False,
+        "error": str(e),
+        "files_analyzed": 0,
+        "reports_generated": [],
+    }
+    print(json.dumps(error_result, indent=2))
+    sys.exit(1)
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+
+def main() -> None:
+    """Main entry point."""
+    args = _parse_args()
+
+    if args.describe:
+        print_json(describe())
+        return None
 
     try:
-        repo_root = Path(__file__).parent
-        reports_dir = repo_root / "reports"
-        reports_dir.mkdir(exist_ok=True)
-
-        # Find and analyze all Python files
-        python_files = find_python_files(repo_root)
-        logger.info(f"Found {len(python_files)} Python files to analyze")
-
-        file_inventory = []
-        for file_path in python_files:
-            file_info = analyze_file(file_path, repo_root)
-            if file_info:
-                file_inventory.append(file_info)
-
-        logger.info(f"Successfully analyzed {len(file_inventory)} files")
-
-        # Generate grouping proposals
-        groups_proposal = []
-        for file_info in file_inventory:
-            proposal = propose_target_path(file_info)
-            groups_proposal.append(proposal)
-
-        # Generate reports
-        with (reports_dir / "scripts_inventory.json").open("w") as f:
-            json.dump(file_inventory, f, indent=2)
-
-        with (reports_dir / "scripts_groups.json").open("w") as f:
-            json.dump(groups_proposal, f, indent=2)
-
-        # Create CSV move plan
-        with (reports_dir / "scripts_move_plan.csv").open("w", newline="") as f:
-            writer = csv.DictWriter(
-                f,
-                fieldnames=[
-                    "current_path",
-                    "target_path",
-                    "reason",
-                    "confidence",
-                    "blockers",
-                ],
-            )
-            writer.writeheader()
-            for proposal in groups_proposal:
-                writer.writerow(
-                    {
-                        "current_path": proposal["current_path"],
-                        "target_path": proposal["target_path"],
-                        "reason": proposal["rationale"],
-                        "confidence": proposal["confidence"],
-                        "blockers": "; ".join(proposal["blockers"]),
-                    }
-                )
-
-        # Simple import graph
-        import_graph = {
-            "nodes": [
-                {"id": f["path"], "role_tags": f["role_tags"]} for f in file_inventory
-            ],
-            "edges": [],
-            "cycles": [],
-        }
-
-        with (reports_dir / "import_graph.json").open("w") as f:
-            json.dump(import_graph, f, indent=2)
-
-        with (reports_dir / "duplicates.json").open("w") as f:
-            json.dump([], f, indent=2)
-
-        # Summary
-        role_counts = defaultdict(int)
-        for file_info in file_inventory:
-            for role in file_info["role_tags"]:
-                role_counts[role] += 1
-
-        executable_files = sum(1 for f in file_inventory if f["entrypoint"])
-        files_with_describe = sum(
-            1 for f in file_inventory if f["describe_support"]["has_describe"]
-        )
-
-        result = {
-            "success": True,
-            "files_analyzed": len(file_inventory),
-            "reports_generated": [
-                "scripts_inventory.json",
-                "scripts_groups.json",
-                "scripts_move_plan.csv",
-                "import_graph.json",
-                "duplicates.json",
-            ],
-            "summary": {
-                "total_files": len(file_inventory),
-                "by_role": dict(role_counts),
-                "executable_files": executable_files,
-                "files_with_describe": files_with_describe,
-            },
-        }
-
-        print(json.dumps(result, indent=2))
-
+        run_analysis(verbose=args.verbose)
     except Exception as e:
-        error_result = {
-            "success": False,
-            "error": str(e),
-            "files_analyzed": 0,
-            "reports_generated": [],
-        }
-        print(json.dumps(error_result, indent=2))
-        sys.exit(1)
+        _print_error_and_exit(e)
 
 
 if __name__ == "__main__":  # pragma: no cover
     if "--describe" in sys.argv[1:]:
         print_json(describe())
         raise SystemExit(0)
-    raise SystemExit(main())
+    main()
+    raise SystemExit(0)

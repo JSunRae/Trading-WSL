@@ -1,6 +1,8 @@
 name: Cross-Repo Smoke (Trading)
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       artifact_glob:

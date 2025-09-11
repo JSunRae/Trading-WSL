@@ -29,6 +29,7 @@ Requires-Dist: pytz>=2022.1
 Requires-Dist: joblib>=1.1.0
 Requires-Dist: asyncio-mqtt>=0.11.0
 Requires-Dist: PyQt5>=5.15.0
+Requires-Dist: jsonschema>=4.18.0
 Requires-Dist: beautifulsoup4>=4.11.0
 Requires-Dist: requests>=2.28.0
 Requires-Dist: openpyxl>=3.0.0
@@ -59,7 +60,57 @@ Requires-Dist: ib_async>=2.0.0; extra == "ibkr"
 Provides-Extra: windows
 Requires-Dist: pywin32>=304; extra == "windows"
 Requires-Dist: win32com>=0.1.0; extra == "windows"
+Provides-Extra: ui
+Requires-Dist: PyQt6>=6.6; extra == "ui"
+Requires-Dist: qasync>=0.24.0; extra == "ui"
 Dynamic: license-file
+
+## IB historical data wrapper updates
+
+The async IB wrapper gained two quality-of-life improvements to make targeted historical pulls and downstream orchestration easier:
+
+- Target specific session end: `IBAsync.req_historical_data(..., end_datetime: str | None = None)`
+  - Pass an IB-formatted end time (e.g., `"20240905 16:00:00"`) to anchor a 1 D request to a precise session boundary. Defaults to current time when omitted.
+  - Signature remains backward compatible; existing callers are unaffected.
+
+- Rich completion + proactive cleanup in `historicalDataEnd`
+  - Emits an info log when a request completes: `Historical data complete reqId=... bars=N range=START->END`.
+  - Enqueues `(reqId, bars)` into the historical events queue as before.
+  - Immediately frees the stored bars and pending request for that `reqId` to reduce memory usage in long sessions.
+
+These changes improve traceability for paced, repeated requests (especially minute/second bars) and help avoid gradual memory growth in long-running jobs.
+
+## Single-symbol/day E2E smoke test (IB bars + DataBento L2)
+
+A lightweight integration test validates the end-to-end path for one `(symbol, trading_day)` from your Warrior list.
+
+- Location: `tests/e2e/test_single_symbol_single_day_e2e.py`
+- What it does:
+  - Discovers one `(symbol, day)` via `find_warrior_tasks()`.
+  - Connects to IB and fetches hourly and 1‑second historical bars for that day (anchored with `end_datetime`).
+  - Runs `backfill_l2(symbol, day)` to fetch Level 2 snapshots via DataBento and write `_databento` suffixed parquet (idempotent; atomic write).
+  - Emits a comprehensive JSON audit to stdout and saves it under `logs/e2e_single_{SYMBOL}_{YYYY-MM-DD}.json`.
+- Outputs captured in the audit:
+  - IB connection target (host/port/client_id) from config
+  - Hourly/seconds parquet file paths and whether they exist after the run
+  - L2 backfill result dict (status/rows/path/error)
+  - Before/after "needs" (hourly/seconds/L2) and key env like `L2_BACKFILL_WINDOW_ET`, `DATABENTO_DATASET`, `DATABENTO_SCHEMA`
+  - Key folders: Level2 directory for the symbol, IBDownloads, logs
+- Preconditions:
+  - IB TWS or Gateway is running with API enabled (paper/live per your config). No credentials are read by the test; it uses an already-running API endpoint.
+  - Warrior CSV is available at the configured path (see `ML_BASE_PATH` and `WARRIOR_TRADES_FILENAME`).
+  - Optional: `DATABENTO_API_KEY` + databento extra installed if you want L2 to write; otherwise the test still passes as long as IB bars exist.
+- Behavior:
+  - If IB isn’t reachable, the test is skipped.
+  - If DataBento is unavailable, L2 result will carry an error, but the test still passes if bars exist (it asserts at least one of hourly/seconds/L2 was produced).
+
+Run just this test and stream the JSON audit:
+
+```bash
+pytest -q -s tests/e2e/test_single_symbol_single_day_e2e.py
+```
+
+Tip: To aim a 1 D request at a specific session, build `end_datetime` as `YYYYMMDD HH:MM:SS`. For example, for trading day `D`, use `(D + 1) 09:30:00` or the next calendar day at a desired wall time per your venue/session.
 
 **NOTE:** Single authoritative README.
 
@@ -89,8 +140,21 @@ Dynamic: license-file
 15. [Condensed Backfill Quickstart](#quickstart-condensed)
 16. [VS Code Tasks (One-click)](#vs-code-tasks-one-click)
 17. [TF_1 ML Alignment](#tf_1-ml-alignment)
+18. [For Agents (AI assistants)](#for-agents-ai-assistants)
 
 > Tip: All tools self‑document with `--describe`; see Section 6.
+
+## For Agents (AI assistants)
+
+Use these rules before making changes or answering ambiguous tasks:
+
+- Context-first: On any new task or when unsure, skim `README.md` and `docs/ARCHITECTURE.md`. Also glance `pyproject.toml`, the `src/` layout, and the VS Code tasks list in this README.
+- Read efficiently: Prefer reading larger, meaningful chunks over many tiny reads; summarize key takeaways in 1–2 bullets before proceeding.
+- Contracts: When touching `src/tools/*`, run with `--describe` to get inputs/outputs and assumptions.
+- Assumptions: If details are missing, state 1–2 reasonable assumptions and continue; only ask if genuinely blocked.
+- Quality gates: After edits, run lint/format/types/tests (Ruff, Pyright/MyPy, Pytest) and keep the build green.
+- Small diffs: Minimize changes, preserve public APIs, add/adjust tests when behavior changes.
+- Safety: Don’t exfiltrate secrets; avoid network calls unless required by the task.
 
 ## 1. Quick Start (90% use‑case)
 
@@ -443,6 +507,28 @@ python src/tools/setup/setup_automated_trading.py   # Installs deps, validates e
 
 Configuration: override via `.env` (see `src/core/config.py`). Missing keys fall back to safe defaults.
 
+WSL→Windows IBKR connectivity (recommended):
+
+- Run IB Gateway on Windows (Paper). Enable API socket clients.
+- Use Windows portproxy so WSL connects to 172.17.208.1:4003 → 127.0.0.1:4002.
+  This avoids Trusted IP quirks for non-localhost connections.
+  Defaults in this repo target that proxy.
+
+Env vars (WSL-friendly defaults):
+
+- IB_HOST=172.17.208.1
+- IB_PORT=4003
+- IB_CLIENT_ID=1001
+- IB_CONNECT_TIMEOUT=20
+
+Probe connectivity from WSL venv:
+
+```bash
+python scripts/ib_probe.py
+```
+
+Expected: a single JSON line like {"connected":true,"serverVersion":...,"accounts":[...]} and exit 0.
+
 Fake vs Real IB client resolution order:
 
 1. `FORCE_FAKE_IB=1` → fake
@@ -749,6 +835,7 @@ Tips:
 
 - If headless launch fails, start Gateway/TWS manually and re-run the tool; it will attach to the existing session.
 - Validate ports with the quick checks above; defaults are 4002 (paper), 4001 (live).
+- If direct WSL→Windows 192.168.x.x:4002 times out, keep using the portproxy (172.17.208.1:4003 → 127.0.0.1:4002).
 
 ### Level 2 Data (record/analyze)
 
@@ -983,64 +1070,48 @@ This section is intentionally brief; refer to the doc for full details.
 - All session windows are specified in ET and respect DST transitions. Backfill logic enforces ET windows and converts to UTC internally.
 - The TF_1 export manifest validator rejects unknown `schema_version` values and fails when the `production.alias` is missing for promoted models. A `production.alias` file in the model directory is required for non-dry emissions.
 
-🌟 North-Star: Trading + ML Ecosystem Alignment
+### 🌟 North-Star: Trading + ML Ecosystem Alignment
 
 This ecosystem is designed around clear separation of concerns with a single shared source of truth for contracts.
 
-Repositories & Roles
+## Repositories & Roles
 
-ml-contracts
+# ml-contracts
 
 Scope: Canonical schemas, promotion rules, and L2 fixtures.
-
 Governance: Versioned, tagged, CODEOWNERS enforced.
-
 Responsibility: Defines what “valid” looks like. No model code, no trading logic.
 
-TF_1 (Machine Learning)
+# TF_1 (Machine Learning)
 
 Scope: Data preparation, deep learning models (CNN/LSTM/Transformers), evaluation, export.
-
 Responsibility: Train → evaluate → export → promote ML models.
-
 Boundary: Consumes contracts/ as a submodule. Produces manifests + models.
-
 Explicit Non-Goals: No execution, no broker logic, no order routing.
 
-Trading Platform
+# Trading Platform
 
 Scope: Market data ingestion, backfill, execution orchestration, observability.
-
 Responsibility: Use validated contracts + manifests from TF_1.
-
 Boundary: No ML training or experiment management.
 
-🔄 Flow of Responsibility
+## 🔄 Flow of Responsibility
 
 Contracts: Define schemas + promotion thresholds (ml-contracts).
-
 Modeling: Train, evaluate, and export models (TF_1) → validated against contracts.
-
 Execution: Consume model manifests + signals (Trading) → enforce risk, P&L, compliance.
 
 🚧 Guardrails
 
 Contracts-first: All schema/rule/fixture evolution starts in ml-contracts.
-
 Pre-commit hooks: Prevent local drift (no duplicate schema/rules in TF_1 or Trading).
-
 Cross-repo smoke CI: Each repo validates artifacts against contracts.
-
 Branch protection: Only reviewed, green builds hit main.
 
 🎯 North-Star
 
 Keep each repo laser-focused:
-
 ml-contracts = the law.
-
 TF_1 = build the brains.
-
 Trading = run the business.
-
 This preserves velocity, enforces trust, and ensures Future You (and collaborators) always know where to look.

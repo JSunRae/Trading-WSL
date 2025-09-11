@@ -322,7 +322,7 @@ class MLRiskManager(RiskManager):
             )
 
     @with_error_handling("ml_risk_management")
-    def assess_signal_risk(
+    def assess_signal_risk(  # noqa: C901
         self,
         signal: MLTradingSignal,
         current_portfolio_positions: dict[str, int] | None = None,

@@ -145,6 +145,67 @@ OUTPUT_SCHEMA = {
 }
 
 
+# ---- filename parsing helpers (module-level to keep function complexity low) ----
+def _file_type_from_name(name_lower: str) -> str:
+    if "failed" in name_lower:
+        return "failed_stocks"
+    if "downloaded" in name_lower:
+        return "downloaded_stocks"
+    if "downloadable" in name_lower:
+        return "downloadable_stocks"
+    if "warrior" in name_lower:
+        return "warrior_list"
+    return "time_series_data"
+
+
+def _symbol_from_filename(name: str) -> str | None:
+    base = name.replace(".xlsx", "").replace(".xls", "")
+    parts = base.split("_")
+    if parts and parts[0].isupper() and len(parts[0]) <= 5:
+        return parts[0]
+    return None
+
+
+def _timeframe_from_name(name_lower: str) -> str | None:
+    patterns = [
+        "1 sec",
+        "5 secs",
+        "10 secs",
+        "30 secs",
+        "1 min",
+        "5 mins",
+        "15 mins",
+        "30 mins",
+        "1 hour",
+        "2 hours",
+        "4 hours",
+        "1 day",
+        "1 week",
+        "1 month",
+    ]
+    for tf in patterns:
+        compact = tf.replace(" ", "")
+        underscored = tf.replace(" ", "_")
+        if compact in name_lower or underscored in name_lower:
+            return tf
+    return None
+
+
+def _date_from_filename(name: str) -> str | None:
+    import re
+
+    patterns = [r"(\d{4}-\d{2}-\d{2})", r"(\d{4}_\d{2}_\d{2})", r"(\d{8})"]
+    for pat in patterns:
+        m = re.search(pat, name)
+        if not m:
+            continue
+        raw = m.group(1)
+        if len(raw) == 8:  # YYYYMMDD
+            return f"{raw[:4]}-{raw[4:6]}-{raw[6:8]}"
+        return raw.replace("_", "-")
+    return None
+
+
 class ExcelToParquetMigrator:
     """Migrates Excel data files to Parquet format"""
 
@@ -224,77 +285,13 @@ class ExcelToParquetMigrator:
 
     def _parse_filename(self, filename: str) -> dict[str, str | None]:
         """Extract metadata from Excel filename"""
-        metadata: dict[str, str | None] = {
-            "symbol": None,
-            "timeframe": None,
-            "date_str": None,
-            "file_type": None,
+        lower = filename.lower()
+        return {
+            "symbol": _symbol_from_filename(filename),
+            "timeframe": _timeframe_from_name(lower),
+            "date_str": _date_from_filename(filename),
+            "file_type": _file_type_from_name(lower),
         }
-
-        filename_lower = filename.lower()
-
-        # Identify file types
-        if "failed" in filename_lower:
-            metadata["file_type"] = "failed_stocks"
-        elif "downloaded" in filename_lower:
-            metadata["file_type"] = "downloaded_stocks"
-        elif "downloadable" in filename_lower:
-            metadata["file_type"] = "downloadable_stocks"
-        elif "warrior" in filename_lower:
-            metadata["file_type"] = "warrior_list"
-        else:
-            metadata["file_type"] = "time_series_data"
-
-        # Extract symbol from filename (common patterns)
-        parts = filename.replace(".xlsx", "").replace(".xls", "").split("_")
-        if len(parts) > 0 and parts[0].isupper() and len(parts[0]) <= 5:
-            metadata["symbol"] = parts[0]
-
-        # Extract timeframe
-        timeframe_patterns = [
-            "1 sec",
-            "5 secs",
-            "10 secs",
-            "30 secs",
-            "1 min",
-            "5 mins",
-            "15 mins",
-            "30 mins",
-            "1 hour",
-            "2 hours",
-            "4 hours",
-            "1 day",
-            "1 week",
-            "1 month",
-        ]
-
-        for timeframe in timeframe_patterns:
-            if (
-                timeframe.replace(" ", "") in filename_lower
-                or timeframe.replace(" ", "_") in filename_lower
-            ):
-                metadata["timeframe"] = timeframe
-                break
-
-        # Extract date (YYYY-MM-DD or YYYYMMDD patterns)
-        import re
-
-        date_patterns = [r"(\d{4}-\d{2}-\d{2})", r"(\d{4}_\d{2}_\d{2})", r"(\d{8})"]
-
-        for pattern in date_patterns:
-            match = re.search(pattern, filename)
-            if match:
-                date_str = match.group(1)
-                # Normalize date format
-                if len(date_str) == 8:  # YYYYMMDD
-                    metadata["date_str"] = (
-                        f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
-                    )
-                else:
-                    metadata["date_str"] = date_str.replace("_", "-")
-                break
-
-        return metadata
 
     def migrate_file(self, file_info: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
         """Migrate a single Excel file to Parquet"""

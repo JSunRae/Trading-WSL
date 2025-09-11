@@ -120,9 +120,19 @@ async def fully_automated_trading(
         logger.info("🔌 Step 2: Connecting to IB API...")
         ib = IBAsync()
         cfg = get_config().ib_connection
-        port = cfg.gateway_paper_port if paper_trading else cfg.gateway_live_port
-        host = cfg.host
-        client_id = cfg.client_id
+        default_port = (
+            cfg.gateway_paper_port if paper_trading else cfg.gateway_live_port
+        )
+        host = os.getenv("IB_HOST", cfg.host)
+        port = int(os.getenv("IB_PORT", str(default_port)))
+        client_id = int(os.getenv("IB_CLIENT_ID", str(cfg.client_id)))
+        logger.info(
+            "Connecting with host=%s port=%s clientId=%s (paper=%s)",
+            host,
+            port,
+            client_id,
+            paper_trading,
+        )
         if not await ib.connect(host, port, client_id):
             logger.error("❌ Failed to connect to IB API")
             return False

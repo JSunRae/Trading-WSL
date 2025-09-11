@@ -47,16 +47,23 @@ def _iter_warrior_rows(
     wl: Any = dm.warrior_list()  # type: ignore[attr-defined]
     try:
         if wl is None or getattr(wl, "empty", True):
-            return iter(())
+            return
     except Exception:  # pragma: no cover
-        return iter(())
+        return
+    # Prefer Warrior CSV schema with 'Ticker' column; fallback to 'Symbol'/'Stock'
+    try:
+        cols = {str(c).strip().lower(): c for c in wl.columns}  # type: ignore[attr-defined]
+        ticker_col = cols.get("ticker") or cols.get("symbol") or cols.get("stock")
+    except Exception:  # pragma: no cover
+        ticker_col = None
     for idx in range(start_row, len(wl)):
         try:
             row = wl.iloc[idx]
-            raw = row.get("ROSS", "")  # type: ignore[attr-defined]
-            if not raw:
-                continue
-            symbols = [s.strip() for s in str(raw).split(";") if s.strip()]
+            if ticker_col:
+                val = row.get(ticker_col, "")  # type: ignore[attr-defined]
+                symbols = [str(val).strip()] if str(val).strip() else []
+            else:
+                symbols = []
             yield idx, row.get("Date"), symbols  # type: ignore[attr-defined]
         except Exception:  # pragma: no cover
             continue
@@ -135,11 +142,18 @@ def mode_mark_downloaded(dm: DataManager, start_row: int):
     if wl is None:
         return
     reconciled = 0
+    # Resolve Ticker column once
+    cols = {str(c).strip().lower(): c for c in wl.columns}
+    ticker_col = cols.get("ticker") or cols.get("symbol") or cols.get("stock")
     for idx in range(start_row, len(wl)):
         row = wl.iloc[idx]
         date_str = _coerce_date(row.get("Date")).strftime("%Y-%m-%d")
-        symbols = [s.strip() for s in str(row.get("ROSS", "")).split(";") if s.strip()]
-        for sym in symbols:
+        syms = []
+        if ticker_col:
+            v = str(row.get(ticker_col, "")).strip()
+            if v:
+                syms = [v]
+        for sym in syms:
             for bar in ("30 mins", "1 min", "1 secs", "ticks"):
                 if dm.data_exists(sym, bar, date_str):
                     reconciled += 1
@@ -152,11 +166,17 @@ def mode_trainlist(dm: DataManager, start_row: int):
         logger.warning("No warrior list available")
         return
     train: list[dict[str, str]] = []
+    cols = {str(c).strip().lower(): c for c in wl.columns}
+    ticker_col = cols.get("ticker") or cols.get("symbol") or cols.get("stock")
     for idx in range(start_row, len(wl)):
         row = wl.iloc[idx]
         date_str = _coerce_date(row.get("Date")).strftime("%Y-%m-%d")
-        symbols = [s.strip() for s in str(row.get("ROSS", "")).split(";") if s.strip()]
-        for sym in symbols:
+        syms = []
+        if ticker_col:
+            v = str(row.get(ticker_col, "")).strip()
+            if v:
+                syms = [v]
+        for sym in syms:
             if dm.data_exists(sym, "1 secs", date_str) and dm.data_exists(
                 sym, "1 min", date_str
             ):

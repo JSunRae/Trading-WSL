@@ -1,3 +1,50 @@
+## IB historical data wrapper updates
+
+The async IB wrapper gained two quality-of-life improvements to make targeted historical pulls and downstream orchestration easier:
+
+- Target specific session end: `IBAsync.req_historical_data(..., end_datetime: str | None = None)`
+  - Pass an IB-formatted end time (e.g., `"20240905 16:00:00"`) to anchor a 1 D request to a precise session boundary. Defaults to current time when omitted.
+  - Signature remains backward compatible; existing callers are unaffected.
+
+- Rich completion + proactive cleanup in `historicalDataEnd`
+  - Emits an info log when a request completes: `Historical data complete reqId=... bars=N range=START->END`.
+  - Enqueues `(reqId, bars)` into the historical events queue as before.
+  - Immediately frees the stored bars and pending request for that `reqId` to reduce memory usage in long sessions.
+
+These changes improve traceability for paced, repeated requests (especially minute/second bars) and help avoid gradual memory growth in long-running jobs.
+
+## Single-symbol/day E2E smoke test (IB bars + DataBento L2)
+
+A lightweight integration test validates the end-to-end path for one `(symbol, trading_day)` from your Warrior list.
+
+- Location: `tests/e2e/test_single_symbol_single_day_e2e.py`
+- What it does:
+  - Discovers one `(symbol, day)` via `find_warrior_tasks()`.
+  - Connects to IB and fetches hourly and 1‑second historical bars for that day (anchored with `end_datetime`).
+  - Runs `backfill_l2(symbol, day)` to fetch Level 2 snapshots via DataBento and write `_databento` suffixed parquet (idempotent; atomic write).
+  - Emits a comprehensive JSON audit to stdout and saves it under `logs/e2e_single_{SYMBOL}_{YYYY-MM-DD}.json`.
+- Outputs captured in the audit:
+  - IB connection target (host/port/client_id) from config
+  - Hourly/seconds parquet file paths and whether they exist after the run
+  - L2 backfill result dict (status/rows/path/error)
+  - Before/after "needs" (hourly/seconds/L2) and key env like `L2_BACKFILL_WINDOW_ET`, `DATABENTO_DATASET`, `DATABENTO_SCHEMA`
+  - Key folders: Level2 directory for the symbol, IBDownloads, logs
+- Preconditions:
+  - IB TWS or Gateway is running with API enabled (paper/live per your config). No credentials are read by the test; it uses an already-running API endpoint.
+  - Warrior CSV is available at the configured path (see `ML_BASE_PATH` and `WARRIOR_TRADES_FILENAME`).
+  - Optional: `DATABENTO_API_KEY` + databento extra installed if you want L2 to write; otherwise the test still passes as long as IB bars exist.
+- Behavior:
+  - If IB isn’t reachable, the test is skipped.
+  - If DataBento is unavailable, L2 result will carry an error, but the test still passes if bars exist (it asserts at least one of hourly/seconds/L2 was produced).
+
+Run just this test and stream the JSON audit:
+
+```bash
+pytest -q -s tests/e2e/test_single_symbol_single_day_e2e.py
+```
+
+Tip: To aim a 1 D request at a specific session, build `end_datetime` as `YYYYMMDD HH:MM:SS`. For example, for trading day `D`, use `(D + 1) 09:30:00` or the next calendar day at a desired wall time per your venue/session.
+
 **NOTE:** Single authoritative README.
 
 ---
@@ -26,8 +73,21 @@
 15. [Condensed Backfill Quickstart](#quickstart-condensed)
 16. [VS Code Tasks (One-click)](#vs-code-tasks-one-click)
 17. [TF_1 ML Alignment](#tf_1-ml-alignment)
+18. [For Agents (AI assistants)](#for-agents-ai-assistants)
 
 > Tip: All tools self‑document with `--describe`; see Section 6.
+
+## For Agents (AI assistants)
+
+Use these rules before making changes or answering ambiguous tasks:
+
+- Context-first: On any new task or when unsure, skim `README.md` and `docs/ARCHITECTURE.md`. Also glance `pyproject.toml`, the `src/` layout, and the VS Code tasks list in this README.
+- Read efficiently: Prefer reading larger, meaningful chunks over many tiny reads; summarize key takeaways in 1–2 bullets before proceeding.
+- Contracts: When touching `src/tools/*`, run with `--describe` to get inputs/outputs and assumptions.
+- Assumptions: If details are missing, state 1–2 reasonable assumptions and continue; only ask if genuinely blocked.
+- Quality gates: After edits, run lint/format/types/tests (Ruff, Pyright/MyPy, Pytest) and keep the build green.
+- Small diffs: Minimize changes, preserve public APIs, add/adjust tests when behavior changes.
+- Safety: Don’t exfiltrate secrets; avoid network calls unless required by the task.
 
 ## 1. Quick Start (90% use‑case)
 
@@ -380,6 +440,28 @@ python src/tools/setup/setup_automated_trading.py   # Installs deps, validates e
 
 Configuration: override via `.env` (see `src/core/config.py`). Missing keys fall back to safe defaults.
 
+WSL→Windows IBKR connectivity (recommended):
+
+- Run IB Gateway on Windows (Paper). Enable API socket clients.
+- Use Windows portproxy so WSL connects to 172.17.208.1:4003 → 127.0.0.1:4002.
+  This avoids Trusted IP quirks for non-localhost connections.
+  Defaults in this repo target that proxy.
+
+Env vars (WSL-friendly defaults):
+
+- IB_HOST=172.17.208.1
+- IB_PORT=4003
+- IB_CLIENT_ID=1001
+- IB_CONNECT_TIMEOUT=20
+
+Probe connectivity from WSL venv:
+
+```bash
+python scripts/ib_probe.py
+```
+
+Expected: a single JSON line like {"connected":true,"serverVersion":...,"accounts":[...]} and exit 0.
+
 Fake vs Real IB client resolution order:
 
 1. `FORCE_FAKE_IB=1` → fake
@@ -686,6 +768,7 @@ Tips:
 
 - If headless launch fails, start Gateway/TWS manually and re-run the tool; it will attach to the existing session.
 - Validate ports with the quick checks above; defaults are 4002 (paper), 4001 (live).
+- If direct WSL→Windows 192.168.x.x:4002 times out, keep using the portproxy (172.17.208.1:4003 → 127.0.0.1:4002).
 
 ### Level 2 Data (record/analyze)
 

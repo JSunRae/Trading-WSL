@@ -92,6 +92,52 @@ class LoggingConfig:
     enable_file: bool = True
 
 
+def _is_wsl_runtime() -> bool:
+    """Return True if running inside Windows Subsystem for Linux (best-effort)."""
+    try:
+        return "microsoft" in Path("/proc/version").read_text().lower()
+    except Exception:
+        return False
+
+
+def _looks_like_windows_drive_path(val: str) -> bool:
+    return (
+        len(val) > 2 and val[1] == ":" and val[0].isalpha() and (val[2] in {"\\", "/"})
+    )
+
+
+def _normalize_windows_path_if_wsl(val: str, wsl_active: bool) -> str:
+    if wsl_active and _looks_like_windows_drive_path(val):
+        drive = val[0].lower()
+        rest = val[3:].replace("\\", "/")
+        return f"/mnt/{drive}/{rest}"
+    return val
+
+
+def _parse_dotenv_lines(lines: list[str], wsl_active: bool) -> dict[str, str]:
+    """Parse key=value lines from a dotenv file, applying path normalization.
+
+    - Ignores comments and blank lines
+    - Expands ~/ prefixes
+    - Normalizes Windows drive paths for selected keys when running in WSL
+    """
+    env: dict[str, str] = {}
+    normalize_keys = {"ML_BASE_PATH", "ML_BACKUP_PATH", "DATA_PATH_OVERRIDE"}
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, raw_val = line.split("=", 1)
+        key = key.strip()
+        val = raw_val.strip().strip('"').strip("'")
+        if val.startswith("~/"):
+            val = str(Path.home() / val[2:])
+        if key in normalize_keys:
+            val = _normalize_windows_path_if_wsl(val, wsl_active)
+        env[key] = val
+    return env
+
+
 def _load_dotenv(path: str = ".env") -> dict[str, str]:  # pragma: no cover
     """Lightweight .env loader with WSL-aware Windows path normalization.
 
@@ -102,50 +148,15 @@ def _load_dotenv(path: str = ".env") -> dict[str, str]:  # pragma: no cover
     This lets users keep legacy Windows-oriented configs while operating inside
     a Linux / WSL runtime without breaking path discovery for historical files.
     """
-    env: dict[str, str] = {}
     p = Path(path)
     if not p.exists():
-        return env
-
-    def _is_wsl() -> bool:
-        try:
-            return "microsoft" in Path("/proc/version").read_text().lower()
-        except Exception:
-            return False
-
-    def _looks_like_win_drive(val: str) -> bool:
-        return (
-            len(val) > 2
-            and val[1] == ":"
-            and val[0].isalpha()
-            and (val[2] in {"\\", "/"})
-        )
-
-    wsl_active = os.name != "nt" and _is_wsl()
-
-    def _normalize_windows_path(val: str) -> str:
-        if wsl_active and _looks_like_win_drive(val):
-            drive = val[0].lower()
-            rest = val[3:].replace("\\", "/")
-            return f"/mnt/{drive}/{rest}"
-        return val
-
+        return {}
     try:
-        for raw in p.read_text().splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, raw_val = line.split("=", 1)
-            key = key.strip()
-            val = raw_val.strip().strip('"').strip("'")
-            if val.startswith("~/"):
-                val = str(Path.home() / val[2:])
-            if key in {"ML_BASE_PATH", "ML_BACKUP_PATH", "DATA_PATH_OVERRIDE"}:
-                val = _normalize_windows_path(val)
-            env[key] = val
+        wsl_active = os.name != "nt" and _is_wsl_runtime()
+        lines = p.read_text().splitlines()
+        return _parse_dotenv_lines(lines, wsl_active)
     except Exception:
         return {}
-    return env
 
 
 class ConfigManager:
@@ -166,7 +177,7 @@ class ConfigManager:
             "IB_FAILED_STOCKS_FILENAME": "IB Failed Stocks.xlsx",
             "IB_DOWNLOADABLE_STOCKS_FILENAME": "IB Downloadable Stocks.xlsx",
             "IB_DOWNLOADED_STOCKS_FILENAME": "IB Downloaded Stocks.xlsx",
-            "WARRIOR_TRADES_FILENAME": "WarriorTrading_Trades.xlsx",
+            "WARRIOR_TRADES_FILENAME": "WarriorTrading_Trades.csv",
             "TRAIN_LIST_PREFIX": "Train_List-",
             "FAILED_STOCKS_CSV": "failed_stocks.csv",
             "DOWNLOADABLE_STOCKS_CSV": "downloadable_stocks.csv",
@@ -193,12 +204,18 @@ class ConfigManager:
             "DATABENTO_DATASET": "XNAS.ITCH",
             "DATABENTO_SCHEMA": "mbp-10",
             "DATABENTO_TZ": "America/New_York",
-            "L2_BACKFILL_WINDOW_ET": "09:00-11:00",
+            # Default backfill window updated per requirements
+            "L2_BACKFILL_WINDOW_ET": "08:30-11:00",
             # Enforced trading window for DataBento L2 fetches
             "L2_ENFORCE_TRADING_WINDOW": "1",
-            "L2_TRADING_WINDOW_ET": "09:00-11:00",
+            "L2_TRADING_WINDOW_ET": "08:30-11:00",
             "L2_BACKFILL_CONCURRENCY": "2",
             "SYMBOL_MAPPING_FILE": "config/symbol_mapping.json",
+            # Backfill discovery & bar lookbacks
+            "L2_SKIP_WEEKENDS": "1",
+            "BAR_LOOKBACK_DAYS_SEC_1": "5",
+            "BAR_LOOKBACK_DAYS_HOUR_1": "30",
+            "BAR_LOOKBACK_DAYS_MIN_1": "5",
         }
         ib_config_data = self.config.get("ib_connection", {})
         self.ib_connection = IBConnectionConfig(
@@ -408,6 +425,18 @@ class ConfigManager:
 
     def get_l2_backfill_concurrency(self) -> int:
         return self.get_env_int("L2_BACKFILL_CONCURRENCY", 2)
+
+    # ---------------- Bar lookback helpers -----------------
+    def get_bar_lookback_days(self, timeframe: str) -> int:
+        tf = timeframe.lower().strip()
+        if tf in ("1 sec", "1 secs", "sec", "seconds"):
+            return self.get_env_int("BAR_LOOKBACK_DAYS_SEC_1", 5)
+        if tf in ("1 hour", "hour", "hours"):
+            return self.get_env_int("BAR_LOOKBACK_DAYS_HOUR_1", 30)
+        if tf in ("1 min", "1 mins", "minute", "minutes"):
+            return self.get_env_int("BAR_LOOKBACK_DAYS_MIN_1", 5)
+        # default conservative
+        return 5
 
     def get_backup_path(self, original_path: Path) -> Path:
         rel = original_path.relative_to(self.data_paths.base_path)

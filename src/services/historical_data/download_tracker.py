@@ -107,78 +107,82 @@ class DownloadTracker:
         earliest_avail_bar: str = "",
         comment: str = "",
     ) -> bool:
-        """
-        Mark a symbol as failed for download
+        """Mark a symbol as failed for download.
 
-        Args:
-            symbol: Stock symbol
-            bar_size: Bar size (e.g., "1 min", "30 mins")
-            for_date: Date string for the failed attempt
-            non_existent: True if symbol doesn't exist, False if just unavailable for date
-            earliest_avail_bar: Earliest available bar for the symbol
-            comment: Error comment
-
-        Returns:
-            True if marked successfully
+        Behavior preserved; logic split into helpers to reduce complexity.
         """
         if not symbol:
             raise DataError("Symbol cannot be blank", ErrorSeverity.MEDIUM)
 
-        save_needed = False
-
         if bar_size == "" and comment != "":
-            # This is an error capture, only add comment
-            for i in range(10):
-                comment_col = f"Comment{i}"
-                date_col = f"Date{i}"
-
-                if comment_col not in self.df_failed.columns:
-                    self.df_failed.loc[symbol, date_col] = for_date
-                    self.df_failed.loc[symbol, comment_col] = comment
-                    save_needed = True
-                    break
-                elif pd.isnull(self.df_failed.loc[symbol, comment_col]):
-                    self.df_failed.loc[symbol, date_col] = for_date
-                    self.df_failed.loc[symbol, comment_col] = comment
-                    save_needed = True
-                    break
-                elif (
-                    self.df_failed.loc[symbol, comment_col] == f"{for_date}::{comment}"
-                ):
-                    break  # Already noted
-
-            # Set default non-existent status if not set
-            if pd.isnull(self.df_failed.loc[symbol, "NonExistant"]):
-                self.df_failed.loc[symbol, "NonExistant"] = "Maybe"
-
+            changed = self._append_comment_only_failed(symbol, for_date, comment)
         else:
-            # Regular failure tracking
-            save_needed = True
-            self.df_failed.loc[symbol, "NonExistant"] = "Yes" if non_existent else "No"
+            changed = self._apply_failure_status(
+                symbol=symbol,
+                bar_size=bar_size,
+                for_date=for_date,
+                non_existent=non_existent,
+                earliest_avail_bar=earliest_avail_bar,
+            )
 
-            if not non_existent:
-                # Set earliest available bar if provided
-                if earliest_avail_bar and pd.isnull(
-                    self.df_failed.loc[symbol, "EarliestAvailBar"]
-                ):
-                    self.df_failed.loc[symbol, "EarliestAvailBar"] = earliest_avail_bar
-
-                # Track latest failed date for this bar size
-                latest_failed_col = f"{bar_size}-LatestFailed"
-                if latest_failed_col not in self.df_failed.columns:
-                    self.df_failed.loc[symbol, latest_failed_col] = for_date
-                else:
-                    try:
-                        current_latest = self.df_failed.at[symbol, latest_failed_col]
-                        if pd.isnull(current_latest) or current_latest > for_date:
-                            self.df_failed.loc[symbol, latest_failed_col] = for_date
-                    except (KeyError, IndexError):
-                        self.df_failed.loc[symbol, latest_failed_col] = for_date
-
-        if save_needed:
+        if changed:
             self.fail_changes += 1
             self._save_failed_if_needed()
 
+        return changed
+
+    def _append_comment_only_failed(
+        self, symbol: str, for_date: str, comment: str
+    ) -> bool:
+        """Append only a comment row for a failure without bar_size context."""
+        changed = False
+        for i in range(10):
+            comment_col = f"Comment{i}"
+            date_col = f"Date{i}"
+
+            if comment_col not in self.df_failed.columns:
+                self.df_failed.loc[symbol, date_col] = for_date
+                self.df_failed.loc[symbol, comment_col] = comment
+                changed = True
+                break
+            elif pd.isnull(self.df_failed.loc[symbol, comment_col]):
+                self.df_failed.loc[symbol, date_col] = for_date
+                self.df_failed.loc[symbol, comment_col] = comment
+                changed = True
+                break
+            elif self.df_failed.loc[symbol, comment_col] == f"{for_date}::{comment}":
+                break  # Already noted
+
+        if pd.isnull(self.df_failed.loc[symbol, "NonExistant"]):
+            self.df_failed.loc[symbol, "NonExistant"] = "Maybe"
+        return changed
+
+    def _apply_failure_status(
+        self,
+        *,
+        symbol: str,
+        bar_size: str,
+        for_date: str,
+        non_existent: bool,
+        earliest_avail_bar: str,
+    ) -> bool:
+        """Apply structured failure status for a symbol, updating relevant fields."""
+        self.df_failed.loc[symbol, "NonExistant"] = "Yes" if non_existent else "No"
+        if not non_existent:
+            # Set earliest available bar if provided and not set
+            if earliest_avail_bar and pd.isnull(
+                self.df_failed.loc[symbol, "EarliestAvailBar"]
+            ):
+                self.df_failed.loc[symbol, "EarliestAvailBar"] = earliest_avail_bar
+
+            # Track latest failed date for this bar size
+            latest_failed_col = f"{bar_size}-LatestFailed"
+            try:
+                current_latest = self.df_failed.at[symbol, latest_failed_col]
+                if pd.isnull(current_latest) or current_latest > for_date:
+                    self.df_failed.loc[symbol, latest_failed_col] = for_date
+            except (KeyError, IndexError):
+                self.df_failed.loc[symbol, latest_failed_col] = for_date
         return True
 
     def is_failed(self, symbol: str, bar_size: str, for_date: str = "") -> bool:

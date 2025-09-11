@@ -13,6 +13,7 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
+from src.services.market_data.artifact_check import compute_needs
 from src.services.market_data.warrior_backfill_orchestrator import (
     find_warrior_tasks,
     run_warrior_backfill,
@@ -76,6 +77,9 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--strict", action="store_true")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument(
+        "--verbose", action="store_true", help="Emit per-row needs to stderr"
+    )
+    p.add_argument(
         "--max-workers",
         type=int,
         help="Number of parallel workers (default env L2_MAX_WORKERS or 4)",
@@ -96,7 +100,7 @@ def _emit_summary_line(summary: dict[str, Any]) -> None:
     print(line)
 
 
-def main() -> int:
+def main() -> int:  # noqa: C901 - complexity accepted (out of scope)
     args = _parse_args()
     run_id = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
     t0 = datetime.now(UTC).timestamp()
@@ -113,6 +117,17 @@ def main() -> int:
         except Exception:
             win_start, win_end = None, None
         symbols = sorted({sym for sym, _ in tasks})
+        # Aggregate needs over unique tasks
+        agg = {"need_hourly": 0, "need_seconds": 0, "need_l2": 0}
+        for sym, d in tasks:
+            ds = d.strftime("%Y-%m-%d")
+            needs = compute_needs(sym, ds)
+            if needs.get("hourly"):
+                agg["need_hourly"] += 1
+            if needs.get("seconds"):
+                agg["need_seconds"] += 1
+            if needs.get("l2"):
+                agg["need_l2"] += 1
         preview = {
             "task_count": len(tasks),
             "first_tasks": [(sym, d.strftime("%Y-%m-%d")) for sym, d in tasks[:10]],
@@ -123,8 +138,20 @@ def main() -> int:
             "requested_window_et": {"start": win_start, "end": win_end},
             "stage_latency_ms": {"discovery": discovery_ms},
             "symbols": symbols,
+            "needs_summary": agg,
         }
         print(json.dumps(preview, indent=2))
+        # Optional verbose per-row output to stderr
+        if args.verbose:
+            import sys as _sys
+
+            for sym, d in tasks[:1000]:  # cap to keep output manageable
+                ds = d.strftime("%Y-%m-%d")
+                needs = compute_needs(sym, ds)
+                _sys.stderr.write(
+                    f"{ds},{sym} need hourly={bool(needs.get('hourly'))} "
+                    f"seconds={bool(needs.get('seconds'))} l2={bool(needs.get('l2'))}\n"
+                )
         return 0
     # Determine workers
     # Accept both new and legacy environment variable names for worker count

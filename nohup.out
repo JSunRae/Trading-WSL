@@ -1,0 +1,29 @@
+s
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Name                                       Stmts   Miss Branch BrPart  Cover   Missing
+--------------------------------------------------------------------------------------
+src/analytics/__init__.py                      2      2      0      0   0.0%   3-10
+src/analytics/evaluation.py                   41     41     10      0   0.0%   3-133
+src/analytics/financial_metrics.py            54     54     12      0   0.0%   7-128
+src/api.py                                   115    115      2      0   0.0%   8-196
+src/core/__init__.py                          11      4      2      0  53.8%   89-99
+src/core/config.py                           235     68     56     11  67.4%   34, 38, 42-48, 81, 99-100, 111-113, 259-260, 263, 272, 291-298, 302, 307, 310-311, 318-319, 328-336, 340, 344, 348, 352, 362, 369-374, 403, 406, 410, 413-414, 420-424, 427, 431-439, 442-443, 446, 449, 464-465, 469, 473, 477
+src/core/configuration/__init__.py             1      1      0      0   0.0%   7
+src/core/configuration/services.py            91     91     18      0   0.0%   1-128
+src/core/dataframe_safety.py                 211    211     70      0   0.0%   11-541
+src/data/__init__.py                           8      8      0      0   0.0%   9-27
+src/data/data_manager.py                     340    340     78      0   0.0%   3-625
+src/domain/ports.py                           10     10      4      0   0.0%   8-27
+src/execution/__init__.py                      2      2      0      0   0.0%   3-12
+src/execution/ml_signal_executor.py          378    378     86      0   0.0%   25-829
+src/monitoring/__init__.py                     2      2      0      0   0.0%   3-12
+src/monitoring/ml_performance_monitor.py     346    346     82      0   0.0%   15-892
+src/risk/__init__.py                           2      2      0      0   0.0%   3-5
+--------------------------------------------------------------------------------------
+TOTAL                                       1984   1675    420     11  14.1%
+
+5 files skipped due to complete coverage.
+Required test coverage of 10% reached. Total coverage: 14.06%
+1 skipped in 1.29s

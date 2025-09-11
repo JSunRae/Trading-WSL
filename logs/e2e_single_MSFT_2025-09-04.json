@@ -1,0 +1,59 @@
+{
+  "symbol": "MSFT",
+  "day": "2025-09-04",
+  "paths": {
+    "warrior_csv": "/home/jrae/wsl projects/Trading/data/WarriorTrading_Trades.csv",
+    "hourly": "/home/jrae/wsl projects/Trading/IBDownloads/MSFT_USUSD_1 hour_2025-09-04.ftr",
+    "seconds": "/home/jrae/wsl projects/Trading/IBDownloads/MSFT_USUSD_1 sec_2025-09-04.ftr",
+    "level2_dir": "/home/jrae/wsl projects/Trading/Level2/MSFT",
+    "ib_downloads_dir": "/home/jrae/wsl projects/Trading/IBDownloads",
+    "logs_dir": "logs"
+  },
+  "before_needs": {
+    "hourly": true,
+    "seconds": true,
+    "l2": false,
+    "paths": {
+      "hourly": "/home/jrae/wsl projects/Trading/IBDownloads/MSFT_USUSD_1 hour_2025-09-04.ftr",
+      "seconds": "/home/jrae/wsl projects/Trading/IBDownloads/MSFT_USUSD_1 sec_2025-09-04.ftr",
+      "l2_base": "/home/jrae/wsl projects/Trading/Level2/MSFT/2025-09-04_snapshots.parquet"
+    }
+  },
+  "after_needs": {
+    "hourly": false,
+    "seconds": false,
+    "l2": true
+  },
+  "databento": {
+    "enabled": true,
+    "result": {
+      "status": "skipped_preexisting"
+    }
+  },
+  "ib_events": [
+    {
+      "event": "gateway_autostart_attempt",
+      "script": "start_gateway.sh"
+    },
+    {
+      "event": "gateway_autostart_timeout"
+    },
+    {
+      "event": "gateway_autostart_attempt",
+      "script": "start_gateway.sh"
+    },
+    {
+      "event": "gateway_autostart_timeout"
+    },
+    {
+      "event": "ib_unreachable",
+      "error": "Failed to connect to IB at 127.0.0.1:[4002, 7497]"
+    }
+  ],
+  "env": {
+    "L2_BACKFILL_WINDOW_ET": "08:30-11:00",
+    "DATABENTO_DATASET": "NASDAQ.ITCH",
+    "DATABENTO_SCHEMA": "mbp-10"
+  },
+  "status": "ok"
+}

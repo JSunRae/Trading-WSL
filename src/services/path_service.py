@@ -142,6 +142,85 @@ class PathService:
 
         return Path(self.downloads_path + filename)
 
+    def _compute_date_suffix(
+        self, bar_type: int, date_str: str | datetime | date
+    ) -> str:
+        """Return an underscore-prefixed date suffix or empty string based on bar_type."""
+        if bar_type <= 2:
+            if date_str == "":
+                handle_error(__name__, "ticks need start and end string")
+                return ""
+            if isinstance(date_str, date):
+                return "_" + date_str.strftime("%Y-%m-%d")
+            return "_" + str(date_str)[:10]
+        return ""
+
+    def _normalize_file_ext(self, file_ext: str) -> str:
+        return file_ext if file_ext.startswith(".") else "." + file_ext
+
+    def _resolve_bar_str(self, bar_config: Any) -> str:
+        bar_str = getattr(bar_config, "BarStr", None) or getattr(
+            bar_config, "bar_str", None
+        )
+        if bar_str is not None:
+            return bar_str
+        bs_val = getattr(bar_config, "BarSize", getattr(bar_config, "bar_size", ""))
+        s = bs_val.lower() if isinstance(bs_val, str) else ""
+        if "tick" in s:
+            return "_Tick"
+        if "sec" in s:
+            return "_1s"
+        if "30" in s and "min" in s:
+            return "_30m"
+        if "min" in s:
+            return "_1m"
+        if "hour" in s or "1 hour" in s:
+            return "_1h"
+        if "day" in s or "1 day" in s or s == "1d":
+            return "_1d"
+        return "_Unknown"
+
+    def _normalize_scalar_type(self, st: str) -> str:
+        low = st.lower()
+        if "st" in low:
+            return "Std"
+        if "min" in low:
+            return "MinMax"
+        handle_error(__name__, "Scalar type needs to be Standard or Min Max.")
+        return "Unknown"
+
+    def _resolve_scalar_context(
+        self,
+        scalar_what: str,
+        bar_config: Any | None,
+        feature_str: str | None,
+    ) -> tuple[str, str]:
+        if feature_str is not None:
+            low = scalar_what.lower()
+            if "float" in low:
+                scalar_what = "float_"
+            elif "outstanding" in low:
+                scalar_what = "outstanding-shares_"
+            elif "short" in low:
+                scalar_what = "shares-short_"
+            elif "volume" in low:
+                scalar_what = "av-volume"
+            else:
+                handle_error(__name__, "Scalar type needs to be for Prices or Volumes")
+            return "Fr", scalar_what
+        if bar_config is not None:
+            scalar_for_local = getattr(bar_config, "bar_str", "_Unknown")
+            low = scalar_what.lower()
+            if low.startswith("p"):
+                scalar_what = "prices"
+            elif low.startswith("v"):
+                scalar_what = "volumes"
+            else:
+                handle_error(__name__, "Scalar type needs to be for Prices or Volumes")
+            return scalar_for_local, scalar_what
+        handle_error(__name__, "Scalar needs a BarObj or a FeatureStr")
+        return "Unknown", scalar_what
+
     def get_dataframe_location(
         self,
         stock_code: str,
@@ -152,66 +231,47 @@ class PathService:
         create_cx_file: bool = False,
     ) -> Path:
         """Get dataframe file location"""
+        location = self._df_base_location(stock_code, create_cx_file, file_ext)
+        date_suffix = self._date_suffix_from_bar_config(bar_config, date_str)
+        bar_str = self._resolve_bar_str(bar_config)
+        ext = self._normalize_file_ext(file_ext)
+        filename = self._build_df_filename(
+            stock_code, bar_str, normalised, date_suffix, ext
+        )
+        return Path(location + filename)
+
+    def _df_base_location(
+        self, stock_code: str, create_cx_file: bool, file_ext: str
+    ) -> str:
         if create_cx_file:
-            location = self.base_path + "CxData - "
             if file_ext != ".xlsx":
                 handle_error(
                     __name__, "This should be a xlsx file if its a Check file", 60
                 )
+            location = self.base_path + "CxData - "
         else:
             location = self.stocks_path + stock_code + "/Dataframes/"
-
         ensure_directory_exists(location)
+        return location
 
-        # Handle date string formatting (support legacy BarType as well)
-        bar_type = getattr(bar_config, "bar_type", None)
-        if bar_type is None:
-            bar_type = getattr(bar_config, "BarType", 0)
-        if bar_type <= 2:  # ticks, seconds, 1-minute need date strings
-            if date_str == "":
-                handle_error(__name__, "ticks need start and end string")
-                date_str = ""
-            else:
-                if isinstance(date_str, date):
-                    date_str = "_" + date_str.strftime("%Y-%m-%d")
-                else:
-                    date_str = "_" + str(date_str)[:10]
-        else:
-            date_str = ""
+    def _date_suffix_from_bar_config(
+        self, bar_config: Any, date_str: str | datetime | date
+    ) -> str:
+        bt = getattr(bar_config, "bar_type", getattr(bar_config, "BarType", 0))
+        return self._compute_date_suffix(int(bt), date_str)
 
-        # Normalization suffix
+    def _build_df_filename(
+        self,
+        stock_code: str,
+        bar_str: str,
+        normalised: bool,
+        date_suffix: str,
+        file_ext: str,
+    ) -> str:
         norm_suffix = "_NORM" if normalised else "_df"
-
-        # File extension handling
-        if not file_ext.startswith("."):
-            file_ext = "." + file_ext
-
-        # Prefer legacy BarStr; fall back to bar_str; last resort map from BarSize text
-        bar_str = getattr(bar_config, "BarStr", None)
-        if bar_str is None:
-            bar_str = getattr(bar_config, "bar_str", None)
-        if bar_str is None:
-            bs_val = getattr(bar_config, "BarSize", getattr(bar_config, "bar_size", ""))
-            s = bs_val.lower() if isinstance(bs_val, str) else ""
-            if "tick" in s:
-                bar_str = "_Tick"
-            elif "sec" in s:
-                bar_str = "_1s"
-            elif "30" in s and "min" in s:
-                bar_str = "_30m"
-            elif "min" in s:
-                bar_str = "_1m"
-            elif "hour" in s or "1 hour" in s:
-                bar_str = "_1h"
-            elif "day" in s or "1 day" in s or s == "1d":
-                bar_str = "_1d"
-            else:
-                bar_str = "_Unknown"
-        filename = (
-            f"{stock_code}{bar_str}{norm_suffix}_{self.version}{date_str}{file_ext}"
+        return (
+            f"{stock_code}{bar_str}{norm_suffix}_{self.version}{date_suffix}{file_ext}"
         )
-
-        return Path(location + filename)
 
     def get_level2_location(
         self,
@@ -235,14 +295,22 @@ class PathService:
         ensure_directory_exists(location)
 
         # Format start and end strings
-        if isinstance(start_str, date):
+        if isinstance(start_str, date) and not isinstance(start_str, datetime):
+            start_str = "_" + datetime.combine(start_str, datetime.min.time()).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+        elif isinstance(start_str, datetime):
             start_str = "_" + start_str.strftime("%Y-%m-%d %H:%M:%S")
-        elif not isinstance(start_str, str):
+        else:
             start_str = "_" + str(start_str)
 
-        if isinstance(end_str, date):
+        if isinstance(end_str, date) and not isinstance(end_str, datetime):
+            end_str = "_" + datetime.combine(end_str, datetime.min.time()).strftime(
+                "%H:%M:%S"
+            )
+        elif isinstance(end_str, datetime):
             end_str = "_" + end_str.strftime("%H:%M:%S")
-        elif not isinstance(end_str, str):
+        else:
             end_str = "_" + str(end_str)
 
         # Normalization suffix
@@ -274,9 +342,7 @@ class PathService:
         ensure_directory_exists(location)
 
         # Format date string
-        if hasattr(date_str, "strftime") and callable(
-            getattr(date_str, "strftime", None)
-        ):
+        if isinstance(date_str, datetime | date):
             date_formatted = date_str.strftime("%Y%m%d")
         else:
             date_formatted = (
@@ -296,56 +362,35 @@ class PathService:
         load_scalar: bool = True,
     ) -> Path | Any:
         """Get scalar file location or load scalar"""
+        file_path = self._scalar_file_path(
+            scalar_type, scalar_what, bar_config, feature_str
+        )
+        if load_scalar:
+            return self._load_scalar_from_file(file_path)
+        return file_path
+
+    def _scalar_file_path(
+        self,
+        scalar_type: str,
+        scalar_what: str,
+        bar_config: Any | None,
+        feature_str: str | None,
+    ) -> Path:
         location = self.base_path + "Scalars/"
         ensure_directory_exists(location)
+        stype = self._normalize_scalar_type(scalar_type)
+        sfor, swhat = self._resolve_scalar_context(scalar_what, bar_config, feature_str)
+        filename = f"scaler_{stype}{sfor}_{swhat}.bin"
+        return Path(location + filename)
 
-        # Normalize scalar type
-        if "st" in scalar_type.lower():
-            scalar_type = "Std"
-        elif "min" in scalar_type.lower():
-            scalar_type = "MinMax"
-        else:
-            handle_error(__name__, "Scalar type needs to be Standard or Min Max.")
-            scalar_type = "Unknown"
+    def _load_scalar_from_file(self, file_path: Path) -> Any | None:
+        try:
+            from joblib import load
 
-        # Determine scalar context
-        if feature_str is not None:
-            scalar_for = "Fr"
-            if "float" in scalar_what.lower():
-                scalar_what = "float_"
-            elif "outstanding" in scalar_what.lower():
-                scalar_what = "outstanding-shares_"
-            elif "short" in scalar_what.lower():
-                scalar_what = "shares-short_"
-            elif "volume" in scalar_what.lower():
-                scalar_what = "av-volume"
-            else:
-                handle_error(__name__, "Scalar type needs to be for Prices or Volumes")
-        elif bar_config is not None:
-            scalar_for = getattr(bar_config, "bar_str", "_Unknown")
-            if scalar_what.lower().startswith("p"):
-                scalar_what = "prices"
-            elif scalar_what.lower().startswith("v"):
-                scalar_what = "volumes"
-            else:
-                handle_error(__name__, "Scalar type needs to be for Prices or Volumes")
-        else:
-            handle_error(__name__, "Scalar needs a BarObj or a FeatureStr")
-            scalar_for = "Unknown"
-
-        filename = f"scaler_{scalar_type}{scalar_for}_{scalar_what}.bin"
-        file_path = Path(location + filename)
-
-        if load_scalar:
-            try:
-                from joblib import load
-
-                return load(file_path)
-            except Exception as e:
-                handle_error(__name__, f"Could not load scalar from {file_path}: {e}")
-                return None
-        else:
-            return file_path
+            return load(str(file_path))
+        except Exception as e:  # pragma: no cover - IO dependent
+            handle_error(__name__, f"Could not load scalar from {file_path}: {e}")
+            return None
 
     def get_excel_review_location(self, name: str = "") -> Path:
         """Get location for Excel review files"""
@@ -363,19 +408,7 @@ class PathService:
 
         return path
 
-    def get_warrior_trading_location(self) -> Path:
-        """Get Warrior Trading Excel file location (centralized)"""
-        if self.config:
-            return self.config.get_data_file_path("warrior_trading_trades")
-        return Path("./Warrior/WarriorTrading_Trades.xlsx")
-
-    def get_train_list_location(self, train_type: str = "Test") -> Path:
-        """Get training list Excel file location (centralized)"""
-        if self.config:
-            return self.config.get_data_file_path("train_list", symbol=train_type)
-        return Path(self.base_path + f"Train_List-{train_type}.xlsx")
-
-    def get_ib_status_files(self) -> dict:
+    def get_ib_status_files(self) -> dict[str, Path]:
         """Get Interactive Brokers status file locations (centralized)"""
         if self.config:
             return {
@@ -422,7 +455,7 @@ class PathService:
         for directory in directories:
             ensure_directory_exists(directory)
 
-    def get_path_summary(self) -> dict:
+    def get_path_summary(self) -> dict[str, Any]:
         """Get summary of all configured paths"""
         return {
             "base_path": self.base_path,

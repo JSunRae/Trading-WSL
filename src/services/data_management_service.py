@@ -248,21 +248,36 @@ class DataManager:
             return None
         if format_type is None:
             format_type = DataFormat.get_format_from_extension(file_path)
+
+        def _load_csv():
+            return pd.read_csv(str(file_path), **kwargs)
+
+        def _load_parquet():
+            return pd.read_parquet(str(file_path), **kwargs)
+
+        def _load_pickle():
+            return pd.read_pickle(str(file_path), **kwargs)
+
+        def _load_json():
+            return pd.read_json(str(file_path), **kwargs)
+
+        loaders = {
+            "excel": lambda: self.excel.load_dataframe(file_path, **kwargs),
+            "feather": lambda: self.feather.load_dataframe(file_path),
+            "csv": _load_csv,
+            "parquet": _load_parquet,
+            "pickle": _load_pickle,
+            "json": _load_json,
+        }
+
         try:
-            if format_type == "excel":
-                return self.excel.load_dataframe(file_path, **kwargs)
-            if format_type == "feather":
-                return self.feather.load_dataframe(file_path)
-            if format_type == "csv":
-                return pd.read_csv(str(file_path), **kwargs)
-            if format_type == "parquet":
-                return pd.read_parquet(str(file_path), **kwargs)
-            if format_type == "pickle":
-                return pd.read_pickle(str(file_path), **kwargs)
-            if format_type == "json":
-                return pd.read_json(str(file_path), **kwargs)
-            print(f"Warning: Unsupported load format: {format_type}", file=sys.stderr)
-            return None
+            loader = loaders.get(str(format_type).lower())
+            if loader is None:
+                print(
+                    f"Warning: Unsupported load format: {format_type}", file=sys.stderr
+                )
+                return None
+            return loader()
         except Exception as e:  # pragma: no cover - defensive
             print(f"Warning: Failed to load file {file_path}: {e}", file=sys.stderr)
             return None
@@ -279,6 +294,9 @@ class DataManager:
             warrior_path = Path("./Warrior/WarriorTrading_Trades.xlsx")
 
         if operation.lower() == "load":
+            # Support CSV or Excel based on file extension
+            if str(warrior_path).lower().endswith(".csv"):
+                return self.load_dataframe(warrior_path)
             return self.load_dataframe(warrior_path, sheet_name=0, header=0)
         elif operation.lower() == "save":
             if df is None:

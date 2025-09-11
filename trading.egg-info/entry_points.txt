@@ -1,4 +1,6 @@
 [console_scripts]
+config-editor = src.ui.config_editor.app:main
+trading-gui = src.ui.trading_app.app:main
 trading-main = src.ib_main:main
 trading-trader = src.ib_trader:main
 validate-env = src.tools.validate_env:main

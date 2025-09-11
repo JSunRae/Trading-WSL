@@ -330,8 +330,9 @@ class BarConfiguration:
 
         self.col_close = "close"
 
-    def get_interval_req(self, start_time: str = "", end_time: str = "") -> str | int:
+    def get_interval_req(self, start_time: str = "", end_time: str = "") -> str | int:  # noqa: C901
         """Calculate required interval for data request"""
+        # Default interval when no start specified
         if start_time == "":
             return (
                 str(int(self.interval_max_allowed * self.interval_mfactor))
@@ -339,56 +340,40 @@ class BarConfiguration:
             )
 
         try:
-            start_timestamp: pd.Timestamp
-            end_timestamp: pd.Timestamp
+            # Normalize inputs to Timestamp
+            start_ts = pd.to_datetime(start_time)
+            end_ts = pd.to_datetime(end_time)
 
-            if isinstance(start_time, str):
-                start_timestamp = pd.Timestamp(start_time)
-            else:
-                start_timestamp = start_time
+            total_seconds = max(0, int((end_ts - start_ts).total_seconds()))
 
-            if isinstance(end_time, str):
-                end_timestamp = pd.Timestamp(end_time)
-            else:
-                end_timestamp = end_time
+            unit_seconds = {
+                "D": 86400,
+                "H": 3600,
+                "M": 60,
+                "S": 1,
+            }.get(self.delta_letter, 1)
 
-            time_diff = end_timestamp - start_timestamp
-
-            if self.delta_letter == "D":
-                interval_needed = int(time_diff.days)
-            elif self.delta_letter == "H":
-                interval_needed = int(time_diff.total_seconds() / 3600)
-            elif self.delta_letter == "M":
-                interval_needed = int(time_diff.total_seconds() / 60)
-            elif self.delta_letter == "S":
-                interval_needed = int(time_diff.total_seconds())
-            else:
-                interval_needed = int(time_diff.total_seconds())
-
+            interval_needed = total_seconds // unit_seconds
+            clamped = min(self.interval_max_allowed, int(interval_needed))
             interval_req = (
-                str(
-                    int(
-                        min([self.interval_max_allowed, interval_needed])
-                        * self.interval_mfactor
-                    )
-                )
-                + self.duration_letter
+                f"{int(clamped * self.interval_mfactor)}{self.duration_letter}"
             )
 
-            if interval_req in ["0 D", "1 S"]:
+            # Edge-case normalization consistent with legacy behavior
+            if interval_req in {"0 D", "1 S"}:
                 return 0
             if interval_req == "60 S" and self.bar_name == "minutes":
                 return 0
 
+            return interval_req
+
         except (ValueError, TypeError) as e:
             print(f"Warning: Error converting times in get_interval_req: {e}")
             # Use default interval if conversion fails
-            interval_req = (
+            return (
                 str(int(self.interval_max_allowed * self.interval_mfactor))
                 + self.duration_letter
             )
-
-        return interval_req
 
 
 class BarConfigurationService:

@@ -27,12 +27,13 @@ import sys
 import threading
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from typing import cast as _cast
 
 import pandas as pd
 
@@ -216,11 +217,25 @@ class MLSignalExecutor:
         # Risk management
         trading_config = getattr(self.config, "trading", {})
         if isinstance(trading_config, dict):
-            self.max_position_size = trading_config.get("max_position_size", 1000)
-            self.max_daily_trades = trading_config.get("max_daily_trades", 100)
+            # Help type checkers: ensure mapping[str, Any]
+            tc_map = _cast(Mapping[str, Any], trading_config)
+            mps_raw = tc_map.get("max_position_size", 1000)
+            mdt_raw = tc_map.get("max_daily_trades", 100)
+            try:
+                self.max_position_size = int(mps_raw)  # type: ignore[assignment]
+            except Exception:
+                self.max_position_size = 1000
+            try:
+                self.max_daily_trades = int(mdt_raw)  # type: ignore[assignment]
+            except Exception:
+                self.max_daily_trades = 100
         else:
-            self.max_position_size = getattr(trading_config, "max_position_size", 1000)
-            self.max_daily_trades = getattr(trading_config, "max_daily_trades", 100)
+            self.max_position_size = int(
+                getattr(trading_config, "max_position_size", 1000)
+            )
+            self.max_daily_trades = int(
+                getattr(trading_config, "max_daily_trades", 100)
+            )
 
         self.daily_trade_count = 0
         self.last_reset_date = datetime.now(UTC).date()
@@ -397,7 +412,12 @@ class MLSignalExecutor:
             # Check confidence threshold
             trading_config = getattr(self.config, "trading", {})
             if isinstance(trading_config, dict):
-                min_confidence = trading_config.get("min_signal_confidence", 0.6)
+                tc_map = _cast(Mapping[str, Any], trading_config)
+                mc_raw = tc_map.get("min_signal_confidence", 0.6)
+                try:
+                    min_confidence = float(mc_raw)  # type: ignore[assignment]
+                except Exception:
+                    min_confidence = 0.6
             else:
                 min_confidence = getattr(trading_config, "min_signal_confidence", 0.6)
 
@@ -521,82 +541,31 @@ class MLSignalExecutor:
         if execution.execution_start_time is None:
             execution.execution_start_time = datetime.now(UTC)
 
-        timeout_time = execution.execution_start_time + timedelta(
-            seconds=signal.max_execution_time_seconds
-        )
+        timeout_time = self._compute_timeout_time(execution)
 
         while datetime.now(UTC) < timeout_time:
             try:
-                all_filled = True
-                total_filled = 0
-                total_value = 0.0
-                total_commission = 0.0
+                all_filled, total_filled, total_value, total_commission = (
+                    self._aggregate_orders_state(execution)
+                )
 
-                for order_id in execution.orders_created:
-                    order = self.order_service.get_order(order_id)
-                    if not order:
-                        continue
-
-                    if order.status in [
-                        OrderStatus.PENDING_SUBMIT,
-                        OrderStatus.SUBMITTED,
-                        OrderStatus.PARTIAL_FILLED,
-                    ]:
-                        all_filled = False
-
-                    total_filled += order.filled_quantity
-                    if order.avg_fill_price:
-                        total_value += order.filled_quantity * order.avg_fill_price
-                    total_commission += order.commission
-
-                # Update execution tracking
-                execution.total_filled_quantity = total_filled
-                execution.total_commission = total_commission
-
-                if total_filled > 0:
-                    execution.average_fill_price = total_value / total_filled
+                # Update execution tracking and averages
+                self._update_execution_aggregates(
+                    execution, total_filled, total_value, total_commission
+                )
 
                 if all_filled and total_filled > 0:
-                    # Execution complete
-                    execution.status = SignalStatus.EXECUTED
-                    execution.execution_complete_time = datetime.now(UTC)
-
-                    # Calculate performance metrics
-                    execution.signal_to_execution_latency_ms = (
-                        execution.execution_complete_time - execution.received_time
-                    ).total_seconds() * 1000
-
-                    # Move to completed signals
-                    with self._signal_lock:
-                        self.completed_signals[execution.signal_id] = execution
-                        if execution.signal_id in self.active_signals:
-                            del self.active_signals[execution.signal_id]
-
-                    # Update stats
-                    self.execution_stats["signals_executed_successfully"] += 1
-                    self.execution_stats["total_commission_paid"] += total_commission
-
-                    # Generate execution report
-                    report = self._generate_execution_report(execution)
-
+                    # Execution complete path
+                    report = self._finalize_success(execution)
                     self.logger.info(
                         f"Signal {execution.signal_id} executed successfully: "
                         f"{total_filled} shares at avg ${execution.average_fill_price:.4f}"
                     )
-
-                    # Notify handlers
                     self._notify_execution_complete_handlers(report)
                     return
 
-                # Check if all orders failed/cancelled
-                all_failed = True
-                for order_id in execution.orders_created:
-                    order = self.order_service.get_order(order_id)
-                    if order and order.is_active:
-                        all_failed = False
-                        break
-
-                if all_failed and total_filled == 0:
+                # Early failure if everything is inactive and nothing filled
+                if self._all_orders_inactive(execution) and total_filled == 0:
                     execution.status = SignalStatus.FAILED
                     execution.error_message = "All orders failed or were cancelled"
                     self.execution_stats["signals_failed"] += 1
@@ -605,7 +574,7 @@ class MLSignalExecutor:
                     )
                     return
 
-                # Wait before next check
+                # Wait before next poll
                 time.sleep(1)
 
             except Exception as e:
@@ -621,6 +590,78 @@ class MLSignalExecutor:
         )
         self.execution_stats["signals_timed_out"] += 1
         self.logger.warning(f"Signal {execution.signal_id} timed out")
+
+    # ---- helpers for monitoring loop ----
+    def _compute_timeout_time(self, execution: SignalExecution) -> datetime:
+        """Return absolute timeout moment for an execution."""
+        start = execution.execution_start_time or datetime.now(UTC)
+        return start + timedelta(seconds=execution.signal.max_execution_time_seconds)
+
+    def _aggregate_orders_state(
+        self, execution: SignalExecution
+    ) -> tuple[bool, int, float, float]:
+        """Aggregate per-order state into simple totals.
+
+        Returns: (all_filled, total_filled, total_value, total_commission)
+        """
+        all_filled = True
+        total_filled = 0
+        total_value = 0.0
+        total_commission = 0.0
+        for order_id in execution.orders_created:
+            order = self.order_service.get_order(order_id)
+            if not order:
+                continue
+            if order.status in (
+                OrderStatus.PENDING_SUBMIT,
+                OrderStatus.SUBMITTED,
+                OrderStatus.PARTIAL_FILLED,
+            ):
+                all_filled = False
+            total_filled += order.filled_quantity
+            if order.avg_fill_price:
+                total_value += order.filled_quantity * order.avg_fill_price
+            total_commission += order.commission
+        return all_filled, total_filled, total_value, total_commission
+
+    def _update_execution_aggregates(
+        self,
+        execution: SignalExecution,
+        total_filled: int,
+        total_value: float,
+        total_commission: float,
+    ) -> None:
+        """Update execution with aggregate totals and derived averages."""
+        execution.total_filled_quantity = total_filled
+        execution.total_commission = total_commission
+        if total_filled > 0:
+            execution.average_fill_price = total_value / total_filled
+
+    def _finalize_success(self, execution: SignalExecution) -> ExecutionReport:
+        """Finalize successful execution: statuses, stats, and report."""
+        execution.status = SignalStatus.EXECUTED
+        execution.execution_complete_time = datetime.now(UTC)
+        execution.signal_to_execution_latency_ms = (
+            execution.execution_complete_time - execution.received_time
+        ).total_seconds() * 1000
+        # Move to completed signals
+        with self._signal_lock:
+            self.completed_signals[execution.signal_id] = execution
+            if execution.signal_id in self.active_signals:
+                del self.active_signals[execution.signal_id]
+        # Update global stats
+        self.execution_stats["signals_executed_successfully"] += 1
+        self.execution_stats["total_commission_paid"] += execution.total_commission
+        # Build report
+        return self._generate_execution_report(execution)
+
+    def _all_orders_inactive(self, execution: SignalExecution) -> bool:
+        """Return True if none of the orders are active."""
+        for order_id in execution.orders_created:
+            order = self.order_service.get_order(order_id)
+            if order and order.is_active:
+                return False
+        return True
 
     def _generate_execution_report(self, execution: SignalExecution) -> ExecutionReport:
         """Generate comprehensive execution report for ML repository"""
@@ -653,9 +694,8 @@ class MLSignalExecutor:
 
         risk_metrics = {
             "position_size_risk": abs(execution.total_filled_quantity)
-            / self.max_position_size,
-            "confidence_score": signal.confidence,
-            "execution_urgency": signal.urgency,
+            / max(self.max_position_size, 1),
+            "confidence_score": float(signal.confidence),
         }
 
         execution_quality = {
@@ -666,6 +706,7 @@ class MLSignalExecutor:
             ).total_seconds()
             if (execution.execution_complete_time and execution.execution_start_time)
             else None,
+            "execution_urgency": signal.urgency,
         }
 
         return ExecutionReport(
@@ -738,6 +779,8 @@ class MLSignalExecutor:
     def save_execution_log(self, execution: SignalExecution):
         """Save execution details to persistent storage"""
         try:
+            # Choose a representative timestamp for the log row
+            ts = execution.execution_complete_time or execution.received_time
             log_data = {
                 "signal_id": execution.signal_id,
                 "symbol": execution.signal.symbol,
@@ -747,6 +790,7 @@ class MLSignalExecutor:
                 "model_version": execution.signal.model_version,
                 "strategy_name": execution.signal.strategy_name,
                 "status": execution.status.value,
+                "timestamp": ts.isoformat(),
                 "received_time": execution.received_time.isoformat(),
                 "execution_complete_time": execution.execution_complete_time.isoformat()
                 if execution.execution_complete_time
@@ -761,11 +805,12 @@ class MLSignalExecutor:
             # Save to Parquet for analysis
             # Convert log data to DataFrame for Parquet storage
             log_df = pd.DataFrame([log_data])
-            log_df["timestamp"] = pd.to_datetime(log_df["timestamp"])
-            log_df = log_df.set_index("timestamp")
+            log_df["timestamp"] = pd.to_datetime(log_df["timestamp"], errors="coerce")
+            log_df = log_df.set_index("timestamp", drop=True)
 
             # Use existing save_data method with execution logs
-            date_str = log_data["timestamp"][:10] if log_data["timestamp"] else None
+            ts_str = log_data.get("timestamp")
+            date_str = ts_str[:10] if isinstance(ts_str, str) and ts_str else None
             self.parquet_repo.save_data(
                 log_df, symbol="EXECUTION_LOG", timeframe="signals", date_str=date_str
             )

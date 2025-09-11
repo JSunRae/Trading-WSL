@@ -41,14 +41,6 @@ This document defines what AI assistants may change and how they should operate 
 - Pytest must pass with ≥ 85% coverage.
 - All tools must pass --describe JSON validation (see the VS Code task describe:all).
 
-## Completion Protocol (Notify)
-
-After finishing a task, you may notify the external system using:
-
-```bash
-./scripts/notify_tbs.sh "${workspaceFolderBasename}" "run-$(date +%s)" "<paste-the-prompt-here>"
-```
-
 ---
 
 ## Contracts Governance (ml-contracts)
@@ -58,3 +50,28 @@ After finishing a task, you may notify the external system using:
 - Code must read contract artifacts from `contracts/` by default, or from an override directory via the CONTRACTS_DIR environment variable.
 - Sessions and run windows are defined in ET with DST respected. Backfill enforces ET windows.
 - The validator rejects unknown `schema_version` and fails when `production.alias` is missing (and when the `production.alias` file is absent in the model directory for non-dry emissions).
+
+## Agent Workflow
+
+1. **Check Documentation**
+   - Read `README.md` and `ARCHITECTURE.md` before making any changes.
+   - Preserve section order and headings.
+   - Update the correct section (e.g., Script Inventory Summary for new scripts).
+
+2. **Implement Changes**
+   - Modify existing code or docs in place.
+   - Follow style, logging, and idempotency rules.
+
+3. **Run Quality Gates**
+   - Activate the project’s Python environment.
+   - Run Ruff lint + format, pytest (≥ 85% coverage), and `--describe` checks.
+
+4. **Update Documentation**
+   - Ensure all relevant documentation (`README.md` and `ARCHITECTURE.md`) is updated to reflect any new useful information.
+
+5. **Notify (Optional)**
+   - Run the notifier script to alert completion of run:
+
+```bash
+./scripts/notify_tbs.sh "${workspaceFolderBasename}" "run-$(date +%s)" "<paste-the-prompt-here>"
+```

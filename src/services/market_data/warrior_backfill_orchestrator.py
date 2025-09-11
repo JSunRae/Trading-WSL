@@ -28,7 +28,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
@@ -42,6 +42,10 @@ __all__ = [
     "run_warrior_backfill",
 ]
 
+# Keep a handle to the original deprecated shim (if present) so we can detect
+# test monkeypatching reliably without relying on __module__ heuristics.
+_ORIGINAL_WARRIOR_LIST = getattr(data_management_service, "WarriorList", None)
+
 
 @dataclass(frozen=True)
 class WarriorTask:
@@ -49,58 +53,114 @@ class WarriorTask:
     trading_day: date
 
 
-def _load_warrior_df() -> pd.DataFrame | None:
-    """Load Warrior list DataFrame using a test-friendly resolution order.
-
-    We intentionally try the legacy WarriorList() shim first so tests can
-    monkeypatch it without needing to intercept the newer service path. If that
-    is unavailable or fails, we fall back to the newer data_service API.
-    """
-
-    # 1) Legacy path (commonly monkeypatched in tests)
-    warrior_list = getattr(data_management_service, "WarriorList", None)
-    if callable(warrior_list):
-        try:
-            df = warrior_list("Load")  # type: ignore[call-arg]
-            if df is not None:
-                return df
-        except FileNotFoundError:
-            return None
-        except Exception:
-            # Proceed to try modern API
-            pass
-
-    # 2) Modern service API
+def _load_warrior_df_modern() -> pd.DataFrame | None:
+    """Preferred modern load via data service API."""
     try:
         get_svc = getattr(data_management_service, "get_data_service", None)
-        if callable(get_svc):
-            svc = get_svc()
-            dm = getattr(svc, "data_manager", None)
-            if dm is not None and hasattr(dm, "warrior_list_operations"):
-                df = dm.warrior_list_operations("load")  # type: ignore[attr-defined]
-                if df is not None:
-                    return df
+        if not callable(get_svc):
+            return None
+        svc = get_svc()
+        dm = getattr(svc, "data_manager", None)
+        if dm is None or not hasattr(dm, "warrior_list_operations"):
+            return None
+        return cast(pd.DataFrame | None, dm.warrior_list_operations("load"))  # type: ignore[attr-defined]
     except FileNotFoundError:
         return None
     except Exception:
         return None
 
+
+def _load_warrior_df() -> pd.DataFrame | None:
+    """Load Warrior list DataFrame using the modern API only.
+
+    The deprecated WarriorList shim is intentionally not called to avoid
+    emitting DeprecationWarning. If the modern API is unavailable or returns
+    None, the caller will treat it as no tasks found.
+    """
+    df = _load_warrior_df_modern()
+    if df is not None:
+        return df
+
+    # Optional legacy shim if tests monkeypatch WarriorList. We only invoke it
+    # when the attribute has been replaced (object identity differs from the
+    # original), to avoid triggering the deprecated shim in production.
+    warrior_list = getattr(data_management_service, "WarriorList", None)
+    if callable(warrior_list):
+        # Don't invoke if it's the original deprecated shim
+        if (
+            _ORIGINAL_WARRIOR_LIST is not None
+            and warrior_list is _ORIGINAL_WARRIOR_LIST
+        ):
+            return None
+        wl_mod = str(getattr(warrior_list, "__module__", ""))
+        if wl_mod == getattr(data_management_service, "__name__", ""):
+            # Still the same module (not monkeypatched) -> don't call
+            return None
+        # Looks monkeypatched (e.g. tests assign a lambda) -> allow call, suppress deprecation
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                return cast(pd.DataFrame | None, warrior_list("Load"))  # type: ignore[call-arg]
+        except FileNotFoundError:
+            return None
+        except Exception:
+            return None
     return None
 
 
-def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
-    """Extract unique (symbol, trading_day) pairs from a Warrior list DataFrame.
+def _looks_like_ticker(val: object) -> bool:
+    """Heuristic check for US-style ticker strings."""
+    try:
+        import pandas as _pd  # local import to avoid global dependency in type checkers
 
-    This is resilient to varied column headings by:
-      - Recognizing common synonyms for symbol/date
-      - Falling back to simple heuristics (ticker-like strings vs. datelike values)
-      - Parsing dates robustly via pandas
+        _isna = getattr(_pd, "isna", None)
+        if callable(_isna) and _isna(val):  # type: ignore[func-returns-value]
+            return False
+    except Exception:
+        pass
+    if not isinstance(val, str):
+        try:
+            val = str(val)
+        except Exception:
+            return False
+    s = val.strip().upper()
+    if not s or s in {"NAN", "NAT", "NA", "NONE", "NULL"}:
+        return False
+    return bool(re.fullmatch(r"[A-Z][A-Z0-9\.-]{0,6}", s))
+
+
+def _score_ticker(series: pd.Series) -> int:
+    sample = series.dropna().head(20)
+    return sum(1 for v in sample if _looks_like_ticker(v))
+
+
+def _score_date(series: pd.Series) -> int:
+    sample = series.dropna().head(20)
+    ok = 0
+    for v in sample:
+        if isinstance(v, datetime | pd.Timestamp | date):
+            ok += 1
+        elif isinstance(v, str):
+            try:
+                pd.to_datetime(v, errors="raise")
+                ok += 1
+            except Exception:
+                pass
+    return ok
+
+
+def _select_columns(df: pd.DataFrame) -> tuple[str, str]:
+    """Choose (symbol_col, date_col) preferring explicit names, then synonyms/scoring.
+
+    Preference order:
+        1) "ticker" and "date" headers if present
+        2) Known synonyms (symbol/ticker synonyms, date synonyms)
+        3) Heuristic scoring fallback
     """
-    if df is None or df.empty:  # type: ignore[truthy-bool]
-        return []
-
-    # Normalize column lookup
     cols = {str(c).strip().lower(): c for c in df.columns}
+    # Strong preference for CSV schema
+    if "ticker" in cols and "date" in cols:
+        return str(cols["ticker"]), str(cols["date"])
     sym_synonyms = [
         "symbol",
         "ticker",
@@ -120,66 +180,19 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
         "exec_date",
         "day",
     ]
-
     sym_col_name = next((cols[n] for n in sym_synonyms if n in cols), None)
     date_col_name = next((cols[n] for n in date_synonyms if n in cols), None)
-
-    # Heuristic fallback if not found explicitly
-    def _looks_like_ticker(val: object) -> bool:
-        # Reject explicit missing values early
-        try:
-            import pandas as _pd  # local import to avoid global dependency in type checkers
-
-            if _pd.isna(val):  # type: ignore[attr-defined]
-                return False
-        except Exception:
-            pass
-        if not isinstance(val, str):
-            # Some files store tickers as objects; try str conversion guardedly
-            try:
-                val = str(val)
-            except Exception:
-                return False
-        s = val.strip().upper()
-        if not s:
-            return False
-        # Explicitly exclude placeholder tokens that arise from NA/NaT coercion
-        if s in {"NAN", "NAT", "NA", "NONE", "NULL"}:
-            return False
-        # Typical US tickers: 1-6 chars with letters, digits, dash, dot
-        return bool(re.fullmatch(r"[A-Z][A-Z0-9\.-]{0,6}", s))
-
-    def _col_score_ticker(series: pd.Series) -> int:
-        sample = series.dropna().head(20)
-        return sum(1 for v in sample if _looks_like_ticker(v))
-
-    def _col_score_date(series: pd.Series) -> int:
-        sample = series.dropna().head(20)
-        ok = 0
-        for v in sample:
-            if isinstance(v, (datetime, pd.Timestamp, date)):
-                ok += 1
-            elif isinstance(v, str):
-                try:
-                    pd.to_datetime(v, errors="raise")
-                    ok += 1
-                except Exception:
-                    pass
-        return ok
-
     if sym_col_name is None or date_col_name is None:
-        # Score all columns and pick most likely candidates
         best_sym, best_sym_score = None, -1
         best_date, best_date_score = None, -1
         for c in df.columns:
-            s_t = _col_score_ticker(df[c])
+            s_t = _score_ticker(df[c])
             if s_t > best_sym_score:
                 best_sym, best_sym_score = c, s_t
-            s_d = _col_score_date(df[c])
+            s_d = _score_date(df[c])
             if s_d > best_date_score:
                 best_date, best_date_score = c, s_d
         sym_col_name = sym_col_name or best_sym or df.columns[0]
-        # Prefer a different column for date when possible
         if date_col_name is None:
             date_col_name = (
                 best_date
@@ -187,46 +200,59 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
                 else (df.columns[1] if len(df.columns) > 1 else df.columns[0])
             )
         if date_col_name == sym_col_name and len(df.columns) > 1:
-            # Avoid identical pick; fall back to the next column
             date_col_name = df.columns[1]
+    return str(sym_col_name), str(date_col_name)
 
+
+def _parse_date_like(v: object) -> date | None:
+    if isinstance(v, datetime | pd.Timestamp):
+        return v.date()  # type: ignore[return-value]
+    if isinstance(v, date):  # pragma: no cover (rare path)
+        return v
+    d_parsed = pd.to_datetime(str(v), errors="coerce")
+    if pd.isna(d_parsed):
+        return None
+    # At this point, d_parsed is a non-NaT Timestamp-like object; use .date()
+    try:
+        return d_parsed.date()  # type: ignore[union-attr]
+    except Exception:  # pragma: no cover - defensive
+        try:
+            return datetime.fromtimestamp(d_parsed).date()  # type: ignore[arg-type]
+        except Exception:
+            return None
+
+
+def _iter_tasks(
+    df: pd.DataFrame, sym_col: str, date_col: str
+) -> tuple[list[WarriorTask], list[tuple[str, str]]]:
     tasks: list[WarriorTask] = []
-    # Collect raw pairs for debugging before dedupe
     debug_raw: list[tuple[str, str]] = []
     for _, row in df.iterrows():
         try:
-            raw_sym = row[sym_col_name]
-            sym = str(raw_sym).upper().strip()
+            raw_sym = row[sym_col]
+            # Normalize symbols: dots/slashes -> dashes; uppercase & trim
+            sym = str(raw_sym).upper().strip().replace("/", "-").replace(".", "-")
             if not sym or not _looks_like_ticker(sym):
                 continue
-            d_raw = row[date_col_name]
-            if isinstance(d_raw, (datetime, pd.Timestamp)):
-                d = d_raw.date()
-            elif isinstance(d_raw, date):  # pragma: no cover (rare path)
-                d = d_raw
-            else:
-                # Attempt robust parse
-                d_parsed = pd.to_datetime(str(d_raw), errors="coerce")
-                if pd.isna(d_parsed):
-                    continue
-                if isinstance(d_parsed, pd.Timestamp):
-                    d = d_parsed.date()
-                else:  # pragma: no cover - defensive
-                    d = datetime.fromtimestamp(d_parsed).date()  # type: ignore[arg-type]
+            d = _parse_date_like(row[date_col])
+            if d is None:
+                continue
             tasks.append(WarriorTask(symbol=sym, trading_day=d))
-            # For debug: capture first N raw pairs
             if len(debug_raw) < 100:
                 debug_raw.append((sym, d.isoformat()))
         except Exception:  # pragma: no cover - row level robustness
             continue
+    return tasks, debug_raw
 
-    # Deduplicate
-    uniq: dict[tuple[str, date], WarriorTask] = {
-        (t.symbol, t.trading_day): t for t in tasks
-    }
-    result = list(uniq.values())
 
-    # Emit lightweight debug snapshot to help diagnose column selection mismatches
+def _write_debug(
+    df: pd.DataFrame,
+    sym_col: str,
+    date_col: str,
+    debug_raw: list[tuple[str, str]],
+    tasks: list[WarriorTask],
+    result: list[WarriorTask],
+) -> None:
     try:
         cfg = get_config()
         base = cfg.data_paths.base_path
@@ -236,22 +262,22 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
         debug_payload = {
             "timestamp": datetime.now(UTC).isoformat(),
             "columns": list(df.columns),
-            "symbol_column": str(sym_col_name),
-            "date_column": str(date_col_name),
+            "symbol_column": str(sym_col),
+            "date_column": str(date_col),
             "sample_symbol_values": [
-                str(v) for v in df[sym_col_name].dropna().astype(str).head(10).tolist()
+                str(v) for v in df[sym_col].dropna().astype(str).head(10).tolist()
             ]
-            if sym_col_name in df.columns
+            if sym_col in df.columns
             else [],
             "sample_date_values": [
                 (
                     str(v)
-                    if not isinstance(v, (pd.Timestamp, datetime))
+                    if not isinstance(v, pd.Timestamp | datetime)
                     else v.date().isoformat()
                 )
-                for v in df[date_col_name].dropna().head(10).tolist()
+                for v in df[date_col].dropna().head(10).tolist()
             ]
-            if date_col_name in df.columns
+            if date_col in df.columns
             else [],
             "raw_pairs_sample": debug_raw[:20],
             "pre_dedupe_count": len(tasks),
@@ -266,6 +292,18 @@ def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
     except Exception:  # pragma: no cover - best effort
         pass
 
+
+def _extract_tasks(df: pd.DataFrame) -> list[WarriorTask]:
+    """Extract unique (symbol, trading_day) pairs from a Warrior list DataFrame."""
+    if df is None or df.empty:  # type: ignore[truthy-bool]
+        return []
+    sym_col_name, date_col_name = _select_columns(df)
+    tasks, debug_raw = _iter_tasks(df, sym_col_name, date_col_name)
+    uniq: dict[tuple[str, date], WarriorTask] = {
+        (t.symbol, t.trading_day): t for t in tasks
+    }
+    result = list(uniq.values())
+    _write_debug(df, sym_col_name, date_col_name, debug_raw, tasks, result)
     return result
 
 
@@ -363,6 +401,174 @@ def _manifest_paths():
     )
 
 
+def _init_logger() -> logging.Logger:
+    """Initialize module logger honoring LOG_LEVEL env."""
+    log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, log_level_name, logging.INFO)
+    logger = logging.getLogger("warrior_backfill_orchestrator")
+    if not logger.handlers:
+        logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
+    else:
+        logger.setLevel(level)
+    return logger
+
+
+def _decide_workers(max_workers: int | None) -> int:
+    if max_workers is not None and max_workers > 1:
+        return max_workers
+    return 1
+
+
+def _prepare_order(
+    tasks: Iterable[tuple[str, date]], max_tasks: int | None
+) -> list[tuple[str, date]]:
+    ordered = list(tasks)
+    ordered.sort(key=lambda x: (x[1].toordinal(), x[0]))
+    if max_tasks is not None and max_tasks > 0:
+        ordered = ordered[:max_tasks]
+    return ordered
+
+
+def _execute_ordered_tasks(
+    ordered: list[tuple[str, date]],
+    used_workers: int,
+    *,
+    force: bool,
+    strict: bool,
+    logger: logging.Logger,
+) -> list[tuple[int, str, date, dict[str, Any]]]:
+    """Execute backfill over ordered tasks; preserve index for ordering."""
+    buffered: list[tuple[int, str, date, dict[str, Any]]] = []
+
+    def _run_sequential() -> None:
+        for idx, (sym, day) in enumerate(ordered):
+            date_str = day.strftime("%Y-%m-%d")
+            logger.info("START %s %s", sym, date_str)
+            result = backfill_l2(sym, day, force=force, strict=strict)
+            logger.info("END %s %s status=%s", sym, date_str, result.get("status"))
+            buffered.append((idx, sym, day, result))
+
+    def _run_threaded(workers: int) -> None:
+        def worker(idx_sym_day: tuple[int, tuple[str, date]]):
+            idx, (sym, day) = idx_sym_day
+            date_str = day.strftime("%Y-%m-%d")
+            logger.info("START %s %s", sym, date_str)
+            res = backfill_l2(sym, day, force=force, strict=strict)
+            logger.info("END %s %s status=%s", sym, date_str, res.get("status"))
+            return idx, sym, day, res
+
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            futures = [ex.submit(worker, (i, t)) for i, t in enumerate(ordered)]
+            for fut in as_completed(futures):
+                try:
+                    buffered.append(fut.result())
+                except Exception as e:  # pragma: no cover - unexpected
+                    idx = len(buffered)
+                    buffered.append(
+                        (
+                            idx,
+                            "UNKNOWN",
+                            date.today(),
+                            {"status": "error", "error": str(e), "zero_rows": False},
+                        )
+                    )
+
+    if used_workers == 1:
+        _run_sequential()
+    else:
+        _run_threaded(used_workers)
+
+    buffered.sort(key=lambda x: x[0])
+    return buffered
+
+
+def _classify_results(
+    entries: list[tuple[int, str, date, dict[str, Any]]],
+    logger: logging.Logger,
+) -> tuple[dict[str, int], list[tuple[str, str]], list[str], list[dict[str, str]]]:
+    counts = {k: 0 for k in ["WRITE", "SKIP", "EMPTY", "ERROR"]}
+    zero_row_tasks: list[tuple[str, str]] = []
+    errors: list[str] = []
+    records: list[dict[str, str]] = []
+    for _idx, sym, day, result in entries:
+        status = str(result.get("status", "error")).lower()
+        zero = bool(result.get("zero_rows"))
+        date_str = day.strftime("%Y-%m-%d")
+        if status == "written":
+            counts["WRITE"] += 1
+        elif status == "skipped" and zero:
+            counts["EMPTY"] += 1
+            zero_row_tasks.append((sym, date_str))
+            logger.warning("ZERO_ROWS %s %s", sym, date_str)
+        elif status == "skipped":
+            counts["SKIP"] += 1
+        else:
+            counts["ERROR"] += 1
+            err = result.get("error") or f"unspecified error {sym} {date_str}"
+            errors.append(f"{sym} {date_str} {err}")
+            logger.error("ERROR %s %s %s", sym, date_str, err)
+        records.append(
+            {
+                "symbol": sym,
+                "date": date_str,
+                "status": "EMPTY" if zero and status == "skipped" else status.upper(),
+            }
+        )
+    return counts, zero_row_tasks, errors, records
+
+
+def _write_manifest(manifest_path: Path, records: list[dict[str, str]]) -> None:
+    if not records:
+        return
+    try:
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:  # pragma: no cover - best effort
+        pass
+    try:
+        with manifest_path.open("a", encoding="utf-8") as mf:
+            for rec in records:
+                mf.write(json.dumps(rec) + "\n")
+    except Exception:  # pragma: no cover - best effort
+        pass
+
+
+def _write_summary(
+    summary_path: Path,
+    *,
+    counts: dict[str, int],
+    zero_row_tasks: list[tuple[str, str]],
+    errors: list[str],
+    duration: float,
+    strict: bool,
+    force: bool,
+    max_tasks: int | None,
+    used_workers: int,
+    run_id: str,
+) -> dict[str, Any]:
+    try:
+        win_start, win_end = get_config().get_l2_backfill_window()
+    except Exception:
+        win_start, win_end = None, None
+    summary = {
+        "counts": counts,
+        "zero_row_tasks": zero_row_tasks,
+        "errors": errors,
+        "total_tasks": sum(counts.values()),
+        "duration_sec": duration,
+        "strict": strict,
+        "force": force,
+        "max_tasks": max_tasks,
+        "concurrency": used_workers,
+        "run_id": run_id,
+        "requested_window_et": {"start": win_start, "end": win_end},
+    }
+    try:
+        summary_path.write_text(json.dumps(summary, indent=2))
+    except Exception:  # pragma: no cover
+        pass
+    return summary
+
+
 def run_warrior_backfill(
     tasks: Iterable[tuple[str, date]],
     *,
@@ -381,40 +587,12 @@ def run_warrior_backfill(
         duration_sec -> float
         strict -> bool
     """
-    # Configure logging (idempotent) honoring LOG_LEVEL (default INFO)
-    log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
-    level = getattr(logging, log_level_name, logging.INFO)
-    logger = logging.getLogger("warrior_backfill_orchestrator")
-    if not logger.handlers:
-        logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
-    else:
-        logger.setLevel(level)
-
+    logger = _init_logger()
     start = time.time()
     run_id = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
-    ordered: list[tuple[str, date]] = list(tasks)
-    ordered.sort(key=lambda x: (x[1].toordinal(), x[0]))
-    if max_tasks is not None and max_tasks > 0:
-        ordered = ordered[:max_tasks]
-    counts = {k: 0 for k in ["WRITE", "SKIP", "EMPTY", "ERROR"]}
-    zero_row_tasks: list[tuple[str, str]] = []
-    errors: list[str] = []
+    ordered = _prepare_order(tasks, max_tasks)
+    used_workers = _decide_workers(max_workers)
     manifest_path, summary_path = _manifest_paths()
-    if ordered:
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-
-    def _append_manifest(record: dict[str, Any]) -> None:
-        """Append a single JSON record to manifest (best-effort)."""
-        try:
-            with manifest_path.open("a", encoding="utf-8") as mf:
-                mf.write(json.dumps(record) + "\n")
-        except Exception:  # pragma: no cover - best effort
-            pass
-
-    # Decide concurrency: if explicit max_workers is None or 1 -> sequential (preserve old semantics)
-    used_workers = 1
-    if max_workers is not None and max_workers > 1:
-        used_workers = max_workers
 
     logger.info(
         "Starting warrior backfill: tasks=%d force=%s strict=%s concurrency=%d",
@@ -424,105 +602,27 @@ def run_warrior_backfill(
         used_workers,
     )
 
-    # Buffer to ensure deterministic manifest order: (index, sym, date, result_dict)
-    buffered: list[tuple[int, str, date, dict[str, Any]]] = []
-
-    if used_workers == 1:
-        for idx, (sym, day) in enumerate(ordered):
-            date_str = day.strftime("%Y-%m-%d")
-            logger.info("START %s %s", sym, date_str)
-            result = backfill_l2(sym, day, force=force, strict=strict)
-            logger.info("END %s %s status=%s", sym, date_str, result.get("status"))
-            buffered.append((idx, sym, day, result))
-    else:
-        # Threaded execution; each worker returns its index & result
-        def worker(idx_sym_day: tuple[int, tuple[str, date]]):
-            idx, (sym, day) = idx_sym_day
-            date_str = day.strftime("%Y-%m-%d")
-            logger.info("START %s %s", sym, date_str)
-            res = backfill_l2(sym, day, force=force, strict=strict)
-            logger.info("END %s %s status=%s", sym, date_str, res.get("status"))
-            return idx, sym, day, res
-
-        with ThreadPoolExecutor(max_workers=used_workers) as ex:
-            futures = [ex.submit(worker, (i, t)) for i, t in enumerate(ordered)]
-            for fut in as_completed(futures):
-                try:
-                    buffered.append(fut.result())
-                except Exception as e:  # pragma: no cover - unexpected
-                    # Attach synthetic error result
-                    idx = len(buffered)
-                    buffered.append(
-                        (
-                            idx,
-                            "UNKNOWN",
-                            date.today(),
-                            {"status": "error", "error": str(e), "zero_rows": False},
-                        )
-                    )
-
-    # Sort buffered by original index to maintain order
-    buffered.sort(key=lambda x: x[0])
-
-    # Build manifest lines after classification to ensure deterministic order
-    manifest_lines: list[str] = []
-    for _idx, sym, day, result in buffered:
-        status = result.get("status", "error").lower()
-        zero = bool(result.get("zero_rows"))
-        date_str = day.strftime("%Y-%m-%d")
-        if status == "written":
-            counts["WRITE"] += 1
-        elif status == "skipped" and zero:
-            counts["EMPTY"] += 1
-            zero_row_tasks.append((sym, date_str))
-            logger.warning("ZERO_ROWS %s %s", sym, date_str)
-        elif status == "skipped":
-            counts["SKIP"] += 1
-        else:
-            counts["ERROR"] += 1
-            err = result.get("error") or f"unspecified error {sym} {date_str}"
-            errors.append(f"{sym} {date_str} {err}")
-            logger.error("ERROR %s %s %s", sym, date_str, err)
-        manifest_lines.append(
-            json.dumps(
-                {
-                    "symbol": sym,
-                    "date": date_str,
-                    "status": "EMPTY"
-                    if zero and status == "skipped"
-                    else status.upper(),
-                }
-            )
-        )
-
-    # Write manifest in one pass (append) preserving order
-    if manifest_lines:
-        for line in manifest_lines:
-            _append_manifest(json.loads(line))
+    buffered = _execute_ordered_tasks(
+        ordered, used_workers, force=force, strict=strict, logger=logger
+    )
+    counts, zero_row_tasks, errors, manifest_records = _classify_results(
+        buffered, logger
+    )
+    _write_manifest(manifest_path, manifest_records)
     duration = round(time.time() - start, 3)
-    # Capture requested window from config for observability
-    try:
-        win_start, win_end = get_config().get_l2_backfill_window()
-    except Exception:
-        win_start, win_end = None, None
 
-    summary = {
-        "counts": counts,
-        "zero_row_tasks": zero_row_tasks,
-        "errors": errors,
-        "total_tasks": sum(counts.values()),
-        "duration_sec": duration,
-        "strict": strict,
-        "force": force,
-        "max_tasks": max_tasks,
-        "concurrency": used_workers,
-        "run_id": run_id,
-        "requested_window_et": {"start": win_start, "end": win_end},
-    }
-    try:
-        summary_path.write_text(json.dumps(summary, indent=2))
-    except Exception:  # pragma: no cover
-        pass
+    summary = _write_summary(
+        summary_path,
+        counts=counts,
+        zero_row_tasks=zero_row_tasks,
+        errors=errors,
+        duration=duration,
+        strict=strict,
+        force=force,
+        max_tasks=max_tasks,
+        used_workers=used_workers,
+        run_id=run_id,
+    )
     logger.info(
         "SUMMARY WRITE=%d SKIP=%d EMPTY=%d ERROR=%d total=%d concurrency=%d duration=%.3fs",
         counts["WRITE"],

@@ -48,7 +48,60 @@ class DataBentoL2Service:
         return bool(api_key) and DATABENTO_AVAILABLE
 
     # ------------- fetch ------------------------
-    def fetch_l2(self, req: VendorL2Request) -> pd.DataFrame:
+    def _make_client(self):
+        """Create Historical client handling API differences across versions."""
+        try:
+            return Historical(key=self.api_key)  # type: ignore[call-arg]
+        except TypeError:
+            try:
+                return Historical(self.api_key)  # type: ignore[misc]
+            except TypeError:
+                return Historical()  # type: ignore[call-arg]
+
+    def _get_with_backoff(
+        self, client, req: VendorL2Request, start_iso: str, end_iso: str
+    ) -> pd.DataFrame:
+        """Fetch range with small exponential backoff and return DataFrame."""
+        last_err: Exception | None = None
+        try:
+            base_ms = int(os.getenv("L2_TASK_BACKOFF_BASE_MS", "250") or 250)
+        except ValueError:
+            base_ms = 250
+        try:
+            max_ms = int(os.getenv("L2_TASK_BACKOFF_MAX_MS", "2000") or 2000)
+        except ValueError:
+            max_ms = 2000
+        if max_ms < base_ms:
+            max_ms = base_ms
+
+        for attempt in range(1, 4):
+            try:
+                stype_in = "raw_symbol"
+                stype_out = "instrument_id"
+                store = client.timeseries.get_range(
+                    dataset=req.dataset,
+                    start=start_iso,
+                    end=end_iso,
+                    symbols=req.symbol,
+                    schema=req.schema,
+                    stype_in=stype_in,
+                    stype_out=stype_out,
+                    limit=None,
+                )
+                return store.to_df()
+            except Exception as e:
+                last_err = e
+                if attempt == 3:
+                    raise
+                exp_ms = min(base_ms * (2 ** (attempt - 1)), max_ms)
+                _time.sleep(exp_ms / 1000.0)
+
+        # Should not reach here
+        if last_err:
+            raise last_err
+        raise RuntimeError("Unknown DataBento fetch failure")
+
+    def fetch_l2(self, req: VendorL2Request) -> pd.DataFrame:  # noqa: C901
         """Return vendor-native L2 DataFrame with normalized columns.
 
         Expected output columns (after light normalization):
@@ -69,54 +122,8 @@ class DataBentoL2Service:
         end_dt = datetime.combine(req.trading_day, req.end_et, et)
         start_iso = start_dt.isoformat()
         end_iso = end_dt.isoformat()
-
-        last_err: Exception | None = None
-        try:
-            base_ms = int(os.getenv("L2_TASK_BACKOFF_BASE_MS", "250") or 250)
-        except ValueError:
-            base_ms = 250
-        try:
-            max_ms = int(os.getenv("L2_TASK_BACKOFF_MAX_MS", "2000") or 2000)
-        except ValueError:
-            max_ms = 2000
-        if max_ms < base_ms:
-            max_ms = base_ms
-
-        for attempt in range(1, 4):
-            try:
-                try:
-                    client = Historical(key=self.api_key)  # type: ignore[call-arg]
-                except TypeError:
-                    try:
-                        client = Historical(self.api_key)  # type: ignore[misc]
-                    except TypeError:
-                        client = Historical()  # type: ignore[call-arg]
-
-                # DataBento does not accept 'smart' for stype_in; use 'raw_symbol' consistently
-                stype_in = "raw_symbol"
-                stype_out = "instrument_id"
-                store = client.timeseries.get_range(
-                    dataset=req.dataset,
-                    start=start_iso,
-                    end=end_iso,
-                    symbols=req.symbol,
-                    schema=req.schema,
-                    stype_in=stype_in,
-                    stype_out=stype_out,
-                    limit=None,
-                )
-                df: pd.DataFrame = store.to_df()
-                break
-            except Exception as e:
-                last_err = e
-                if attempt == 3:
-                    raise
-                exp_ms = min(base_ms * (2 ** (attempt - 1)), max_ms)
-                _time.sleep(exp_ms / 1000.0)
-        else:
-            if last_err:
-                raise last_err
-            raise RuntimeError("Unknown DataBento fetch failure")
+        client = self._make_client()
+        df: pd.DataFrame = self._get_with_backoff(client, req, start_iso, end_iso)
 
         df = df.rename(
             columns={

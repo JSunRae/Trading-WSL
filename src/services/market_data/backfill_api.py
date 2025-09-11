@@ -13,6 +13,7 @@ caller (CLI or higher‑level orchestrators).
 
 from __future__ import annotations
 
+import logging
 import os
 import time as _time
 from datetime import date
@@ -67,6 +68,7 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
     """
 
     cfg = get_config()
+    logger = logging.getLogger("backfill.l2")
     start_ns = _now_ns()
     date_str = trading_day.strftime("%Y-%m-%d")
 
@@ -74,6 +76,13 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
     api_key = cfg.databento_api_key()
     dataset = cfg.get_env("DATABENTO_DATASET")
     schema = cfg.get_env("DATABENTO_SCHEMA")
+    logger.info(
+        "L2 backfill start symbol=%s day=%s dataset=%s schema=%s",
+        symbol,
+        date_str,
+        dataset,
+        schema,
+    )
     vendor_symbol, dataset, schema = resolve_vendor_params(
         symbol, "databento", cfg.get_symbol_mapping_path(), dataset, schema
     )
@@ -93,10 +102,16 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
         # clamp
         start_et = max(start_et, tw_s)
         end_et = min(end_et, tw_e)
+    logger.info(
+        "L2 backfill window ET clamped start=%s end=%s",
+        start_et.isoformat(timespec="minutes"),
+        end_et.isoformat(timespec="minutes"),
+    )
 
     # Destination path (shared with CLI)
     base_path = cfg.get_data_file_path("level2", symbol=symbol, date_str=date_str)
     dest = with_source_suffix(base_path, "databento")
+    logger.info("L2 destination path=%s (base=%s)", dest, base_path)
 
     def _final(
         status: str, *, rows: int = 0, zero: bool = False, error: str | None = None
@@ -126,12 +141,18 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
         return res
 
     if dest.exists() and not force:
+        logger.info("L2 backfill skipped (exists) path=%s", dest)
         return _final("skipped")
 
     # Vendor availability guard (matches CLI semantics)
     vendor_service = DataBentoL2Service(api_key)
     # Provide a more actionable error message for availability failures
     if not vendor_service.is_available(api_key):
+        logger.error(
+            "DataBento unavailable api_key=%s pkg=%s",
+            bool(api_key),
+            DATABENTO_AVAILABLE,
+        )
         if not DATABENTO_AVAILABLE:
             return _final(
                 "error",
@@ -164,10 +185,20 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
                 end_et=end_et,
                 trading_day=trading_day,
             )
+            logger.info(
+                "Fetch vendor dataset=%s schema=%s vendor_symbol=%s start=%s end=%s",
+                dataset,
+                schema,
+                vendor_symbol,
+                start_et,
+                end_et,
+            )
             return vendor_service.fetch_l2(vreq)
         except VendorUnavailable as e:  # pragma: no cover - defensive
+            logger.exception("VendorUnavailable during fetch: %s", e)
             return _final("error", error=f"VendorUnavailable: {e}")
         except Exception as e:  # pragma: no cover - network variability
+            logger.exception("Unexpected exception during vendor fetch")
             return _final("error", error=repr(e))
 
     df_vendor = _fetch_vendor()
@@ -176,6 +207,7 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
 
     # Zero row handling (no file write, treat as skipped variant with flag)
     if df_vendor.empty:
+        logger.warning("Vendor returned zero rows for %s %s", symbol, date_str)
         return _final("skipped", zero=True)
 
     # Adapt to internal schema
@@ -191,9 +223,10 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
         max_rows_env = max_rows_per_task
     if max_rows_env > 0 and len(df_ib) > max_rows_env:
         df_ib = df_ib.iloc[:max_rows_env].copy()
+        logger.info("Row cap applied rows=%d cap=%d", len(df_ib), max_rows_env)
 
     # Atomic write
     atomic_write_parquet(df_ib, dest, overwrite=force)
     rows = len(df_ib)
-
+    logger.info("L2 backfill written rows=%d path=%s", rows, dest)
     return _final("written", rows=rows)

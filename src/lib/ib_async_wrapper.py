@@ -52,34 +52,6 @@ class DataType(Enum):
 
 
 @dataclass
-class HistoricalBar:
-    """Historical bar data structure"""
-
-    date: datetime
-    open: Price
-    high: Price
-    low: Price
-    close: Price
-    volume: Volume
-    wap: Price  # Weighted average price
-    count: int  # Number of trades
-
-    @classmethod
-    def from_ib_bar(cls, bar: BarData) -> "HistoricalBar":
-        """Create from IB BarData"""
-        return cls(
-            date=pd.to_datetime(bar.date),
-            open=bar.open,
-            high=bar.high,
-            low=bar.low,
-            close=bar.close,
-            volume=bar.volume,
-            wap=getattr(bar, "wap", 0.0),  # Some versions don't have wap
-            count=getattr(bar, "count", 0),  # Some versions don't have count
-        )
-
-
-@dataclass
 class MarketDepthData:
     """Market depth (Level 2) data"""
 
@@ -112,6 +84,8 @@ class AsyncIBWrapper(EWrapper):
     def __init__(self) -> None:
         EWrapper.__init__(self)
         self.logger: logging.Logger = logging.getLogger(__name__)
+        # Event loop reference for thread-safe scheduling from IB callbacks
+        self._loop: asyncio.AbstractEventLoop | None = None
 
         # Event queues for async communication - properly typed
         self._connection_events: asyncio.Queue[tuple[str, bool]] = asyncio.Queue()
@@ -119,15 +93,9 @@ class AsyncIBWrapper(EWrapper):
         self._historical_data_events: asyncio.Queue[
             tuple[RequestId, list[dict[str, Any]]]
         ] = asyncio.Queue()
-        self._market_data_events: asyncio.Queue[dict[str, Any]] = (
-            asyncio.Queue()
-        )  # Simplified for now
-        self._market_depth_events: asyncio.Queue[dict[str, Any]] = (
-            asyncio.Queue()
-        )  # Simplified for now
-        self._order_events: asyncio.Queue[Any] = (
-            asyncio.Queue()
-        )  # TODO: Define proper order event type
+        self._market_data_events: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        self._market_depth_events: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        self._order_events: asyncio.Queue[Any] = asyncio.Queue()
 
         # Data storage - properly typed
         self._historical_data: dict[RequestId, list[dict[str, Any]]] = {}
@@ -139,6 +107,42 @@ class AsyncIBWrapper(EWrapper):
         # Request tracking - properly typed
         self._pending_requests: dict[RequestId, Symbol] = {}
         self._request_id: RequestId = 1000
+
+    # Loop wiring
+    def set_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Record the asyncio loop to post events into.
+
+        IB API callbacks often arrive on non-async threads. We must schedule
+        queue operations onto the main loop in a thread-safe way.
+        """
+        self._loop = loop
+
+    def _enqueue(self, q: asyncio.Queue[Any], item: Any) -> None:
+        """Thread-safe enqueue into an asyncio.Queue without creating orphaned coroutines.
+
+        Prefer run_coroutine_threadsafe when we have a target loop. If we're
+        already on the loop thread, use create_task. As a last-resort fallback
+        (no loop yet), try put_nowait to avoid dropping data and avoid creating
+        an un-awaited coroutine. This path is best-effort and should be rare.
+        """
+        try:
+            # If we know the loop and it's running, schedule thread-safe
+            if self._loop is not None and self._loop.is_running():
+                asyncio.run_coroutine_threadsafe(q.put(item), self._loop)
+                return
+            # If we're on a running loop thread, schedule normally
+            loop = asyncio.get_running_loop()
+            loop.create_task(q.put(item))
+        except RuntimeError:
+            # No running loop context; best-effort immediate enqueue
+            try:
+                q.put_nowait(item)
+            except Exception:
+                # As a last resort, drop with a debug log to avoid crashing callbacks
+                try:
+                    self.logger.debug("Dropping event; no loop to enqueue")
+                except Exception:
+                    pass
 
     def get_next_request_id(self) -> int:
         """Get next available request ID"""
@@ -205,11 +209,11 @@ class AsyncIBWrapper(EWrapper):
     # Connection callbacks
     def connectAck(self) -> None:
         """Connection acknowledged"""
-        asyncio.create_task(self._connection_events.put(("connected", True)))
+        self._enqueue(self._connection_events, ("connected", True))
 
     def connectionClosed(self) -> None:
         """Connection closed"""
-        asyncio.create_task(self._connection_events.put(("disconnected", True)))
+        self._enqueue(self._connection_events, ("disconnected", True))
 
     # Error handling
     def error(
@@ -226,7 +230,7 @@ class AsyncIBWrapper(EWrapper):
             "errorString": errorString,
             "timestamp": datetime.now(UTC),
         }
-        asyncio.create_task(self._error_events.put(error_data))
+        self._enqueue(self._error_events, error_data)
 
     # Historical data callbacks
     def historicalData(self, reqId: TickerId, bar: BarData) -> None:
@@ -250,7 +254,25 @@ class AsyncIBWrapper(EWrapper):
     def historicalDataEnd(self, reqId: int, start: str, end: str) -> None:
         """Historical data download complete"""
         bars = self._historical_data.get(reqId, [])
-        asyncio.create_task(self._historical_data_events.put((reqId, bars)))
+        try:
+            self.logger.info(
+                "Historical data complete reqId=%s bars=%d range=%s->%s",
+                reqId,
+                len(bars),
+                start,
+                end,
+            )
+        except Exception:
+            # Logging must not break the callback
+            pass
+        # Enqueue result for async consumers
+        self._enqueue(self._historical_data_events, (reqId, bars))
+        # Proactively free memory; finalizer will pop again safely (pop with default)
+        try:
+            self._historical_data.pop(reqId, None)
+            self._pending_requests.pop(reqId, None)
+        except Exception:
+            pass
 
     # Market data callbacks
     def tickPrice(
@@ -269,7 +291,7 @@ class AsyncIBWrapper(EWrapper):
         if tickType in [1, 2, 4]:  # Bid, Ask, Last
             self._last_prices[symbol] = float(price)
 
-        asyncio.create_task(self._market_data_events.put(tick_data))
+        self._enqueue(self._market_data_events, tick_data)
 
     def tickSize(self, reqId: TickerId, tickType: int, size: int) -> None:
         """Real-time size tick"""
@@ -280,7 +302,7 @@ class AsyncIBWrapper(EWrapper):
             "value": float(size),
             "timestamp": datetime.now(UTC),
         }
-        asyncio.create_task(self._market_data_events.put(tick_data))
+        self._enqueue(self._market_data_events, tick_data)
 
     # Market depth callbacks
     def updateMktDepth(
@@ -316,7 +338,7 @@ class AsyncIBWrapper(EWrapper):
         elif operation == 2:  # Delete
             depth_dict.pop(position, None)
 
-        asyncio.create_task(self._market_depth_events.put(depth_data))
+        self._enqueue(self._market_depth_events, depth_data)
 
     def updateMktDepthL2(
         self,
@@ -341,7 +363,8 @@ class AsyncIBWrapper(EWrapper):
             "market_maker": marketMaker,
             "timestamp": datetime.now(UTC),
         }
-        asyncio.create_task(self._market_depth_events.put(depth_data))
+
+        self._enqueue(self._market_depth_events, depth_data)
 
 
 class AsyncIBClient(EClient):
@@ -456,7 +479,7 @@ class IBAsync:
         self._message_processing_task: asyncio.Task[None] | None = None
         self._error_handling_task: asyncio.Task[None] | None = None
 
-    async def connect(
+    async def connect(  # noqa: C901 - Contains platform/port fallback logic; keep inline for clarity
         self,
         host: str = "127.0.0.1",
         port: int = 4002,
@@ -464,22 +487,29 @@ class IBAsync:
         timeout: float = 30,
     ) -> bool:
         """
-            Connect to IB Gateway/TWS with automatic reconnection
+        Connect to IB Gateway/TWS with automatic reconnection.
 
         Highlights:
-            - Explicit timeout handling
-            - Better error reporting
-            - Automatic pacing setup
+        - Explicit timeout handling
+        - Better error reporting
+        - Automatic pacing setup
         """
         self.host = host
         self.port = port
         self.client_id = clientId
 
+        # Primary attempt
         success = await self.client.connect_async(host, port, clientId, timeout)
 
         if success:
             self.connected = True
             self.reconnect_attempts = 0
+            # Capture current event loop for thread-safe wrapper enqueues
+            try:
+                self.wrapper.set_event_loop(asyncio.get_running_loop())
+            except RuntimeError:
+                # If no running loop, try default loop
+                self.wrapper.set_event_loop(asyncio.get_event_loop())
 
             # Start background tasks
             self._message_processing_task = asyncio.create_task(
@@ -492,6 +522,145 @@ class IBAsync:
             )
         else:
             self.logger.error(f"Failed to connect to IB at {host}:{port}")
+            # WSL fallback: if running inside WSL, try Windows host IPs and common ports.
+            # Also include an early TCP probe to give actionable hints when the port is open
+            # but the API handshake is rejected by settings (e.g., Trusted IPs).
+            import socket
+            from pathlib import Path
+
+            # Helper: enumerate Windows IPv4 addresses from WSL via PowerShell (best-effort)
+            def _windows_ipv4_addrs() -> list[str]:
+                addrs: list[str] = []
+                try:
+                    import re
+                    import subprocess
+
+                    out = subprocess.check_output(
+                        [
+                            "powershell.exe",
+                            "-NoProfile",
+                            "-Command",
+                            "Get-NetIPAddress -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress",
+                        ],
+                        timeout=3,
+                    )
+                    # Decode possibly CRLF and Windows-1252; fallback to utf-8
+                    text = out.decode(errors="ignore").replace("\r", "")
+                    for line in text.splitlines():
+                        line = line.strip()
+                        if re.match(r"^\d+\.\d+\.\d+\.\d+$", line):
+                            addrs.append(line)
+                except Exception:
+                    pass
+                return addrs
+
+            # Detect WSL
+            wsl = False
+            try:
+                text = Path("/proc/version").read_text(
+                    encoding="utf-8", errors="ignore"
+                )
+                if "microsoft" in text.lower():
+                    wsl = True
+            except Exception:
+                wsl = False
+
+            candidates: list[tuple[str, int]] = []
+            port_order: list[int] = []
+            # Prefer the requested port first
+            if port not in port_order:
+                port_order.append(port)
+            # Then common ports
+            for p in [4002, 4001, 7497, 7496]:
+                if p not in port_order:
+                    port_order.append(p)
+
+            if wsl:
+                # 1) Nameserver IP (Windows host in many WSL distros)
+                try:
+                    import re as _re
+
+                    ns_ip = None
+                    for line in (
+                        Path("/etc/resolv.conf")
+                        .read_text(encoding="utf-8", errors="ignore")
+                        .splitlines()
+                    ):
+                        m = _re.match(r"^nameserver\s+(\S+)", line)
+                        if m:
+                            ns_ip = m.group(1)
+                            break
+                    if ns_ip:
+                        for p in port_order:
+                            candidates.append((ns_ip, p))
+                except Exception:
+                    pass
+
+                # 2) Any Windows IPv4 addresses (covers Wi-Fi/Ethernet/vEthernet)
+                for addr in _windows_ipv4_addrs():
+                    for p in port_order:
+                        candidates.append((addr, p))
+
+                # 3) Loopback with alternate ports (if Gateway was forwarded to localhost)
+                for p in port_order:
+                    candidates.append(("127.0.0.1", p))
+
+            # De-duplicate preserving order and skip the original attempt
+            seen: set[tuple[str, int]] = set()
+            uniq: list[tuple[str, int]] = []
+            for c in candidates:
+                if c not in seen and not (c[0] == host and c[1] == port):
+                    uniq.append(c)
+                    seen.add(c)
+
+            # Try candidates with a short timeout; if TCP is open but API handshake fails,
+            # emit a targeted hint about IB API settings.
+            for h, p in uniq:
+                # Quick TCP probe
+                tcp_open = False
+                s: socket.socket | None = None
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(1.5)
+                    tcp_open = s.connect_ex((h, p)) == 0
+                except Exception:
+                    tcp_open = False
+                finally:
+                    try:
+                        if s is not None:
+                            s.close()
+                    except Exception:
+                        pass
+
+                self.logger.info("Retrying IB connect via candidate %s:%s", h, p)
+                if await self.client.connect_async(h, p, clientId, 10):
+                    self.host, self.port = h, p
+                    self.connected = True
+                    try:
+                        self.wrapper.set_event_loop(asyncio.get_running_loop())
+                    except RuntimeError:
+                        self.wrapper.set_event_loop(asyncio.get_event_loop())
+                    self._message_processing_task = asyncio.create_task(
+                        self._process_messages()
+                    )
+                    self._error_handling_task = asyncio.create_task(
+                        self._handle_errors()
+                    )
+                    self.logger.info(
+                        "Connected to IB at %s:%s (Client ID: %s)", h, p, clientId
+                    )
+                    return True
+                else:
+                    if tcp_open:
+                        # Port is open but handshake failed: provide actionable guidance
+                        self.logger.error(
+                            "TCP %s:%s is reachable but API handshake failed. "
+                            "Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', "
+                            "uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, "
+                            "and allow the port through Windows Firewall.",
+                            h,
+                            p,
+                        )
 
         return success
 
@@ -648,6 +817,7 @@ class IBAsync:
         use_rth: bool = True,
         format_date: int = 1,
         keep_up_to_date: bool = False,
+        end_datetime: str | None = None,
     ) -> pd.DataFrame | None:
         """
             Request historical data with pacing control
@@ -679,7 +849,8 @@ class IBAsync:
             cast(Any, self.client.reqHistoricalData)(
                 reqId=req_id,
                 contract=contract,
-                endDateTime="",  # Current time
+                endDateTime=end_datetime
+                or "",  # Allow targeting a specific session end
                 durationStr=duration,
                 barSizeSetting=bar_size,
                 whatToShow=what_to_show,

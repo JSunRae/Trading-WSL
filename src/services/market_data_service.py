@@ -387,35 +387,33 @@ class MarketDataService:
         except Exception as e:
             self.logger.error(f"Error processing tick for {tick.symbol}: {e}")
 
-    def _update_snapshot(self, snapshot: MarketDataSnapshot, tick: MarketDataTick):
+    def _update_snapshot(self, snapshot: MarketDataSnapshot, tick: MarketDataTick):  # noqa: C901
         """Update market data snapshot with new tick"""
-
-        # Update timestamp
+        # Update timestamp first
         snapshot.timestamp = tick.timestamp
 
-        # Update based on tick type
-        if tick.tick_type == TickType.BID_PRICE:
-            snapshot.bid_price = tick.value
-        elif tick.tick_type == TickType.BID_SIZE:
-            snapshot.bid_size = int(tick.value) if tick.value else None
-        elif tick.tick_type == TickType.ASK_PRICE:
-            snapshot.ask_price = tick.value
-        elif tick.tick_type == TickType.ASK_SIZE:
-            snapshot.ask_size = int(tick.value) if tick.value else None
-        elif tick.tick_type == TickType.LAST_PRICE:
-            snapshot.last_price = tick.value
-        elif tick.tick_type == TickType.LAST_SIZE:
-            snapshot.last_size = int(tick.value) if tick.value else None
-        elif tick.tick_type == TickType.VOLUME:
-            snapshot.volume = int(tick.value) if tick.value else None
-        elif tick.tick_type == TickType.HIGH:
-            snapshot.high = tick.value
-        elif tick.tick_type == TickType.LOW:
-            snapshot.low = tick.value
-        elif tick.tick_type == TickType.OPEN:
-            snapshot.open = tick.value
-        elif tick.tick_type == TickType.CLOSE:
-            snapshot.close = tick.value
+        # Map tick types to snapshot attributes and value transforms
+        def _to_int_or_none(v):
+            return int(v) if v else None
+
+        actions = {
+            TickType.BID_PRICE: ("bid_price", lambda v: v),
+            TickType.BID_SIZE: ("bid_size", _to_int_or_none),
+            TickType.ASK_PRICE: ("ask_price", lambda v: v),
+            TickType.ASK_SIZE: ("ask_size", _to_int_or_none),
+            TickType.LAST_PRICE: ("last_price", lambda v: v),
+            TickType.LAST_SIZE: ("last_size", _to_int_or_none),
+            TickType.VOLUME: ("volume", _to_int_or_none),
+            TickType.HIGH: ("high", lambda v: v),
+            TickType.LOW: ("low", lambda v: v),
+            TickType.OPEN: ("open", lambda v: v),
+            TickType.CLOSE: ("close", lambda v: v),
+        }
+
+        attr_transform = actions.get(tick.tick_type)
+        if attr_transform:
+            attr, transform = attr_transform
+            setattr(snapshot, attr, transform(tick.value))
 
     def _create_contract(self, symbol: str):
         """Create IB contract for symbol"""

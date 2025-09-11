@@ -4,6 +4,7 @@ import asyncio
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from ._ib_availability import IBUnavailableError, ib_available, require_ib
+from .ib_conn import connect_ib, disconnect_ib
 
 if TYPE_CHECKING:  # Only for static typing
     from ib_async import IB  # type: ignore[import-not-found]
@@ -36,35 +37,15 @@ async def get_ib() -> IB:
         IBUnavailableError: if ib_async isn't installed.
     """
     require_ib()
-    # Perform the import only when needed (after availability check)
-    # Late import to avoid hard runtime dependency for test-only environments
+    # Perform a simple availability check
     if not ib_available():  # Should be unreachable after require_ib, defensive
         raise IBUnavailableError("ib_async not installed")
-    if "RealIB" not in globals():  # Load actual class once
-        from ib_async import IB  # type: ignore
-
-        globals()["RealIB"] = IB
 
     global _ib
     async with _lock:
         if _ib is None:
-            _ib = globals()["RealIB"]()  # type: ignore[call-arg]
-
-            # Use config for connection parameters
-            try:
-                from ..core.config import get_config
-
-                config = get_config()
-                host = config.ib_connection.host
-                port = config.ib_connection.port
-                client_id = config.ib_connection.client_id
-            except Exception:
-                # Fallback to defaults
-                host = "127.0.0.1"
-                port = 7497
-                client_id = 1
-
-            await _ib.connectAsync(host, port, clientId=client_id)  # type: ignore[attr-defined]
+            # Delegate to centralized connector (env-driven, with retries)
+            _ib = await connect_ib()
     assert _ib is not None  # narrow for type checker
     return _ib
 
@@ -75,10 +56,9 @@ async def close_ib() -> None:
     async with _lock:
         if _ib is not None:
             try:
-                _ib.disconnect()  # type: ignore[call-arg]
-            except Exception:  # pragma: no cover - best effort
-                pass
-            _ib = None
+                disconnect_ib(_ib)
+            finally:
+                _ib = None
 
 
 def ib_client_available() -> bool:

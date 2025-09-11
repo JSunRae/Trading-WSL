@@ -128,7 +128,7 @@ def save_excel_for_review(df: DataFrame, str_name: str = "") -> str:
     """
     Save DataFrame to Excel for review/debugging purposes.
 
-    Replaces SaveExcel_ForReview from MasterPy_Trading.py.
+    Replaces legacy SaveExcel_ForReview from the old monolith.
     Handles timezone conversion and generates unique filenames.
 
     Args:

@@ -262,72 +262,89 @@ class DataPersistenceService:
             )
             return False
 
-        save_me = False
-
-        # Convert timestamp objects to strings
+        # Normalize datetime-like inputs
         earliest_avail_bar = self._convert_to_string(earliest_avail_bar)
         for_date = self._convert_to_string(for_date)
 
         if not bar_size and comment:
-            # This is an error capture - only add comment
-            for i in range(10):
-                comment_col = f"Comment{i}"
-                date_col = f"Date{i}"
-
-                if comment_col not in self.df_failed.columns or pd.isnull(
-                    safe_df_scalar_access(self.df_failed, symbol, comment_col)
-                ):
-                    self.df_failed.loc[symbol, date_col] = for_date
-                    self.df_failed.loc[symbol, comment_col] = comment
-                    save_me = True
-                    break
-                elif (
-                    safe_df_scalar_access(self.df_failed, symbol, comment_col)
-                    == f"{for_date}::{comment}"
-                ):
-                    # Already noted
-                    break
-
-            # Set NonExistent to Maybe if not set
-            if pd.isnull(safe_df_scalar_access(self.df_failed, symbol, "NonExistant")):
-                self.df_failed.loc[symbol, "NonExistant"] = "Maybe"
+            save_me = self._append_comment_only_failed(symbol, for_date, comment)
         else:
-            save_me = True
-
-            if non_existent:
-                self.df_failed.loc[symbol, "NonExistant"] = "Yes"
-            else:
-                self.df_failed.loc[symbol, "NonExistant"] = "No"
-
-                # Set earliest available bar if not already set
-                if pd.isnull(
-                    safe_df_scalar_access(self.df_failed, symbol, "EarliestAvailBar")
-                ):
-                    if earliest_avail_bar:
-                        self.df_failed.loc[symbol, "EarliestAvailBar"] = (
-                            earliest_avail_bar
-                        )
-
-                # Track latest failed date for this bar size
-                if bar_size:
-                    latest_failed_col = f"{bar_size}-LatestFailed"
-                    current_latest = safe_df_scalar_access(
-                        self.df_failed, symbol, latest_failed_col
-                    )
-
-                    if current_latest is None or (
-                        for_date and current_latest > for_date
-                    ):
-                        self.df_failed.loc[symbol, latest_failed_col] = for_date
+            save_me = self._apply_failure_status(
+                symbol=symbol,
+                non_existent=non_existent,
+                earliest_avail_bar=earliest_avail_bar,
+                bar_size=bar_size,
+                for_date=for_date,
+            )
 
         if save_me:
             self.fail_changes += 1
-
-            # Auto-save when threshold reached
             if self.fail_changes >= self.save_threshold:
                 self._save_failed_stocks()
 
         return save_me
+
+    # ---- internal helpers to reduce complexity (no behavior change) ----
+    def _append_comment_only_failed(
+        self, symbol: str, for_date: str, comment: str
+    ) -> bool:
+        """Append only a comment row for a failure without bar_size context.
+
+        Preserves legacy behavior of using first available Comment{i}/Date{i} slot
+        and marking NonExistant as "Maybe" if previously unset.
+        """
+        if self.df_failed is None:
+            return False
+        changed = False
+        for i in range(10):
+            comment_col = f"Comment{i}"
+            date_col = f"Date{i}"
+
+            cur = safe_df_scalar_access(self.df_failed, symbol, comment_col)
+            if comment_col not in self.df_failed.columns or pd.isnull(cur):
+                self.df_failed.loc[symbol, date_col] = for_date
+                self.df_failed.loc[symbol, comment_col] = comment
+                changed = True
+                break
+            if cur == f"{for_date}::{comment}":
+                # Already present; nothing to do
+                break
+
+        if pd.isnull(safe_df_scalar_access(self.df_failed, symbol, "NonExistant")):
+            self.df_failed.loc[symbol, "NonExistant"] = "Maybe"
+        return changed
+
+    def _apply_failure_status(
+        self,
+        *,
+        symbol: str,
+        non_existent: bool,
+        earliest_avail_bar: str,
+        bar_size: str,
+        for_date: str,
+    ) -> bool:
+        """Apply structured failure status for a symbol, updating relevant fields."""
+        if self.df_failed is None:
+            return False
+
+        self.df_failed.loc[symbol, "NonExistant"] = "Yes" if non_existent else "No"
+        if non_existent:
+            return True
+
+        # Only for existent symbols: set earliest available bar if not already set
+        if pd.isnull(safe_df_scalar_access(self.df_failed, symbol, "EarliestAvailBar")):
+            if earliest_avail_bar:
+                self.df_failed.loc[symbol, "EarliestAvailBar"] = earliest_avail_bar
+
+        # Track latest failed date for this bar size
+        if bar_size:
+            latest_failed_col = f"{bar_size}-LatestFailed"
+            current_latest = safe_df_scalar_access(
+                self.df_failed, symbol, latest_failed_col
+            )
+            if current_latest is None or (for_date and current_latest > for_date):
+                self.df_failed.loc[symbol, latest_failed_col] = for_date
+        return True
 
     def is_failed(self, symbol: str, bar_size: str, for_date: str = "") -> bool:
         """

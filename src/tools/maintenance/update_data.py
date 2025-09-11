@@ -46,9 +46,10 @@ def _iter_recent_trade_days(days: int, end: date | None = None) -> list[date]:
 
 
 def _expand_timeframe_dates(tf: str, base: date | None) -> list[date]:
-    if tf == "1 min":  # replicate legacy: last 5 trade days (approx calendar days span)
-        return _iter_recent_trade_days(5, base or datetime.today().date())
-    return [base or datetime.today().date()]
+    from src.core.config import get_config as _gc
+
+    days = _gc().get_bar_lookback_days(tf)
+    return _iter_recent_trade_days(days, base or datetime.today().date())
 
 
 def _map_bar(tf: str) -> BarSize:
@@ -130,12 +131,20 @@ def collect_symbols(
     if use_warrior:
         wl = dm.warrior_list()  # type: ignore[attr-defined]
         if wl is not None:
-            for _, row in wl.iterrows():  # type: ignore[attr-defined]
-                raw = row.get("ROSS", "")
-                for code in str(raw).split(";"):
-                    c = code.strip()
-                    if c and c not in symbols:
-                        symbols.append(c)
+            try:
+                # Prefer Warrior CSV schema with 'Ticker' column
+                cols = {str(c).strip().lower(): c for c in wl.columns}  # type: ignore[attr-defined]
+                ticker_col = (
+                    cols.get("ticker") or cols.get("symbol") or cols.get("stock")
+                )
+                if ticker_col:
+                    for val in wl[ticker_col].dropna().astype(str):  # type: ignore[attr-defined]
+                        s = val.strip().upper()
+                        if s and s not in symbols:
+                            symbols.append(s)
+            except Exception:
+                # Keep symbols empty if Warrior list not in expected CSV format
+                pass
     symbols.extend([s for s in explicit if s and s not in symbols])
     return symbols
 

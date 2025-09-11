@@ -2,6 +2,41 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Apply Branch Protection (main)",
+      "type": "shell",
+      "command": "bash",
+      "args": ["-c", "scripts/apply_branch_protection.sh"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Notify TBS (waiting)",
+      "type": "shell",
+      "command": "./scripts/notify_tbs.sh",
+      "args": [
+        "${workspaceFolderBasename}",
+        "${input:runId}",
+        "${input:usedPrompt}",
+        "waiting",
+        "Working… I'll ping you when ready."
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Notify TBS (error)",
+      "type": "shell",
+      "command": "./scripts/notify_tbs.sh",
+      "args": [
+        "${workspaceFolderBasename}",
+        "${input:runId}",
+        "${input:usedPrompt}",
+        "error",
+        "Hit an error; check logs."
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
       "label": "Install Dependencies",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/pip",

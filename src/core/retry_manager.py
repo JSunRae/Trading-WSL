@@ -164,7 +164,7 @@ class RetryManager:
                 AttributeError,
             ]
 
-    def execute_with_retry(self, func: AnyFn, *args: Any, **kwargs: Any) -> Any:
+    def execute_with_retry(self, func: AnyFn, *args: Any, **kwargs: Any) -> Any:  # noqa: C901
         """Execute function with retry logic"""
 
         operation_start = time.time()

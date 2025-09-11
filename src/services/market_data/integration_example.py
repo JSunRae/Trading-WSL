@@ -33,22 +33,6 @@ async def integrate_market_data_service():
 
     ib = await get_ib()
 
-    # Use config for connection parameters
-    try:
-        from src.core.config import get_config
-
-        config = get_config()
-        host = config.ib_connection.host
-        port = config.ib_connection.port
-        client_id = config.ib_connection.client_id
-    except Exception:
-        # Fallback for paper trading
-        host = "127.0.0.1"
-        port = 7497
-        client_id = 1
-
-    await ib.connectAsync(host, port, clientId=client_id)  # Configurable connection
-
     # NEW: Get the modern market data service
     market_service = get_market_data_service(ib)
 
@@ -84,9 +68,8 @@ async def integrate_market_data_service():
 
         # Clean shutdown
         market_service.stop_all_subscriptions()
-        ib.disconnect()
-
-        print("✅ Market data service stopped cleanly")
+    ib.disconnect()
+    print("✅ Market data service stopped cleanly")
 
 
 # Migration guide for existing code
@@ -97,10 +80,9 @@ def migration_guide():
     print("🔄 MIGRATION GUIDE: Legacy to Modern")
     print("=" * 40)
     print()
-    print("❌ OLD (Legacy Code):")
-    print("   from MasterPy_Trading import MarketDepthCls, TickByTickCls")
-    print("   depth_handler = MarketDepthCls(ib, symbol)")
-    print("   tick_handler = TickByTickCls(ib, symbol)")
+    print("❌ OLD (Legacy Code): MasterPy_Trading.MarketDepthCls / TickByTickCls")
+    print("   depth_handler = <legacy MarketDepthCls>(ib, symbol)")
+    print("   tick_handler = <legacy TickByTickCls>(ib, symbol)")
     print()
     print("✅ NEW (Modern Service):")
     print("   from src.services.market_data import get_market_data_service")

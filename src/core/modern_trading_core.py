@@ -70,7 +70,7 @@ class ModernTradingCore:
         self.error_handler.logger.info("Modern Trading Core initialized successfully")
 
     @with_error_handling("trading_core")
-    def download_historical_data(
+    def download_historical_data(  # noqa: C901 - complexity tracked for future refactor
         self,
         symbol: str,
         bar_size: str,

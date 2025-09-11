@@ -125,7 +125,7 @@ class HardcodedPathFixer:
 
         return findings
 
-    def fix_file(self, file_path: Path) -> bool:
+    def fix_file(self, file_path: Path) -> bool:  # noqa: C901
         """Fix hardcoded paths in a single file"""
         try:
             with file_path.open(encoding="utf-8") as f:

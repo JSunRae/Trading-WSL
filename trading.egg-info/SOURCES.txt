@@ -12,6 +12,7 @@ src/ib_Warror_dl.py
 src/migration_helper.py
 src/notifications.py
 src/analytics/__init__.py
+src/analytics/evaluation.py
 src/analytics/financial_metrics.py
 src/automation/headless_gateway.py
 src/config/extensions.py
@@ -24,6 +25,9 @@ src/core/integrated_error_handling.py
 src/core/modern_trading_core.py
 src/core/performance.py
 src/core/retry_manager.py
+src/core/config/services.py
+src/core/configuration/__init__.py
+src/core/configuration/services.py
 src/data/__init__.py
 src/data/data_manager.py
 src/data/pandas_helpers.py
@@ -41,9 +45,12 @@ src/infra/async_utils.py
 src/infra/async_utils_legacy.py
 src/infra/contract_factories.py
 src/infra/ib_client.py
+src/infra/ib_conn.py
 src/infra/ib_requests.py
 src/infra/service_registry.py
+src/infra/events/config_events.py
 src/integrations/ml_data_integrity.py
+src/integrations/wandb_integration.py
 src/lib/__init__.py
 src/lib/ib_async_wrapper.py
 src/monitoring/__init__.py
@@ -72,6 +79,7 @@ src/services/market_info_service.py
 src/services/ml_order_management_service.py
 src/services/order_management_service.py
 src/services/path_service.py
+src/services/position_service.py
 src/services/request_manager_service.py
 src/services/service_manager.py
 src/services/stock_split_detection_service.py
@@ -82,6 +90,7 @@ src/services/historical_data/download_tracker.py
 src/services/historical_data/historical_data_service.py
 src/services/historical_data/test_historical_service.py
 src/services/market_data/__init__.py
+src/services/market_data/artifact_check.py
 src/services/market_data/backfill_api.py
 src/services/market_data/databento_l2_service.py
 src/services/market_data/depth_service.py
@@ -100,6 +109,7 @@ src/tools/analyze_depth.py
 src/tools/auto_backfill_from_warrior.py
 src/tools/backfill_l2_from_warrior.py
 src/tools/demo_stock_split_integration.py
+src/tools/e2e_first_needed_download.py
 src/tools/integration_examples.py
 src/tools/migration_guide.py
 src/tools/phase2_progress_demo.py
@@ -114,6 +124,8 @@ src/tools/verify_setup.py
 src/tools/warrior_update.py
 src/tools/analysis/analyze_root_files.py
 src/tools/analysis/analyze_scripts.py
+src/tools/analysis/build_export_manifest.py
+src/tools/analysis/evaluate_and_emit_metrics.py
 src/tools/analysis/generate_coverage_analysis.py
 src/tools/analysis/script_inventory_analyzer.py
 src/tools/analysis/system_check_analysis.py
@@ -139,7 +151,13 @@ src/tools/setup/setup_critical_fixes.py
 src/tools/setup/setup_ib_gateway.py
 src/types/__init__.py
 src/types/project_types.py
+src/ui/__init__.py
 src/ui/gap_recorder_ui.py
+src/ui/config_editor/__init__.py
+src/ui/config_editor/app.py
+src/ui/trading_app/app.py
+src/ui/trading_app/presenter.py
+src/ui/trading_app/view.py
 src/utils/data_utils.py
 src/utils/exit_handler.py
 src/utils/ib_connection_helper.py
@@ -150,6 +168,7 @@ tests/test__ib_availability.py
 tests/test_api_surface.py
 tests/test_async_utils.py
 tests/test_config.py
+tests/test_config_editor_services.py
 tests/test_connection_pool.py
 tests/test_data_helpers.py
 tests/test_data_manager.py
@@ -165,6 +184,7 @@ tests/test_gateway_ready.py
 tests/test_ib_async_stubs.py
 tests/test_ib_availability.py
 tests/test_ib_compat_errors.py
+tests/test_ib_connect.py
 tests/test_infra_smoke.py
 tests/test_integrated_error_handling.py
 tests/test_integrated_error_handling_extended.py
@@ -181,6 +201,7 @@ tests/test_ml_signal_executor_monitoring.py
 tests/test_ml_signal_executor_more.py
 tests/test_ml_signal_executor_unit.py
 tests/test_more_coverage_unit.py
+tests/test_no_legacy_imports.py
 tests/test_observability_and_dst.py
 tests/test_observability_fields.py
 tests/test_performance_and_related.py

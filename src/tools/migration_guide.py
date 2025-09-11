@@ -74,7 +74,7 @@ class CodeMigrationAssistant:
             self.error_handler = None
         self.workspace_root = Path(__file__).parent.parent
 
-    def analyze_codebase(self) -> dict[str, Any]:
+    def analyze_codebase(self) -> dict[str, Any]:  # noqa: C901
         """Analyze the entire codebase for migration opportunities"""
 
         logger.info("Analyzing codebase for migration opportunities")

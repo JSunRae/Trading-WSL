@@ -1,0 +1,49 @@
+{
+  "selected": [
+    "Mike",
+    "Date"
+  ],
+  "total_rows": 930,
+  "good_unique": 4,
+  "sample_good": [
+    [
+      "HAL",
+      "2020-03-10"
+    ],
+    [
+      "NCLH",
+      "2020-06-08"
+    ],
+    [
+      "TMUS",
+      "2020-02-12"
+    ],
+    [
+      "VIAC",
+      "2020-02-21"
+    ]
+  ],
+  "bad_symbols_sample": [
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "NaT",
+    "nan",
+    "nan",
+    "nan",
+    "NaT",
+    "NaT",
+    "NaT"
+  ],
+  "bad_dates_sample": []
+}

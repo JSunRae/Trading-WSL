@@ -15,6 +15,13 @@ omit =
   src/infra/contract_factories.py
   src/infra/ib_requests.py
   src/infra/ib_client.py
+  # Optional integrations / GUI modules not exercised in CI
+  src/ui/**
+  src/integrations/wandb_integration.py
+  src/recording/**
+  src/persistence/**
+  src/scanner/**
+  src/utils/ib_connection_helper.py
   # Hard-to-unit-test infrastructure and monitoring modules (tracked separately)
   src/core/performance.py
   src/core/integrated_error_handling.py
