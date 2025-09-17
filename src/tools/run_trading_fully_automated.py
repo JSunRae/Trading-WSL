@@ -218,7 +218,8 @@ async def fully_automated_trading(
 
         # Step 3: Process each symbol
         logger.info(f"📊 Step 3: Processing {len(symbols)} symbols...")
-        all_data: dict[str, pd.DataFrame] = {}
+    # Map symbol to downloaded dataframe; values assigned only when non-empty
+    all_data: dict[str, pd.DataFrame] = {}
         for i, symbol in enumerate(symbols, 1):
             logger.info(f"📈 Processing {symbol} ({i}/{len(symbols)})...")
             try:
@@ -266,6 +267,7 @@ async def fully_automated_trading(
                                         signal = "🔥 STRONG BUY"
                                     elif latest_price > avg_price:
                                         signal = "📈 BUY"
+                                    elif latest_price < avg_price * 0.98:
                                         signal = "🔻 STRONG SELL"
                                     else:
                                         signal = "📉 SELL"
@@ -291,7 +293,7 @@ async def fully_automated_trading(
                     except Exception:
                         end_dt_str = None
 
-                df = await ib.req_historical_data(
+                df: pd.DataFrame | None = await ib.req_historical_data(
                     contract, duration, bar_size, end_datetime=end_dt_str
                 )
                 if df is None or df.empty:

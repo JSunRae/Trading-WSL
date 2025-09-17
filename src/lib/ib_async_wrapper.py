@@ -1194,9 +1194,9 @@ if __name__ == "__main__":
         ib = IBAsync()
 
         # Connect (env-first with WSL defaults)
-    h = os.environ.get("IB_HOST", "172.17.208.1")
-    p = int(os.environ.get("IB_PORT", "4003"))
-    cid = int(os.environ.get("IB_CLIENT_ID", "2011"))
+        h = os.environ.get("IB_HOST", "172.17.208.1")
+        p = int(os.environ.get("IB_PORT", "4003"))
+        cid = int(os.environ.get("IB_CLIENT_ID", "2011"))
         connected = await ib.connect(h, p, cid)
         if not connected:
             print("Failed to connect")

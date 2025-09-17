@@ -22,6 +22,7 @@ from typing import Any
 try:  # pragma: no cover
     from src.core.config import get_config  # type: ignore
 except Exception:  # pragma: no cover
+
     def get_config():  # type: ignore
         class DummyIBConnection:
             host = os.getenv("IB_HOST", "172.17.208.1")
@@ -31,8 +32,10 @@ except Exception:  # pragma: no cover
             live_port = int(os.getenv("IB_LIVE_PORT", "7496"))
             client_id = int(os.getenv("IB_CLIENT_ID", "1"))
             timeout = 30
+
         class Dummy:
             ib_connection = DummyIBConnection()
+
         return Dummy()
 
 
@@ -69,7 +72,9 @@ class IBGatewaySetup:
         return p
 
     # -------------------- Start Script --------------------
-    def create_startup_script(self, *, enhanced: bool = True, force: bool = False) -> Path:
+    def create_startup_script(
+        self, *, enhanced: bool = True, force: bool = False
+    ) -> Path:
         cfg = self.cfg
         host, port, cid = cfg.host, cfg.gateway_paper_port, cfg.client_id
         path = Path("start_gateway.sh")
@@ -80,7 +85,7 @@ class IBGatewaySetup:
         if not enhanced:
             content = (
                 "#!/bin/bash\n"
-                f"HOST=\"{host}\"\nPORT={port}\nCID={cid}\n"
+                f'HOST="{host}"\nPORT={port}\nCID={cid}\n'
                 "echo 'IB Gateway minimal startup helper'\n"
                 "python - <<'PY'\n"
                 f"import socket,sys\nHOST='{host}'; PORT={port}\n"
@@ -146,8 +151,7 @@ raise SystemExit(asyncio.run(main()))
 PY
 """
             content = (
-                template
-                .replace("__HOST__", str(host))
+                template.replace("__HOST__", str(host))
                 .replace("__PORT__", str(port))
                 .replace("__CID__", str(cid))
             )
@@ -200,11 +204,20 @@ PY
         print("🚀 IB GATEWAY SETUP GUIDE")
         print("=" * 70)
         print("Host:", cfg.host)
-        print("Gateway Ports (paper/live):", cfg.gateway_paper_port, "/", cfg.gateway_live_port)
+        print(
+            "Gateway Ports (paper/live):",
+            cfg.gateway_paper_port,
+            "/",
+            cfg.gateway_live_port,
+        )
         print("TWS     Ports (paper/live):", cfg.paper_port, "/", cfg.live_port)
-        print("\nAutostart: export IB_GATEWAY_START_CMD=\"<launch cmd>\"; then run ./start_gateway.sh")
+        print(
+            '\nAutostart: export IB_GATEWAY_START_CMD="<launch cmd>"; then run ./start_gateway.sh'
+        )
 
-    def run_setup(self, *, enhanced: bool, force: bool, with_status: bool) -> None:  # pragma: no cover
+    def run_setup(
+        self, *, enhanced: bool, force: bool, with_status: bool
+    ) -> None:  # pragma: no cover
         self.create_gateway_config()
         self.create_startup_script(enhanced=enhanced, force=force)
         if with_status:
@@ -215,9 +228,19 @@ def _describe() -> dict[str, Any]:
     cfg = get_config().ib_connection
     return {
         "name": "setup_ib_gateway",
-    "description": "Generate IB Gateway config and helper scripts (enhanced Option D).",
-    "inputs": ["--guide", "--create-files", "--enhanced", "--force", "--with-status"],
-    "outputs": ["config/ib_gateway_config.json", "start_gateway.sh", "check_gateway_status.py"],
+        "description": "Generate IB Gateway config and helper scripts (enhanced Option D).",
+        "inputs": [
+            "--guide",
+            "--create-files",
+            "--enhanced",
+            "--force",
+            "--with-status",
+        ],
+        "outputs": [
+            "config/ib_gateway_config.json",
+            "start_gateway.sh",
+            "check_gateway_status.py",
+        ],
         "env_keys": [
             "IB_HOST",
             "IB_GATEWAY_PAPER_PORT",
@@ -248,9 +271,17 @@ def _describe() -> dict[str, Any]:
 def run_cli() -> int:  # pragma: no cover
     ap = argparse.ArgumentParser(description="IB Gateway setup utility")
     ap.add_argument("--guide", action="store_true", help="Show setup guide")
-    ap.add_argument("--create-files", action="store_true", help="Generate helper scripts")
-    ap.add_argument("--enhanced", action="store_true", help="Generate enhanced start script (Option D)")
-    ap.add_argument("--with-status", action="store_true", help="Also generate status checker")
+    ap.add_argument(
+        "--create-files", action="store_true", help="Generate helper scripts"
+    )
+    ap.add_argument(
+        "--enhanced",
+        action="store_true",
+        help="Generate enhanced start script (Option D)",
+    )
+    ap.add_argument(
+        "--with-status", action="store_true", help="Also generate status checker"
+    )
     ap.add_argument("--force", action="store_true", help="Overwrite existing files")
     ap.add_argument("--describe", action="store_true", help="Describe JSON")
     args = ap.parse_args()
@@ -263,7 +294,9 @@ def run_cli() -> int:  # pragma: no cover
         setup.print_setup_guide()
         did = True
     if args.create_files:
-        setup.run_setup(enhanced=args.enhanced, force=args.force, with_status=args.with_status)
+        setup.run_setup(
+            enhanced=args.enhanced, force=args.force, with_status=args.with_status
+        )
         did = True
     if not did:
         setup.print_setup_guide()

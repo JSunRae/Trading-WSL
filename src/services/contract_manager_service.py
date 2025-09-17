@@ -7,30 +7,52 @@ Extracted from monolithic requestCheckerCLS (300+ lines).
 import sys
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from ib_async import Contract, Forex, Future, Option, Stock
+    from src.infra.contract_factories import forex as _make_forex
+    from src.infra.contract_factories import stock as _make_stock
+except Exception as e:  # pragma: no cover - optional ib dependency
+    print(f"Warning: Could not import contract factories: {e}")
+    _make_stock = None  # type: ignore[assignment]
+    _make_forex = None  # type: ignore[assignment]
 
-    from src.core.config import get_config
-    from src.core.error_handler import get_error_handler
-except ImportError as e:
-    print(f"Warning: Could not import dependencies: {e}")
+if TYPE_CHECKING:
+    from src.infra.contract_factories import ContractT as ContractType
+else:
+    ContractType = Any  # Fallback for runtime
 
-    # Define fallback classes for development
-    class Stock:
-        def __init__(self, symbol, exchange, currency):
+from src.core.config import get_config
+from src.core.error_handler import get_error_handler
+
+
+def _make_stock_safe(symbol: str, exchange: str, currency: str) -> ContractType:
+    if _make_stock is not None:
+        return cast(Any, _make_stock)(symbol, exchange, currency)  # type: ignore[no-any-return]
+
+    class _C:
+        def __init__(self) -> None:
             self.symbol = symbol
             self.exchange = exchange
             self.currency = currency
 
-    class Contract:
-        pass
+    return _C()  # type: ignore[return-value]
 
-    Option = Future = Forex = Contract
+
+def _make_forex_safe(pair: str, exchange: str = "IDEALPRO") -> ContractType:
+    if _make_forex is not None:
+        return cast(Any, _make_forex)(pair, exchange)  # type: ignore[no-any-return]
+
+    class _C:
+        def __init__(self) -> None:
+            self.symbol = pair
+            self.exchange = exchange
+            self.currency = "USD"
+
+    return _C()  # type: ignore[return-value]
 
 
 class ContractManagerService:
@@ -45,14 +67,14 @@ class ContractManagerService:
     - Error handling and recovery
     """
 
-    def __init__(self, ib_connection=None, config=None):
+    def __init__(self, ib_connection: Any | None = None, config: Any | None = None):
         """Initialize contract manager with IB connection."""
-        self.error_handler = get_error_handler()
-        self.config = config or get_config()
-        self.ib = ib_connection
+        self.error_handler: Any = get_error_handler()
+        self.config: Any = config or get_config()
+        self.ib: Any | None = ib_connection
 
         # Contract cache for performance
-        self._contract_cache = {}
+        self._contract_cache: dict[str, ContractType] = {}
 
         # Default settings
         self.default_exchange = "SMART"
@@ -79,7 +101,7 @@ class ContractManagerService:
 
     def create_stock_contract(
         self, symbol: str, exchange: str | None = None, currency: str | None = None
-    ) -> Contract | None:
+    ) -> ContractType | None:
         """
         Create a stock contract with proper validation.
 
@@ -111,7 +133,7 @@ class ContractManagerService:
                 return None
 
             # Create contract
-            contract = Stock(symbol, exchange, currency)
+            contract = _make_stock_safe(symbol, exchange, currency)
 
             # Qualify contract if IB connection available
             if self.ib and hasattr(self.ib, "qualifyContracts"):
@@ -126,9 +148,9 @@ class ContractManagerService:
                     return None
 
             # Cache the contract
-            self._contract_cache[cache_key] = contract
+            self._contract_cache[cache_key] = cast(ContractType, contract)
 
-            return contract
+            return cast(ContractType, contract)
 
         except Exception as e:
             self.error_handler.handle_error(
@@ -147,7 +169,7 @@ class ContractManagerService:
         right: str,
         exchange: str | None = None,
         currency: str | None = None,
-    ) -> Contract | None:
+    ) -> ContractType | None:
         """
         Create an option contract.
 
@@ -165,32 +187,47 @@ class ContractManagerService:
         try:
             # Normalize inputs
             symbol = symbol.upper().strip()
-            right = right.upper().strip()
+            expiry = expiry.strip()
             exchange = exchange or self.default_exchange
             currency = currency or self.default_currency
 
-            # Validate inputs
-            if right not in ["C", "P"]:
-                self.error_handler.logger.error(f"Invalid option right: {right}")
+            if not self._validate_symbol(symbol):
+                self.error_handler.logger.error(f"Invalid symbol: {symbol}")
                 return None
 
             if not self._validate_expiry_date(expiry):
                 self.error_handler.logger.error(f"Invalid expiry date: {expiry}")
                 return None
 
-            # Create cache key
+            # Check cache
             cache_key = f"OPT_{symbol}_{expiry}_{strike}_{right}_{exchange}_{currency}"
             if cache_key in self._contract_cache:
                 return self._contract_cache[cache_key]
 
-            # Create option contract
-            contract = Option()
-            contract.symbol = symbol
-            contract.lastTradeDateOrContractMonth = expiry
-            contract.strike = strike
-            contract.right = right
-            contract.exchange = exchange or "SMART"
-            contract.currency = currency or "USD"
+            # Create option contract via low-level construction to satisfy typing
+            try:
+                from ib_async import Option as _Option  # type: ignore[import-not-found]
+
+                contract = _Option(
+                    symbol,
+                    expiry,
+                    float(strike),
+                    right,
+                    exchange or "SMART",
+                    currency or "USD",
+                )
+            except Exception:
+                # Fallback minimal contract-like object
+                class _C:
+                    def __init__(self) -> None:
+                        self.symbol = symbol
+                        self.lastTradeDateOrContractMonth = expiry
+                        self.strike = strike
+                        self.right = right
+                        self.exchange = exchange or "SMART"
+                        self.currency = currency or "USD"
+
+                contract = _C()  # type: ignore[assignment]
 
             # Qualify if IB connection available
             if self.ib and hasattr(self.ib, "qualifyContracts"):
@@ -224,7 +261,7 @@ class ContractManagerService:
 
     def create_forex_contract(
         self, base_currency: str, quote_currency: str = "USD"
-    ) -> Contract | None:
+    ) -> ContractType | None:
         """
         Create a forex contract.
 
@@ -259,9 +296,8 @@ class ContractManagerService:
                 return self._contract_cache[cache_key]
 
             # Create forex contract
-            symbol = f"{base_currency}.{quote_currency}"
-            contract = Forex()
-            contract.symbol = symbol
+            pair = f"{base_currency}{quote_currency}"
+            contract = _make_forex_safe(pair)
 
             # Cache the contract
             self._contract_cache[cache_key] = contract
@@ -321,7 +357,7 @@ class ContractManagerService:
         except (ValueError, TypeError):
             return False
 
-    def get_contract_details(self, contract: Contract) -> dict[str, Any]:
+    def get_contract_details(self, contract: ContractType) -> dict[str, Any]:
         """
         Get detailed information about a contract.
 
@@ -368,7 +404,7 @@ class ContractManagerService:
         symbols: list[str],
         exchange: str | None = None,
         currency: str | None = None,
-    ) -> dict[str, Contract | None]:
+    ) -> dict[str, ContractType | None]:
         """
         Create multiple stock contracts efficiently.
 
@@ -380,7 +416,7 @@ class ContractManagerService:
         Returns:
             Dictionary mapping symbols to contracts
         """
-        results = {}
+        results: dict[str, ContractType | None] = {}
 
         self.error_handler.logger.info(f"Creating contracts for {len(symbols)} symbols")
 
@@ -412,10 +448,12 @@ class ContractManagerService:
 
 
 # Singleton instance for global access
-_contract_manager_instance = None
+_contract_manager_instance: ContractManagerService | None = None
 
 
-def get_contract_manager(ib_connection=None, config=None) -> ContractManagerService:
+def get_contract_manager(
+    ib_connection: Any | None = None, config: Any | None = None
+) -> ContractManagerService:
     """Get or create the global contract manager instance."""
     global _contract_manager_instance
 

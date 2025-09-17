@@ -7,7 +7,6 @@ This replaces the Excel-based system with 10-100x better performance.
 """
 
 import logging
-import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -15,25 +14,24 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from src.core.config import get_config
+from src.core.error_handler import DataError, get_error_handler, handle_error
+
 # Optional pyarrow import with graceful degradation (typed as Any for mypy)
 if TYPE_CHECKING:  # Only for type checkers
     pass
 
 pa: Any
 pq: Any
+_pyarrow_available = False
 try:
     import pyarrow as pa  # type: ignore[no-redef]
     import pyarrow.parquet as pq  # type: ignore[no-redef]
 
-    PYARROW_AVAILABLE: bool = True
+    _pyarrow_available = True
 except ImportError:  # pragma: no cover - optional dependency
     pa, pq = object(), object()  # harmless placeholders when not available
-    PYARROW_AVAILABLE = False
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from src.core.config import get_config
-from src.core.error_handler import DataError, get_error_handler, handle_error
+PYARROW_AVAILABLE: bool = _pyarrow_available
 
 
 @dataclass

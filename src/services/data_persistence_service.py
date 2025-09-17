@@ -12,9 +12,10 @@ import sys
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
+from pandas import DataFrame
 
 # Add src to path for imports using pathlib
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -25,16 +26,19 @@ try:
 except Exception:  # pragma: no cover - best-effort import
     _real_get_config = None  # type: ignore[assignment]
 
+DataErrorCls: type[Exception]
 try:
     from src.core.error_handler import DataError as _RealDataError
     from src.core.error_handler import handle_error as _real_handle_error
 
-    DataErrorType = _RealDataError
+    DataErrorCls = _RealDataError
 except Exception:  # pragma: no cover - best-effort import
     _real_handle_error = None  # type: ignore[assignment]
 
-    class DataErrorType(Exception):
+    class _FallbackDataError(Exception):
         pass
+
+    DataErrorCls = _FallbackDataError
 
 
 def _fallback_get_config(*_args: Any, **_kwargs: Any) -> Any:
@@ -91,7 +95,31 @@ handle_error_fn: Callable[[Exception, dict[str, Any] | None, str, str], Any]
 handle_error_fn = (
     _real_handle_error if _real_handle_error is not None else _fallback_handle_error
 )
-DataErrorCls: type[Exception] = DataErrorType
+
+
+# --- Typed IO helpers to stabilize pandas typing ---
+def _read_excel_indexed(path: str, *, index_col: str) -> DataFrame:
+    """Typed wrapper over pandas.read_excel for a single-sheet DataFrame with a known index column.
+
+    Uses dynamic attribute access to keep typing strict while avoiding pandas' partially-unknown overloads.
+    """
+    df = pd.read_excel(  # type: ignore[no-any-return]
+        path, sheet_name=0, header=0, engine="openpyxl", index_col=index_col
+    )
+    # Ensure index name is set for downstream logic
+    if df.index.name != index_col:
+        df.index.name = index_col
+    return df
+
+
+def _to_excel(df: DataFrame, path: str, *, sheet_name: str = "Sheet1") -> None:
+    """Typed wrapper over DataFrame.to_excel with common defaults.
+
+    Uses dynamic attribute access to avoid partially-unknown signatures in typing.
+    """
+    writer_cls = pd.ExcelWriter
+    with writer_cls(path, engine="openpyxl") as writer:  # type: ignore[call-arg]
+        cast(Any, df).to_excel(writer, sheet_name=sheet_name, index=True)
 
 
 def safe_df_scalar_access(
@@ -210,12 +238,8 @@ class DataPersistenceService:
         """Initialize DataFrames from files or create empty ones."""
         # Initialize Failed Stocks DataFrame
         try:
-            self.df_failed = pd.read_excel(
-                self.failed_stocks_path,
-                sheet_name=0,
-                header=0,
-                engine="openpyxl",
-                index_col="Stock",
+            self.df_failed = _read_excel_indexed(
+                self.failed_stocks_path, index_col="Stock"
             )
         except (FileNotFoundError, PermissionError, ValueError) as e:
             print(f"Warning: Could not load Failed Stocks file: {e}")
@@ -223,12 +247,8 @@ class DataPersistenceService:
 
         # Initialize Downloadable Stocks DataFrame
         try:
-            self.df_downloadable = pd.read_excel(
-                self.downloadable_stocks_path,
-                sheet_name=0,
-                header=0,
-                engine="openpyxl",
-                index_col="Stock",
+            self.df_downloadable = _read_excel_indexed(
+                self.downloadable_stocks_path, index_col="Stock"
             )
         except (FileNotFoundError, PermissionError, ValueError) as e:
             print(f"Warning: Could not load Downloadable Stocks file: {e}")
@@ -236,12 +256,8 @@ class DataPersistenceService:
 
         # Initialize Downloaded Stocks DataFrame
         try:
-            self.df_downloaded = pd.read_excel(
-                self.downloaded_stocks_path,
-                sheet_name=0,
-                header=0,
-                engine="openpyxl",
-                index_col="DateStock",
+            self.df_downloaded = _read_excel_indexed(
+                self.downloaded_stocks_path, index_col="DateStock"
             )
         except (FileNotFoundError, PermissionError, ValueError) as e:
             print(f"Warning: Could not load Downloaded Stocks file: {e}")
@@ -273,15 +289,6 @@ class DataPersistenceService:
         if not symbol:
             handle_error_fn(
                 ValueError("Symbol cannot be blank for failed list"),
-                None,
-                "DataPersistence",
-                "append_failed",
-            )
-            return False
-
-        if self.df_failed is None:
-            handle_error_fn(
-                DataErrorCls("Failed DataFrame not initialized"),
                 None,
                 "DataPersistence",
                 "append_failed",
@@ -572,7 +579,7 @@ class DataPersistenceService:
 
         if hasattr(value, "strftime") and not isinstance(value, str):
             return value.strftime("%Y-%m-%d %H:%M:%S")
-        elif str(type(value)).find("Timestamp") >= 0:
+        elif isinstance(value, pd.Timestamp):
             return str(value)
         else:
             return str(value)
@@ -591,12 +598,7 @@ class DataPersistenceService:
                 # Ensure directory exists
                 Path(self.failed_stocks_path).parent.mkdir(parents=True, exist_ok=True)
 
-                sorted_df.to_excel(
-                    self.failed_stocks_path,
-                    sheet_name="Sheet1",
-                    index=True,
-                    engine="openpyxl",
-                )
+                _to_excel(sorted_df, self.failed_stocks_path)
                 self.fail_changes = 0
                 print(f"✅ Saved failed stocks to {self.failed_stocks_path}")
         except Exception as e:
@@ -611,12 +613,7 @@ class DataPersistenceService:
                     parents=True, exist_ok=True
                 )
 
-                self.df_downloadable.to_excel(
-                    self.downloadable_stocks_path,
-                    sheet_name="Sheet1",
-                    index=True,
-                    engine="openpyxl",
-                )
+                _to_excel(self.df_downloadable, self.downloadable_stocks_path)
                 self.downloadable_changes = 0
                 print(
                     f"✅ Saved downloadable stocks to {self.downloadable_stocks_path}"
@@ -633,12 +630,7 @@ class DataPersistenceService:
                     parents=True, exist_ok=True
                 )
 
-                self.df_downloaded.to_excel(
-                    self.downloaded_stocks_path,
-                    sheet_name="Sheet1",
-                    index=True,
-                    engine="openpyxl",
-                )
+                _to_excel(self.df_downloaded, self.downloaded_stocks_path)
                 self.downloaded_changes = 0
                 print(f"✅ Saved downloaded stocks to {self.downloaded_stocks_path}")
         except Exception as e:
@@ -709,13 +701,13 @@ class DataPersistenceAdapter:
 
     def appendFailed(  # noqa: N802 - legacy name for compatibility
         self,
-        symbol,
-        NonExistant=True,  # noqa: N803
-        EarliestAvailBar="",  # noqa: N803
-        BarSize="",  # noqa: N803
-        forDate="",  # noqa: N803
-        comment="",
-    ):
+        symbol: str,
+        NonExistant: bool = True,  # noqa: N803
+        EarliestAvailBar: str = "",  # noqa: N803
+        BarSize: str = "",  # noqa: N803
+        forDate: str = "",  # noqa: N803
+        comment: str = "",
+    ) -> bool:
         """Legacy method - delegates to new service"""
         return self.data_service.append_failed(
             symbol=symbol,
@@ -726,7 +718,7 @@ class DataPersistenceAdapter:
             comment=comment,
         )
 
-    def is_failed(self, symbol, BarSize, forDate=""):  # noqa: N803
+    def is_failed(self, symbol: str, BarSize: str, forDate: str = ""):  # noqa: N803
         """Legacy method - delegates to new service"""
         return self.data_service.is_failed(symbol, BarSize, forDate)
 

@@ -13,6 +13,7 @@
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
+from types import ModuleType
 from typing import Any
 
 import pandas as pd
@@ -21,12 +22,15 @@ from ib_async import Stock
 
 try:
     # Try relative import first (when used as package)
-    from . import MasterPy as MP
+    from . import MasterPy as _MasterPy
     from .utils.ib_connection_helper import get_ib_connection_sync
 except ImportError:
     # Fall back to absolute import (when used as script)
-    import MasterPy as MP
+    import MasterPy as _MasterPy
     from src.utils.ib_connection_helper import get_ib_connection_sync
+
+# Expose a single MP symbol to avoid mypy no-redef
+MP: ModuleType = _MasterPy
 
 
 class StockWatch:
@@ -39,7 +43,7 @@ class StockWatch:
         # Initiate Hourly
         hourly_path = Path(MP.Download_loc_IB(self.StockCode, "1 hour"))
         if hourly_path.exists():
-            self.df_hour = pd.read_excel(
+            self.df_hour: pd.DataFrame | None = pd.read_excel(
                 hourly_path,
                 sheet_name=0,
                 header=0,
@@ -47,13 +51,13 @@ class StockWatch:
             )
         else:
             # Note: Stock_Downloads_Load needs proper Req object, using placeholder for now
-            self.df_hour = None
+            self.df_hour: pd.DataFrame | None = None
 
         # Initiate Second
         now_str = self.NowStr()
         sec_path = Path(MP.Download_loc_IB(self.StockCode, "1 sec", now_str))
         if sec_path.exists():
-            self.df_sec = pd.read_excel(
+            self.df_sec: pd.DataFrame | None = pd.read_excel(
                 sec_path,
                 sheet_name=0,
                 header=0,
@@ -61,12 +65,12 @@ class StockWatch:
             )
         else:
             # Note: Stock_Downloads_Load needs proper Req object, using placeholder for now
-            self.df_sec = None
+            self.df_sec: pd.DataFrame | None = None
 
         # Initiate Tick only on activation
         tick_path = Path(MP.Download_loc_IB(self.StockCode, "tick", now_str))
         if tick_path.exists():
-            self.df_tick = pd.read_excel(
+            self.df_tick: pd.DataFrame | None = pd.read_excel(
                 tick_path,
                 sheet_name=0,
                 header=0,
@@ -74,7 +78,7 @@ class StockWatch:
             )
         else:
             # Note: Stock_Downloads_Load should be MPT function and needs proper Req object
-            self.df_tick = None
+            self.df_tick: pd.DataFrame | None = None
 
     def NowStr(self):
         return datetime.now(pytz.timezone("US/Eastern")).strftime("%Y-%m-%dT%H:%M:%S")

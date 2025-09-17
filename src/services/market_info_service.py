@@ -10,6 +10,8 @@ from datetime import date, datetime, timedelta
 from datetime import time as dtime
 from typing import Any
 
+import pandas as pd
+
 try:
     import pandas_market_calendars as market_cal
 except ImportError:
@@ -18,6 +20,8 @@ except ImportError:
         "Note: pandas_market_calendars not available. Market calendar features disabled."
     )
 
+error_handler: Any | None
+config_manager: Any | None
 try:
     from ..core.config import get_config
     from ..core.error_handler import get_error_handler
@@ -25,10 +29,8 @@ try:
     error_handler = get_error_handler()
     config_manager = get_config()
 except ImportError:
-    from typing import Any as _Any
-
-    error_handler: _Any | None = None
-    config_manager: _Any | None = None
+    error_handler = None
+    config_manager = None
 
 
 class MarketInfo:
@@ -85,7 +87,23 @@ class MarketInfo:
             return last_trade_day
 
         try:
-            open_dates = self.market_schedule[: for_date.strftime("%Y-%m-%d")]
+            # Normalize input to datetime (naive) for comparison
+            if isinstance(for_date, date) and not isinstance(for_date, datetime):
+                for_date_dt = datetime.combine(for_date, datetime.min.time())
+            else:
+                for_date_dt = for_date
+
+            idx = self.market_schedule.index
+            if isinstance(idx, pd.DatetimeIndex):
+                idx_naive = idx.tz_localize(None) if idx.tz is not None else idx
+                mask = idx_naive.normalize() <= pd.Timestamp(for_date_dt.date())
+                open_dates = self.market_schedule.loc[mask]
+            else:
+                # Fallback: original string-based slicing
+                open_dates = self.market_schedule.loc[
+                    : for_date_dt.strftime("%Y-%m-%d")
+                ]
+
             if open_dates.empty:
                 # No trading days found, use fallback
                 if isinstance(for_date, date) and not isinstance(for_date, datetime):
@@ -136,7 +154,22 @@ class MarketInfo:
                 and hasattr(bar_config, "bar_type")
                 and bar_config.bar_type == 2
             ):  # 1 min bars
-                open_dates = self.market_schedule[: for_date.strftime("%Y-%m-%d")]
+                # Normalize input date
+                if isinstance(for_date, date) and not isinstance(for_date, datetime):
+                    for_date_dt = datetime.combine(for_date, datetime.min.time())
+                else:
+                    for_date_dt = for_date
+
+                idx = self.market_schedule.index
+                if isinstance(idx, pd.DatetimeIndex):
+                    idx_naive = idx.tz_localize(None) if idx.tz is not None else idx
+                    mask = idx_naive.normalize() <= pd.Timestamp(for_date_dt.date())
+                    open_dates = self.market_schedule.loc[mask]
+                else:
+                    open_dates = self.market_schedule.loc[
+                        : for_date_dt.strftime("%Y-%m-%d")
+                    ]
+
                 if len(open_dates) < days_wanted:
                     days_wanted = len(open_dates)
 
@@ -179,7 +212,23 @@ class MarketInfo:
             return next_day
 
         try:
-            future_dates = self.market_schedule[from_date.strftime("%Y-%m-%d") :]
+            future_dates = self.market_schedule.loc[from_date.strftime("%Y-%m-%d") :]
+            # Normalize input to datetime
+            if isinstance(from_date, date) and not isinstance(from_date, datetime):
+                from_date_dt = datetime.combine(from_date, datetime.min.time())
+            else:
+                from_date_dt = from_date
+
+            idx = self.market_schedule.index
+            if isinstance(idx, pd.DatetimeIndex):
+                idx_naive = idx.tz_localize(None) if idx.tz is not None else idx
+                mask = idx_naive.normalize() >= pd.Timestamp(from_date_dt.date())
+                future_dates = self.market_schedule.loc[mask]
+            else:
+                future_dates = self.market_schedule.loc[
+                    from_date_dt.strftime("%Y-%m-%d") :
+                ]
+
             if len(future_dates) > 1:
                 next_trade_datetime = future_dates.iloc[1]["market_open"]
                 return next_trade_datetime.tz_localize(None)
@@ -200,7 +249,9 @@ class MarketInfo:
                 next_day += timedelta(days=1)
             return next_day
 
-    def get_market_hours(self, for_date: datetime | date) -> tuple | None:
+    def get_market_hours(
+        self, for_date: datetime | date
+    ) -> tuple[datetime, datetime] | None:
         """Get market open and close times for given date"""
         if self.market_schedule is None:
             # Fallback: standard NYSE hours (9:30 AM - 4:00 PM ET)
@@ -217,16 +268,41 @@ class MarketInfo:
             # Check if date exists in schedule
             try:
                 day_schedule = self.market_schedule.loc[date_str]
-                market_open = day_schedule["market_open"].tz_localize(None)
-                market_close = day_schedule["market_close"].tz_localize(None)
-                return (market_open, market_close)
+                # Ensure we have scalar timestamps
+                mo_raw = day_schedule["market_open"]
+                mc_raw = day_schedule["market_close"]
+                if hasattr(mo_raw, "iloc"):
+                    mo_raw = mo_raw.iloc[0]
+                if hasattr(mc_raw, "iloc"):
+                    mc_raw = mc_raw.iloc[0]
+                    market_open_ts = pd.to_datetime(mo_raw).tz_localize(None)
+                    market_close_ts = pd.to_datetime(mc_raw).tz_localize(None)
+                    mo_dt = datetime(
+                        market_open_ts.year,
+                        market_open_ts.month,
+                        market_open_ts.day,
+                        market_open_ts.hour,
+                        market_open_ts.minute,
+                        market_open_ts.second,
+                        market_open_ts.microsecond,
+                    )
+                    mc_dt = datetime(
+                        market_close_ts.year,
+                        market_close_ts.month,
+                        market_close_ts.day,
+                        market_close_ts.hour,
+                        market_close_ts.minute,
+                        market_close_ts.second,
+                        market_close_ts.microsecond,
+                    )
+                return (mo_dt, mc_dt)
             except KeyError:
                 return None
         except Exception as e:
             print(f"Warning: Error getting market hours: {e}")
             return None
 
-    def get_market_summary(self) -> dict:
+    def get_market_summary(self) -> dict[str, Any]:
         """Get summary of market information"""
         return {
             "market": self.stock_market,
@@ -259,7 +335,15 @@ class MarketInfoService:
             return ["NYSE"]  # Fallback
 
         try:
-            return market_cal.get_calendar_names()
+            names = getattr(market_cal, "get_calendar_names", None)
+            if callable(names):
+                out = names()
+                try:
+                    return [str(x) for x in list(out)]
+                except Exception:
+                    pass
+            # Fallback common markets if API missing
+            return ["NYSE", "NASDAQ", "LSE", "TSX", "ASX"]
         except Exception as e:
             print(f"Warning: Could not get market list: {e}")
             return ["NYSE", "NASDAQ", "LSE", "TSX", "ASX"]

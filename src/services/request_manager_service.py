@@ -15,6 +15,7 @@ from atexit import register as atexit_register
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from time import perf_counter
+from types import FrameType
 from typing import Any
 
 from joblib import dump, load
@@ -24,24 +25,32 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 try:
     from src.core.config import get_config
-    from src.core.error_handler import TradingSystemError, handle_error
+    from src.core.error_handler import TradingSystemError as _TradingSystemError
+    from src.core.error_handler import handle_error
+
+    TradingSystemError: type[Exception] = _TradingSystemError
 except ImportError:
     # Fallback for when running as standalone script
     print("Warning: Could not import core modules, using fallback implementations")
 
-    def get_config():
-        """Fallback config function"""
-        return None
-
-    def handle_error(error, context=None, module="", function=""):
-        """Fallback error handler"""
-        print(f"Error in {module}.{function}: {error}")
-        return None
-
-    class TradingSystemError(Exception):
+    class _FallbackTradingSystemError(Exception):
         """Fallback exception class"""
 
         pass
+
+    TradingSystemError: type[Exception] = _FallbackTradingSystemError
+
+    def get_config(*_args: Any, **_kwargs: Any) -> Any:
+        return None
+
+    def handle_error(
+        error: Exception,
+        context: dict[str, Any] | None = None,
+        module: str = "",
+        function: str = "",
+    ) -> Any:
+        print(f"Error in {module}.{function}: {error}")
+        return None
 
 
 class RequestManagerService:
@@ -55,21 +64,21 @@ class RequestManagerService:
     - Graceful shutdown management
     """
 
-    def __init__(self, ib_connection=None):
+    def __init__(self, ib_connection: object | None = None):
         """
         Initialize the Request Manager Service.
 
         Args:
             ib_connection: IB connection object (IBKR client instance)
         """
-        self.ib = ib_connection
+        self.ib: object | None = ib_connection
 
         # Request tracking
         self.req_dict: dict[int, tuple[str, str, datetime]] = {}
         self.req_time = perf_counter()
         self.req_time_prev = perf_counter()
-        self.sleep_total = 0
-        self.total_slept = 0
+        self.sleep_total: float = 0.0
+        self.total_slept: float = 0.0
 
         # Request history for pacing
         self.timeframe_requests: list[float] = []
@@ -96,10 +105,11 @@ class RequestManagerService:
     def _load_config(self) -> None:
         """Load configuration settings."""
         try:
-            self.config = get_config()
+            cfg = get_config()
         except Exception as e:
             handle_error(e, module="RequestManager", function="_load_config")
-            self.config = None
+            cfg = None
+        self.config = cfg
 
     def _load_request_history(self) -> None:
         """Load request history from disk for pacing calculations."""
@@ -372,7 +382,7 @@ class RequestManagerService:
             "uptime_seconds": current_time - self.on_exit_run,
         }
 
-    def _keyboard_interrupt_handler(self, signum, frame) -> None:
+    def _keyboard_interrupt_handler(self, signum: int, frame: FrameType | None) -> None:
         """Handle keyboard interrupt gracefully."""
         print("\n🛑 KeyboardInterrupt received in RequestManager. Shutting down...")
         self.exit_flag = True
@@ -392,7 +402,7 @@ class RequestManagerService:
         print("✅ RequestManager cleanup complete")
 
 
-def get_request_manager(ib_connection=None) -> RequestManagerService:
+def get_request_manager(ib_connection: object | None = None) -> RequestManagerService:
     """
     Factory function to get a RequestManager instance.
 
@@ -447,27 +457,24 @@ class RequestManagerAdapter:
         self.Downloading = False
         self.exitflag = False
 
-    def SendRequest(self, timeframe, symbol, endDateTime, WhatToShow):  # noqa: N802,N803
+    def send_request_legacy(
+        self,
+        timeframe: str,
+        symbol: str,
+        end_datetime: datetime,
+        what_to_show: str,
+    ) -> int | None:
         """Legacy method - delegates to new service"""
         return self.request_service.send_request(
-            timeframe, symbol, endDateTime, WhatToShow
+            timeframe, symbol, end_datetime, what_to_show
         )
 
-    def ReqRemaining(self):  # noqa: N802
-        """Legacy method - delegates to new service"""
-        return self.request_service.requests_remaining()
-
-    def SleepRem(self):  # noqa: N802
-        """Legacy method - delegates to new service"""
-        return self.request_service.sleep_remaining()
-
-    def Save_requestChecks(self):  # noqa: N802
-        """Legacy method - delegates to new service"""
-        return self.request_service.save_request_history()
-
-    def On_Exit(self):  # noqa: N802
-        """Legacy cleanup method"""
-        return self.request_service.on_exit()
+    # Backward-compatibility alias for legacy camelCase callers
+    SendRequest = send_request_legacy  # type: ignore[invalid-name]
+    ReqRemaining = RequestManagerService.requests_remaining  # type: ignore[invalid-name, assignment]
+    SleepRem = RequestManagerService.sleep_remaining  # type: ignore[invalid-name, assignment]
+    Save_requestChecks = RequestManagerService.save_request_history  # type: ignore[invalid-name, assignment]
+    On_Exit = RequestManagerService.on_exit  # type: ignore[invalid-name, assignment]
 
 
 if __name__ == "__main__":

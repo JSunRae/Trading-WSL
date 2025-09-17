@@ -15,8 +15,8 @@ try:
     from ..core.config import get_config
     from ..core.error_handler import get_error_handler
 
-    config_manager = get_config()
-    error_handler = get_error_handler()
+    config_manager: Any | None = get_config()
+    error_handler: Any | None = get_error_handler()
 except ImportError:
     config_manager = None
     error_handler = None
@@ -25,15 +25,17 @@ except ImportError:
 VERSION = "V1"
 
 # Global location for compatibility during transition
+_loc_g: str
 if config_manager is not None:
     try:
-        LOC_G = str(config_manager.data_paths.base_path)
-        if not LOC_G.endswith("/"):
-            LOC_G += "/"
+        _loc_g = str(config_manager.data_paths.base_path)
+        if not _loc_g.endswith("/"):
+            _loc_g += "/"
     except Exception:
-        LOC_G = str(Path.home() / "Machine Learning/")
+        _loc_g = str(Path.home() / "Machine Learning/")
 else:
-    LOC_G = str(Path.home() / "Machine Learning/")
+    _loc_g = str(Path.home() / "Machine Learning/")
+LOC_G: str = _loc_g
 
 
 def handle_error(module: str, message: str, duration: int = 60) -> None:
@@ -100,11 +102,9 @@ class PathService:
             file_ext = "." + file_ext
 
         # Handle different date string formats
-        if hasattr(date_str, "strftime") and callable(
-            getattr(date_str, "strftime", None)
-        ):
+        if isinstance(date_str, datetime | date):
             date_str = date_str.strftime("%Y-%m-%d %H:%M:%S")
-        elif hasattr(date_str, "__class__") and "Timestamp" in str(type(date_str)):
+        elif type(date_str).__name__ == "Timestamp":  # pandas Timestamp
             date_str = str(date_str)
 
         # Determine bar string based on bar type
