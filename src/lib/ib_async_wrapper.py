@@ -465,13 +465,13 @@ class IBAsync:
                 return val
 
         # Connection parameters - Env-first (WSL→Windows portproxy friendly)
-        self.host = _sanitize_host(os.getenv("IB_HOST", "172.17.208.1"))
+        self.host = _sanitize_host(os.environ.get("IB_HOST", "172.17.208.1"))
         try:
-            self.port = int(os.getenv("IB_PORT", "4003"))
+            self.port = int(os.environ.get("IB_PORT", "4003"))
         except ValueError:
             self.port = 4003
         try:
-            self.client_id = int(os.getenv("IB_CLIENT_ID", "2011"))
+            self.client_id = int(os.environ.get("IB_CLIENT_ID", "2011"))
         except ValueError:
             self.client_id = 2011
 
@@ -528,15 +528,17 @@ class IBAsync:
         h = (
             _sanitize_host(host)
             if host
-            else _sanitize_host(os.getenv("IB_HOST", "172.17.208.1"))
+            else _sanitize_host(os.environ.get("IB_HOST", "172.17.208.1"))
         )
         try:
-            p = int(port if port is not None else os.getenv("IB_PORT", 4003))
+            p = int(port if port is not None else os.environ.get("IB_PORT", "4003"))
         except ValueError:
             p = 4003
         try:
             cid = int(
-                clientId if clientId is not None else os.getenv("IB_CLIENT_ID", 2011)
+                clientId
+                if clientId is not None
+                else os.environ.get("IB_CLIENT_ID", "2011")
             )
         except ValueError:
             cid = 2011
@@ -1192,9 +1194,9 @@ if __name__ == "__main__":
         ib = IBAsync()
 
         # Connect (env-first with WSL defaults)
-        h = os.getenv("IB_HOST", "172.17.208.1")
-        p = int(os.getenv("IB_PORT", "4003"))
-        cid = int(os.getenv("IB_CLIENT_ID", "2011"))
+    h = os.environ.get("IB_HOST", "172.17.208.1")
+    p = int(os.environ.get("IB_PORT", "4003"))
+    cid = int(os.environ.get("IB_CLIENT_ID", "2011"))
         connected = await ib.connect(h, p, cid)
         if not connected:
             print("Failed to connect")

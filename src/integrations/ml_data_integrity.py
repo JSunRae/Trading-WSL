@@ -66,16 +66,22 @@ def _fallback_handle_error(
 
 
 get_split_detection_service_fn: Callable[[Any | None], Any | None]
-get_split_detection_service_fn = (
-    _real_get_split_detection_service or _fallback_get_split_detection_service
-)
+if _real_get_split_detection_service is not None:
+    get_split_detection_service_fn = _real_get_split_detection_service
+else:
+    get_split_detection_service_fn = _fallback_get_split_detection_service
 
 get_data_persistence_service_fn: Callable[[], Any | None]
-get_data_persistence_service_fn = (
-    _real_get_data_persistence_service or _fallback_get_data_persistence_service
-)
+if _real_get_data_persistence_service is not None:
+    get_data_persistence_service_fn = _real_get_data_persistence_service
+else:
+    get_data_persistence_service_fn = _fallback_get_data_persistence_service
 
-handle_error_fn: ErrorHandler = _real_handle_error or _fallback_handle_error
+handle_error_fn: ErrorHandler
+if _real_handle_error is not None:
+    handle_error_fn = _real_handle_error
+else:
+    handle_error_fn = _fallback_handle_error
 
 SERVICES_AVAILABLE = (
     _real_get_split_detection_service is not None

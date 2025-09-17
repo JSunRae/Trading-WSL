@@ -25,8 +25,10 @@ try:
     error_handler = get_error_handler()
     config_manager = get_config()
 except ImportError:
-    error_handler = None
-    config_manager = None
+    from typing import Any as _Any
+
+    error_handler: _Any | None = None
+    config_manager: _Any | None = None
 
 
 class MarketInfo:
@@ -243,7 +245,7 @@ class MarketInfoService:
 
     def __init__(self):
         self.config = config_manager
-        self._market_cache = {}
+        self._market_cache: dict[str, MarketInfo] = {}
 
     def get_market_info(self, stock_market: str = "NYSE") -> MarketInfo:
         """Get or create market info instance"""
@@ -273,10 +275,10 @@ class MarketInfoService:
                 return True
         return False
 
-    def get_global_trading_status(self) -> dict:
+    def get_global_trading_status(self) -> dict[str, dict[str, Any]]:
         """Get trading status for major markets"""
         major_markets = ["NYSE", "NASDAQ", "LSE", "TSX", "ASX"]
-        status = {}
+        status: dict[str, dict[str, Any]] = {}
 
         for market in major_markets:
             try:

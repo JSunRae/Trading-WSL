@@ -26,15 +26,15 @@ except Exception:  # pragma: no cover - best-effort import
     _real_get_config = None  # type: ignore[assignment]
 
 try:
-    from src.core.error_handler import (
-        DataError as _RealDataError,
-    )
-    from src.core.error_handler import (
-        handle_error as _real_handle_error,
-    )
+    from src.core.error_handler import DataError as _RealDataError
+    from src.core.error_handler import handle_error as _real_handle_error
+
+    DataErrorType = _RealDataError
 except Exception:  # pragma: no cover - best-effort import
-    _RealDataError = None  # type: ignore[assignment]
     _real_handle_error = None  # type: ignore[assignment]
+
+    class DataErrorType(Exception):
+        pass
 
 
 def _fallback_get_config(*_args: Any, **_kwargs: Any) -> Any:
@@ -91,9 +91,7 @@ handle_error_fn: Callable[[Exception, dict[str, Any] | None, str, str], Any]
 handle_error_fn = (
     _real_handle_error if _real_handle_error is not None else _fallback_handle_error
 )
-DataErrorCls: type[Exception] = (
-    _RealDataError if _RealDataError is not None else Exception
-)
+DataErrorCls: type[Exception] = DataErrorType
 
 
 def safe_df_scalar_access(

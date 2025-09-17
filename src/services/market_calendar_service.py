@@ -18,10 +18,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     import pandas_market_calendars as mcal
 
-    HAS_MARKET_CAL = True
+    has_market_cal = True
 except ImportError:
     mcal = None
-    HAS_MARKET_CAL = False
+    has_market_cal = False
     print("Note: pandas_market_calendars not available. Using fallback implementation.")
 
 # --- Dependency aliases (avoid conditional redefinitions) ---
@@ -95,20 +95,30 @@ class MarketCalendarService:
     - Timezone management
     """
 
-    def __init__(self, market: str = "NYSE", config=None):
+    # Explicit attribute declarations for mypy
+    error_handler: Any
+    config: Any
+    market: str
+    market_timezone: pytz.BaseTzInfo
+    utc_timezone: pytz.BaseTzInfo
+    calendar: Any | None
+    default_market_hours: dict[str, str]
+    static_holidays_2024: list[date]
+
+    def __init__(self, market: str = "NYSE", config: Any | None = None):
         """Initialize market calendar service."""
         self.error_handler = get_error_handler_fn()
         self.config = config or get_config_fn()
         self.market = market.upper()
+        # Timezone settings
+        self.market_timezone = self._get_market_timezone(self.market)
+        self.utc_timezone = pytz.UTC
 
-    try:
-        import pandas_market_calendars as mcal
-        has_market_cal = True
         # Market calendars (if available)
         self.calendar = None
-        has_market_cal = False
-        print("Note: pandas_market_calendars not available. Using fallback implementation.")
-                if mcal:
+        if has_market_cal:
+            try:
+                if mcal is not None:
                     self.calendar = mcal.get_calendar(
                         self._get_market_cal_name(self.market)
                     )
@@ -193,9 +203,8 @@ class MarketCalendarService:
             # Use pandas_market_calendars if available
             if self.calendar:
                 try:
-                    schedule = self.calendar.schedule(
-                        start_date=check_time.date(), end_date=check_time.date()
-                    )
+                    iso = check_time.date().isoformat()
+                    schedule = self.calendar.schedule(start_date=iso, end_date=iso)
 
                     if not schedule.empty:
                         market_open = schedule.iloc[0]["market_open"].tz_convert(
@@ -252,9 +261,8 @@ class MarketCalendarService:
             # Use pandas_market_calendars if available
             if self.calendar:
                 try:
-                    valid_days = self.calendar.valid_days(
-                        start_date=check_date, end_date=check_date
-                    )
+                    iso = check_date.isoformat()
+                    valid_days = self.calendar.valid_days(start_date=iso, end_date=iso)
                     return len(valid_days) > 0
 
                 except Exception as e:
@@ -278,16 +286,16 @@ class MarketCalendarService:
         Returns:
             Last trading day
         """
+        base_date: date = from_date or date.today()
         try:
-            base_date: date = from_date or date.today()
-
             # Use pandas_market_calendars if available
             if self.calendar:
                 try:
                     # Get valid days for the past month
                     start_date = base_date - timedelta(days=30)
                     valid_days = self.calendar.valid_days(
-                        start_date=start_date, end_date=base_date
+                        start_date=start_date.isoformat(),
+                        end_date=base_date.isoformat(),
                     )
 
                     if len(valid_days) > 0:
@@ -335,7 +343,8 @@ class MarketCalendarService:
                     # Get valid days for the next month
                     end_date = base_date + timedelta(days=30)
                     valid_days = self.calendar.valid_days(
-                        start_date=base_date + timedelta(days=1), end_date=end_date
+                        start_date=(base_date + timedelta(days=1)).isoformat(),
+                        end_date=end_date.isoformat(),
                     )
 
                     if len(valid_days) > 0:
@@ -362,7 +371,8 @@ class MarketCalendarService:
 
         except Exception as e:
             self.error_handler.handle_error(e, {"from_date": str(from_date)})
-            return base_date + timedelta(days=1)
+            fb = (from_date or date.today()) + timedelta(days=1)
+            return fb
 
     def get_trading_days(self, start_date: date, end_date: date) -> list[date]:
         """
@@ -380,7 +390,8 @@ class MarketCalendarService:
             if self.calendar:
                 try:
                     valid_days = self.calendar.valid_days(
-                        start_date=start_date, end_date=end_date
+                        start_date=start_date.isoformat(),
+                        end_date=end_date.isoformat(),
                     )
                     return [day.date() for day in valid_days]
 
@@ -391,7 +402,7 @@ class MarketCalendarService:
                     # Fall through to fallback logic
 
             # Fallback: check each day individually
-            trading_days = []
+            trading_days: list[date] = []
             current_date = start_date
 
             while current_date <= end_date:
@@ -421,7 +432,7 @@ class MarketCalendarService:
             if for_date is None:
                 for_date = date.today()
 
-            result = {
+            result: dict[str, Any] = {
                 "date": for_date,
                 "is_trading_day": self.is_trading_day(for_date),
                 "market": self.market,
@@ -435,9 +446,8 @@ class MarketCalendarService:
             # Use pandas_market_calendars if available
             if self.calendar:
                 try:
-                    schedule = self.calendar.schedule(
-                        start_date=for_date, end_date=for_date
-                    )
+                    iso = for_date.isoformat()
+                    schedule = self.calendar.schedule(start_date=iso, end_date=iso)
 
                     if not schedule.empty:
                         market_open = schedule.iloc[0]["market_open"].tz_convert(
@@ -491,7 +501,7 @@ class MarketCalendarService:
         return {
             "market": self.market,
             "timezone": str(self.market_timezone),
-            "has_market_calendars": HAS_MARKET_CAL,
+            "has_market_calendars": has_market_cal,
             "calendar_available": self.calendar is not None,
             "current_market_open": self.is_market_open(),
             "today_is_trading_day": self.is_trading_day(),
@@ -505,7 +515,7 @@ _market_calendar_instances = {}
 
 
 def get_market_calendar_service(
-    market: str = "NYSE", config=None
+    market: str = "NYSE", config: Any | None = None
 ) -> MarketCalendarService:
     """Get or create a market calendar service instance for a specific market."""
     global _market_calendar_instances
