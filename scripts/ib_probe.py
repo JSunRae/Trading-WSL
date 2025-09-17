@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 """
-Tiny IBKR connectivity probe for WSL→Windows setups (ib_async).
+Tiny IBKR connectivity probe (Linux-first; Windows portproxy fallback).
 
 Behavior:
 - Reads IB_HOST/IB_PORT/IB_CLIENT_ID/IB_CONNECT_TIMEOUT from env with
-  defaults tuned for WSL portproxy (172.17.208.1:4003, client_id=1001).
-- Prints a single JSON object: {connected, host, port, clientId, serverVersion, accounts}
+    Linux-first defaults (127.0.0.1:4002). Windows portproxy remains supported
+    via env overrides.
+- Prints a single JSON object: {connected, host, port, clientId, method, candidates, serverVersion, accounts}
 - Exit code 0 on success, non-zero on failure.
 """
 
@@ -15,13 +16,14 @@ import asyncio
 import json
 import os
 import sys
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, cast
 
-from src.infra.ib_conn import connect_ib, disconnect_ib
-
-
-def _env_str(key: str, default: str) -> str:
-    return os.environ.get(key, default)
+from src.infra.ib_conn import (
+    connect_ib,
+    disconnect_ib,
+    get_ib_connect_plan,
+)
 
 
 def _env_int(key: str, default: int) -> int:
@@ -39,9 +41,9 @@ def _server_version(ib: Any) -> int | str | None:
         try:
             if callable(sv):
                 val = sv()
-                if isinstance(val, (int, str)):
+                if isinstance(val, int | str):
                     return val
-            elif isinstance(sv, (int, str)):
+            elif isinstance(sv, int | str):
                 return sv
         except Exception:
             pass
@@ -53,8 +55,9 @@ def _accounts(ib: Any) -> list[str]:
         val = getattr(ib, attr, None)
         if isinstance(val, str):
             return [a for a in (x.strip() for x in val.split(",")) if a]
-        if isinstance(val, (list, tuple)):
-            return [str(a) for a in list(val)]
+        if isinstance(val, list | tuple):
+            it = cast(Iterable[object], val)
+            return [str(a) for a in it]
     client = getattr(ib, "client", None)
     if client is not None:
         val = getattr(client, "managedAccounts", None)
@@ -64,40 +67,52 @@ def _accounts(ib: Any) -> list[str]:
 
 
 async def main() -> int:
-    host = _env_str("IB_HOST", "172.17.208.1")
-    port = _env_int("IB_PORT", 4003)
-    client_id = _env_int("IB_CLIENT_ID", 1001)
-    timeout = _env_int("IB_CONNECT_TIMEOUT", 20)
+    plan = get_ib_connect_plan()
+    host = str(plan["host"])  # sanitized already
+    candidates = list(plan["candidates"])  # type: ignore[list-item]
+    client_id = int(plan["client_id"])  # type: ignore[arg-type]
+    timeout = _env_int("IB_CONNECT_TIMEOUT", int(plan.get("timeout", 20)))
+    method = str(plan.get("method", "linux"))
 
-    try:
-        ib = await connect_ib(
-            host=host, port=port, client_id=client_id, timeout=timeout
-        )
-        info = {
-            "connected": True,
-            "host": host,
-            "port": port,
-            "clientId": client_id,
-            "serverVersion": _server_version(ib),
-            "accounts": _accounts(ib),
-        }
-        print(json.dumps(info, separators=(",", ":")))
-        disconnect_ib(ib)
-        return 0
-    except Exception as e:
-        print(
-            json.dumps(
-                {
-                    "connected": False,
-                    "error": str(e),
-                    "host": host,
-                    "port": port,
-                    "clientId": client_id,
-                },
-                separators=(",", ":"),
+    # Try candidates in order until success
+    last_error: Exception | None = None
+    for port in candidates:
+        try:
+            ib = await connect_ib(
+                host=host, port=int(port), client_id=client_id, timeout=timeout
             )
+            info = {
+                "connected": True,
+                "host": host,
+                "port": int(port),
+                "clientId": client_id,
+                "method": method,
+                "candidates": candidates,
+                "serverVersion": _server_version(ib),
+                "accounts": _accounts(ib),
+            }
+            print(json.dumps(info, separators=(",", ":")))
+            disconnect_ib(ib)
+            return 0
+        except Exception as e:
+            last_error = e
+            continue
+
+    print(
+        json.dumps(
+            {
+                "connected": False,
+                "error": str(last_error) if last_error else "connection failed",
+                "host": host,
+                "port": None,
+                "clientId": client_id,
+                "method": method,
+                "candidates": candidates,
+            },
+            separators=(",", ":"),
         )
-        return 2
+    )
+    return 2
 
 
 if __name__ == "__main__":

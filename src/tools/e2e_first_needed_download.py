@@ -11,7 +11,7 @@ Steps performed:
 
 Usage examples:
   python -m src.tools.e2e_first_needed_download
-  IB_PORT=7497 python -m src.tools.e2e_first_needed_download --verbose
+    IB_PORT=7497 python -m src.tools.e2e_first_needed_download --verbose
   python -m src.tools.e2e_first_needed_download --since 3 --force-l2
 
 This CLI mirrors the e2e test logic but is runnable standalone.
@@ -178,16 +178,31 @@ async def _fetch_ib_bars_if_needed(
     ib_events: list[IBEvent],
     *,
     force_bars: bool = False,
+    ib_host: str | None = None,
+    ib_port: int | None = None,
+    use_tws: bool = False,
 ) -> None:
     """Fetch hourly and 1-sec bars for the given day if needed using IBAsync."""
     ib = IBAsync()
     plan = get_ib_connect_plan()
+    # CLI overrides: --ib-host / --ib-port / --use-tws
+    if ib_host:
+        plan["host"] = ib_host
+    if ib_port is not None:
+        port = int(ib_port)
+        plan["candidates"] = [port] + [p for p in plan["candidates"] if p != port]
+    if use_tws and 7497 not in plan["candidates"]:
+        plan["candidates"].insert(0, 7497)
     host = plan["host"]
     client_id = int(plan["client_id"])  # ensure int
     candidates = [int(p) for p in plan["candidates"]]
 
+    # Wrap connect to disable internal fallback because we provide our own candidates
+    async def _connect_cb(h: str, p: int, c: int) -> bool:
+        return await ib.connect(h, p, c, fallback=False)
+
     ok, _used_port = await try_connect_candidates(
-        ib.connect,
+        _connect_cb,
         host,
         candidates,
         client_id,
@@ -261,10 +276,12 @@ def _parse_args() -> argparse.Namespace:
         "--ib-host", type=str, help="Override IB host (default from config/env)"
     )
     p.add_argument(
-        "--ib-port", type=int, help="Override IB port (default tries: 4002 then 7497)"
+        "--ib-port", type=int, help="Override IB port (default tries: 4003, 4002, 7497)"
     )
     p.add_argument(
-        "--use-tws", action="store_true", help="Prefer TWS (7497) over Gateway (4002)"
+        "--use-tws",
+        action="store_true",
+        help="Prefer TWS (7497) over Gateway (4002); WSL default proxy is 4003",
     )
     p.add_argument("--verbose", action="store_true")
     return p.parse_args()
@@ -315,6 +332,9 @@ def main() -> int:  # noqa: C901 - orchestration
             before,
             ib_events,
             force_bars=bool(args.force_bars),
+            ib_host=args.ib_host,
+            ib_port=args.ib_port,
+            use_tws=bool(args.use_tws),
         )
     )
 

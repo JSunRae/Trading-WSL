@@ -343,18 +343,20 @@ def create_modern_trading_core(ib_connection=None, config=None) -> ModernTrading
 
 # Compatibility functions for legacy code
 async def InitiateTWS(LiveMode=False, clientId=1):  # noqa: N802, N803 - legacy compat
-    """Legacy compatibility function - now async."""
+    """Legacy compatibility function - now async.
+
+    Modernized to use the centralized IB client getter which delegates to
+    infra.ib_conn.connect_ib (env-driven defaults, retries, diagnostics).
+    """
     try:
-        from src.core.ib_client import get_ib
+        from src.infra.ib_client import get_ib
 
+        # get_ib() returns a connected client using centralized logic.
         ib = await get_ib()
-        port = 7496 if LiveMode else 7497
-
-        await ib.connectAsync("127.0.0.1", port, clientId=clientId)
         return ib
 
     except Exception as e:
-        print(f"Failed to connect to TWS: {e}")
+        print(f"Failed to obtain IB client: {e}")
         return None
 
 

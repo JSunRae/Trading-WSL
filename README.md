@@ -1,54 +1,3 @@
-## IB historical data wrapper updates
-
-The async IB wrapper gained two quality-of-life improvements to make targeted historical pulls and downstream orchestration easier:
-
-- Target specific session end: `IBAsync.req_historical_data(..., end_datetime: str | None = None)`
-  - Pass an IB-formatted end time (e.g., `"20240905 16:00:00"`) to anchor a 1 D request to a precise session boundary. Defaults to current time when omitted.
-  - Signature remains backward compatible; existing callers are unaffected.
-
-- Rich completion + proactive cleanup in `historicalDataEnd`
-  - Emits an info log when a request completes: `Historical data complete reqId=... bars=N range=START->END`.
-  - Enqueues `(reqId, bars)` into the historical events queue as before.
-  - Immediately frees the stored bars and pending request for that `reqId` to reduce memory usage in long sessions.
-
-These changes improve traceability for paced, repeated requests (especially minute/second bars) and help avoid gradual memory growth in long-running jobs.
-
-## Single-symbol/day E2E smoke test (IB bars + DataBento L2)
-
-A lightweight integration test validates the end-to-end path for one `(symbol, trading_day)` from your Warrior list.
-
-- Location: `tests/e2e/test_single_symbol_single_day_e2e.py`
-- What it does:
-  - Discovers one `(symbol, day)` via `find_warrior_tasks()`.
-  - Connects to IB and fetches hourly and 1‑second historical bars for that day (anchored with `end_datetime`).
-  - Runs `backfill_l2(symbol, day)` to fetch Level 2 snapshots via DataBento and write `_databento` suffixed parquet (idempotent; atomic write).
-  - Emits a comprehensive JSON audit to stdout and saves it under `logs/e2e_single_{SYMBOL}_{YYYY-MM-DD}.json`.
-- Outputs captured in the audit:
-  - IB connection target (host/port/client_id) from config
-  - Hourly/seconds parquet file paths and whether they exist after the run
-  - L2 backfill result dict (status/rows/path/error)
-  - Before/after "needs" (hourly/seconds/L2) and key env like `L2_BACKFILL_WINDOW_ET`, `DATABENTO_DATASET`, `DATABENTO_SCHEMA`
-  - Key folders: Level2 directory for the symbol, IBDownloads, logs
-- Preconditions:
-  - IB TWS or Gateway is running with API enabled (paper/live per your config). No credentials are read by the test; it uses an already-running API endpoint.
-  - Warrior CSV is available at the configured path (see `ML_BASE_PATH` and `WARRIOR_TRADES_FILENAME`).
-  - Optional: `DATABENTO_API_KEY` + databento extra installed if you want L2 to write; otherwise the test still passes as long as IB bars exist.
-- Behavior:
-  - If IB isn’t reachable, the test is skipped.
-  - If DataBento is unavailable, L2 result will carry an error, but the test still passes if bars exist (it asserts at least one of hourly/seconds/L2 was produced).
-
-Run just this test and stream the JSON audit:
-
-```bash
-pytest -q -s tests/e2e/test_single_symbol_single_day_e2e.py
-```
-
-Tip: To aim a 1 D request at a specific session, build `end_datetime` as `YYYYMMDD HH:MM:SS`. For example, for trading day `D`, use `(D + 1) 09:30:00` or the next calendar day at a desired wall time per your venue/session.
-
-**NOTE:** Single authoritative README.
-
----
-
 ## Status
 
 [![CI](https://github.com/JSunRae/Trading/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JSunRae/Trading/actions/workflows/ci.yml)
@@ -84,10 +33,7 @@ Use these rules before making changes or answering ambiguous tasks:
 - Context-first: On any new task or when unsure, skim `README.md` and `docs/ARCHITECTURE.md`. Also glance `pyproject.toml`, the `src/` layout, and the VS Code tasks list in this README.
 - Read efficiently: Prefer reading larger, meaningful chunks over many tiny reads; summarize key takeaways in 1–2 bullets before proceeding.
 - Contracts: When touching `src/tools/*`, run with `--describe` to get inputs/outputs and assumptions.
-- Assumptions: If details are missing, state 1–2 reasonable assumptions and continue; only ask if genuinely blocked.
 - Quality gates: After edits, run lint/format/types/tests (Ruff, Pyright/MyPy, Pytest) and keep the build green.
-- Small diffs: Minimize changes, preserve public APIs, add/adjust tests when behavior changes.
-- Safety: Don’t exfiltrate secrets; avoid network calls unless required by the task.
 
 ## 1. Quick Start (90% use‑case)
 
@@ -131,13 +77,20 @@ python src/tools/auto_backfill_from_warrior.py [OPTIONS]
 
 Options (common):
 
-- `--dry-run` — Preview the scope (task count + first tasks); no vendor calls or writes.
+- `--dry-run` — Summary-only JSON preview (task_count, symbol_count, date_range, needs_summary); no vendor calls or writes.
 - `--max-workers N` — Parallel workers (default from `L2_MAX_WORKERS` or 4).
 - `--since DAYS` — Include tasks with `trading_day >= today - DAYS`.
 - `--last N` — Keep only the last N distinct trading days (after other filters).
 - `--strict` — Exit non‑zero if any errors occurred; still processes all tasks.
 - `--force` — Redownload even if destination files already exist (overwrites).
 - `--max-tasks N` — Cap total tasks processed (safety for large sets).
+
+Unified workflow (optional IB bars + L2 in one run):
+
+- `--fetch-bars` — Before L2 backfill, download IB hourly and 1‑sec bars for each task that needs them.
+- `--force-bars` — Force re-download hourly and 1‑sec bars even if present.
+- `--ib-host HOST` / `--ib-port PORT` — Override IB host/port (auto-detects common defaults otherwise).
+- `--use-tws` — Prefer TWS port 7497 over Gateway defaults.
 
 Verification: you’ll see a single SUMMARY line in stdout; artifacts are written under your configured data base path:
 
@@ -372,7 +325,7 @@ Behavior matches the CLI (`src/tools/backfill_l2_from_warrior.py`): idempotent, 
 
 ### Automatic Historical L2 Backfill from Warrior (New Orchestrator)
 
-In addition to the legacy batch CLI (`backfill_l2_from_warrior.py`) a lightweight orchestrator + automation CLI is available for cron / CI.
+In addition to the legacy batch CLI (`backfill_l2_from_warrior.py`) a lightweight orchestrator + automation CLI is available for cron / CI. The unified automation tool can also fetch IB hourly/1‑sec bars when requested.
 
 Programmatic orchestration:
 
@@ -401,7 +354,7 @@ Key properties:
 | Zero-row handling      | Counted as `EMPTY` and in `zero_row_tasks`                                            |
 | Artifacts              | Reuses `backfill_l2_manifest.jsonl` (append) & `backfill_l2_summary.json` (overwrite) |
 | Status taxonomy        | `WRITE`, `SKIP`, `EMPTY`, `ERROR` (mirrors legacy CLI)                                |
-| Dry-run                | JSON preview (count + first 10 tasks) without vendor calls or writes                  |
+| Dry-run                | JSON preview (summary-only) without vendor calls or writes                            |
 | Programmatic API       | `backfill_l2` (single), orchestrator (batch)                                          |
 | Concurrency            | `--max-workers` flag / `L2_MAX_WORKERS` env (default 4). Set 1 for sequential.        |
 | Deterministic manifest | Order always matches input order even under concurrency                               |
@@ -412,7 +365,7 @@ Note: The orchestrator and programmatic API classify vendor zero-row results as 
 
 ### Legacy Deprecation Notice
 
-Legacy helper `WarriorList` now issues a `DeprecationWarning`. Use the programmatic API (`backfill_l2`) or the CLI tool instead. Additional legacy accessors will be deprecated in place—migration keeps surface stable while emitting warnings.
+Legacy helper `WarriorList` now issues a `DeprecationWarning`. Use the programmatic API (`backfill_l2`) or the unified CLI `auto_backfill_from_warrior.py` instead. The older `backfill_l2_from_warrior.py` usage examples below are retained for context but the recommended path is the unified automation tool.
 
 Core files of interest:
 | Area | File | Purpose |
@@ -440,18 +393,16 @@ python src/tools/setup/setup_automated_trading.py   # Installs deps, validates e
 
 Configuration: override via `.env` (see `src/core/config.py`). Missing keys fall back to safe defaults.
 
-WSL→Windows IBKR connectivity (recommended):
+WSL/Linux IBKR connectivity (recommended):
 
-- Run IB Gateway on Windows (Paper). Enable API socket clients.
-- Use Windows portproxy so WSL connects to 172.17.208.1:4003 → 127.0.0.1:4002.
-  This avoids Trusted IP quirks for non-localhost connections.
-  Defaults in this repo target that proxy.
+- Run IB Gateway inside WSL/Linux with IBC (headless) or TWS/Gateway on Linux.
+- Enable API socket clients. Defaults target Linux gateway on localhost.
 
-Env vars (WSL-friendly defaults):
+Env vars (Linux-first defaults):
 
-- IB_HOST=172.17.208.1
-- IB_PORT=4003
-- IB_CLIENT_ID=1001
+- IB_HOST=127.0.0.1
+- IB_PORT=4002 # Paper (4001 for live gateway, 7496/7497 for TWS)
+- IB_CLIENT_ID=2011
 - IB_CONNECT_TIMEOUT=20
 
 Probe connectivity from WSL venv:
@@ -460,7 +411,7 @@ Probe connectivity from WSL venv:
 python scripts/ib_probe.py
 ```
 
-Expected: a single JSON line like {"connected":true,"serverVersion":...,"accounts":[...]} and exit 0.
+Expected: a single JSON line like {"connected":true,"method":"linux","serverVersion":...,"accounts":[...]} and exit 0.
 
 Fake vs Real IB client resolution order:
 
@@ -711,6 +662,10 @@ git push origin main --tags
 
 Maintain `CHANGELOG.md` (Keep a Changelog + SemVer).
 
+Notable change:
+
+- Default IB connectivity switched to Linux-first (localhost:4002 via Gateway/IBC). Windows portproxy remains available as a fallback and is auto-detected when `IB_HOST_Virtual`/`IB_PORT_Virtual` or equivalent overrides are set.
+
 ---
 
 ## 9. Troubleshooting & Support
@@ -859,7 +814,7 @@ See also: `docs/ENVIRONMENT.md` (kept in sync) and `.env.example`.
 | IB_PAPER_PORT             | 7497                         | Paper TWS/Gateway port                  | ib connection              |
 | IB_GATEWAY_LIVE_PORT      | 4001                         | Headless gateway live port              | headless gateway           |
 | IB_GATEWAY_PAPER_PORT     | 4002                         | Headless gateway paper port             | headless gateway           |
-| IB_CLIENT_ID              | 1                            | Client id for session                   | ib connection              |
+| IB_CLIENT_ID              | 2011                         | Client id for session                   | ib connection              |
 | IB_PAPER_TRADING          | 1                            | Paper vs live flag                      | connection config          |
 | IB_USERNAME               | (empty)                      | Headless auth username                  | headless gateway           |
 | IB_PASSWORD               | (empty)                      | Headless auth password                  | headless gateway           |
@@ -886,6 +841,22 @@ See also: `docs/ENVIRONMENT.md` (kept in sync) and `.env.example`.
 | L2_TASK_BACKOFF_MAX_MS    | 2000                         | Max backoff ms                          | databento_l2_service       |
 | SYMBOL_MAPPING_FILE       | config/symbol_mapping.json   | Local→vendor mapping                    | backfill & mapping         |
 | LOG_LEVEL                 | INFO                         | Log verbosity                           | orchestrators, batch tools |
+
+### IBKR Gateway connectivity (Windows portproxy alternative)
+
+- If you run Gateway on Windows and connect from WSL, you can use Windows portproxy.
+- Set `IB_HOST_Virtual` and/or `IB_PORT_Virtual`, or override `IB_HOST/IB_PORT` directly.
+- Tools auto-detect and log "Using Windows Gateway via portproxy (fallback)".
+
+- Probe connectivity from WSL:
+
+```bash
+python scripts/ib_probe.py
+```
+
+Prints a JSON line and exits 0 on success.
+
+Troubleshooting: If direct 192.168.x.x:4002 fails due to Trusted IPs, keep using the portproxy listener at 172.17.208.1:4003.
 
 ## Quickstart (Condensed)
 
@@ -929,16 +900,13 @@ L2_BACKFILL_CONCURRENCY=2
 SYMBOL_MAPPING_FILE=config/symbol_mapping.json
 ```
 
-Usage:
+Usage: prefer the unified automation CLI:
 
 ```
-python src/tools/backfill_l2_from_warrior.py --date 2025-07-29
-python src/tools/backfill_l2_from_warrior.py --start 2025-07-01 --end 2025-07-05 --symbol AAPL
+python src/tools/auto_backfill_from_warrior.py --since 3 --fetch-bars --max-workers 4
 ```
 
-Writes parquet in IBKR-compatible L2 schema. Filenames are suffixed with
-`_databento` (e.g. `2025-07-29_snapshots_databento.parquet`) to avoid any
-collision with live IBKR Level 2 capture files.
+This downloads IB hourly/1‑sec (optional) and backfills L2 for the Warrior‑discovered tasks.
 
 Characteristics:
 

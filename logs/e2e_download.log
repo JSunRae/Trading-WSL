@@ -3478,3 +3478,1478 @@ RuntimeError: boom
 2025-09-11 22:03:29,373 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
 2025-09-11 22:03:42,287 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
 2025-09-11 22:03:53,795 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:05:32,221 INFO ibapi.client could not connect
+2025-09-11 22:05:32,222 INFO ibapi.client disconnecting
+2025-09-11 22:05:32,222 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-11 22:05:32,627 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 22:05:32,627 INFO ibapi.client could not connect
+2025-09-11 22:05:32,627 INFO ibapi.client disconnecting
+2025-09-11 22:05:32,627 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 22:05:32,628 INFO ibapi.client could not connect
+2025-09-11 22:05:32,628 INFO ibapi.client disconnecting
+2025-09-11 22:05:32,628 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 22:05:32,628 INFO ibapi.client could not connect
+2025-09-11 22:05:32,628 INFO ibapi.client disconnecting
+2025-09-11 22:05:32,628 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 22:05:32,628 INFO ibapi.client could not connect
+2025-09-11 22:05:32,628 INFO ibapi.client disconnecting
+2025-09-11 22:05:32,629 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 22:05:42,633 ERROR src.lib.ib_async_wrapper TCP 192.168.56.1:4002 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:05:44,135 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 22:05:50,801 INFO ibapi.client could not connect
+2025-09-11 22:05:50,801 INFO ibapi.client disconnecting
+2025-09-11 22:05:57,059 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 22:06:08,568 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:06:26,539 INFO ibapi.client could not connect
+2025-09-11 22:06:26,539 INFO ibapi.client disconnecting
+2025-09-11 22:06:26,539 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-11 22:06:26,906 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 22:06:26,907 INFO ibapi.client could not connect
+2025-09-11 22:06:26,907 INFO ibapi.client disconnecting
+2025-09-11 22:06:26,907 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 22:06:26,907 INFO ibapi.client could not connect
+2025-09-11 22:06:26,908 INFO ibapi.client disconnecting
+2025-09-11 22:06:26,908 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 22:06:26,908 INFO ibapi.client could not connect
+2025-09-11 22:06:26,908 INFO ibapi.client disconnecting
+2025-09-11 22:06:26,908 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 22:06:26,908 INFO ibapi.client could not connect
+2025-09-11 22:06:26,908 INFO ibapi.client disconnecting
+2025-09-11 22:06:26,909 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 22:06:36,916 ERROR src.lib.ib_async_wrapper TCP 192.168.56.1:4002 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:06:38,417 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 22:06:49,921 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 22:07:03,186 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:07:13,196 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-11 22:08:28,926 INFO ibapi.client could not connect
+2025-09-11 22:08:28,927 INFO ibapi.client disconnecting
+2025-09-11 22:08:28,927 INFO ibapi.client could not connect
+2025-09-11 22:08:28,927 INFO ibapi.client disconnecting
+2025-09-11 22:08:28,927 WARNING ibapi.client Disconnected; resetting connection
+2025-09-11 22:08:28,928 WARNING ibapi.client Disconnected; resetting connection
+2025-09-11 22:30:12,669 INFO ibapi.client could not connect
+2025-09-11 22:30:12,669 INFO ibapi.client disconnecting
+2025-09-11 22:30:12,669 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4003
+2025-09-11 22:30:13,163 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4003
+2025-09-11 22:30:13,163 INFO ibapi.client could not connect
+2025-09-11 22:30:13,163 INFO ibapi.client disconnecting
+2025-09-11 22:30:13,163 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 22:30:13,163 INFO ibapi.client could not connect
+2025-09-11 22:30:13,163 INFO ibapi.client disconnecting
+2025-09-11 22:30:13,164 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 22:30:13,164 INFO ibapi.client could not connect
+2025-09-11 22:30:13,164 INFO ibapi.client disconnecting
+2025-09-11 22:30:13,164 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 22:30:13,164 INFO ibapi.client could not connect
+2025-09-11 22:30:13,164 INFO ibapi.client disconnecting
+2025-09-11 22:30:13,164 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 22:30:13,164 INFO ibapi.client could not connect
+2025-09-11 22:30:13,164 INFO ibapi.client disconnecting
+2025-09-11 22:30:14,665 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4003
+2025-09-11 22:30:24,675 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 22:30:34,683 ERROR src.lib.ib_async_wrapper TCP 192.168.56.1:4002 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:30:36,184 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 22:30:49,364 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 22:31:00,869 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:31:10,880 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4003
+2025-09-11 22:31:22,597 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4003 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:31:22,597 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-11 22:31:32,606 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4002 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:31:34,108 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-11 22:31:45,618 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-11 22:31:58,836 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-11 22:32:10,345 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4003
+2025-09-11 22:32:23,524 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-11 22:32:35,031 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-11 22:32:46,540 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-11 22:32:59,929 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-11 22:33:11,439 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4003
+2025-09-11 22:33:22,944 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-11 22:33:36,368 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-11 22:33:47,879 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-11 22:33:59,383 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-11 22:34:12,782 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4003
+2025-09-11 22:34:24,293 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-11 22:34:35,807 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-11 22:34:49,226 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-11 22:34:56,190 INFO ibapi.client could not connect
+2025-09-11 22:34:56,190 INFO ibapi.client disconnecting
+2025-09-11 22:35:00,729 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-11 22:35:08,478 INFO ibapi.client could not connect
+2025-09-11 22:35:08,478 INFO ibapi.client disconnecting
+2025-09-11 22:35:14,128 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4003
+2025-09-11 22:35:22,641 INFO ibapi.client could not connect
+2025-09-11 22:35:22,641 INFO ibapi.client disconnecting
+2025-09-11 22:35:25,638 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-11 22:35:32,881 INFO ibapi.client could not connect
+2025-09-11 22:35:32,881 INFO ibapi.client disconnecting
+2025-09-11 22:35:37,142 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-11 22:35:50,520 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-11 22:36:02,029 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-11 22:36:13,540 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4003
+2025-09-11 22:36:23,707 INFO ibapi.client could not connect
+2025-09-11 22:36:23,707 INFO ibapi.client disconnecting
+2025-09-11 22:36:25,405 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-11 22:36:33,947 INFO ibapi.client could not connect
+2025-09-11 22:36:33,948 INFO ibapi.client disconnecting
+2025-09-11 22:36:34,411 ERROR src.lib.ib_async_wrapper Connection failed: 'NoneType' object has no attribute 'isConnected'
+2025-09-11 22:36:34,411 ERROR src.lib.ib_async_wrapper TCP 192.168.68.50:4002 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:36:35,912 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-11 22:36:46,235 INFO ibapi.client could not connect
+2025-09-11 22:36:46,235 INFO ibapi.client disconnecting
+2025-09-11 22:36:47,420 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-11 22:37:00,334 INFO ibapi.client could not connect
+2025-09-11 22:37:00,334 INFO ibapi.client disconnecting
+2025-09-11 22:37:00,734 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-11 22:37:10,574 INFO ibapi.client could not connect
+2025-09-11 22:37:10,736 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4002
+2025-09-11 22:37:10,736 INFO ibapi.client could not connect
+2025-09-11 22:37:10,736 INFO ibapi.client disconnecting
+2025-09-11 22:37:10,736 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-11 22:37:10,737 INFO ibapi.client could not connect
+2025-09-11 22:37:10,737 INFO ibapi.client disconnecting
+2025-09-11 22:37:10,737 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7497
+2025-09-11 22:37:10,737 INFO ibapi.client could not connect
+2025-09-11 22:37:10,737 INFO ibapi.client disconnecting
+2025-09-11 22:37:10,737 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7496
+2025-09-11 22:37:10,737 INFO ibapi.client could not connect
+2025-09-11 22:37:10,737 INFO ibapi.client disconnecting
+2025-09-11 22:37:10,737 INFO ib_conn IB connect failed on 127.0.0.1:4003; trying next candidate
+2025-09-11 22:37:10,738 INFO ibapi.client could not connect
+2025-09-11 22:37:10,738 INFO ibapi.client disconnecting
+2025-09-11 22:37:10,738 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-11 22:37:11,123 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 22:37:11,124 INFO ibapi.client could not connect
+2025-09-11 22:37:11,124 INFO ibapi.client disconnecting
+2025-09-11 22:37:11,124 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 22:37:11,124 INFO ibapi.client could not connect
+2025-09-11 22:37:11,124 INFO ibapi.client disconnecting
+2025-09-11 22:37:11,124 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 22:37:11,124 INFO ibapi.client could not connect
+2025-09-11 22:37:11,124 INFO ibapi.client disconnecting
+2025-09-11 22:37:11,125 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 22:37:11,125 INFO ibapi.client could not connect
+2025-09-11 22:37:11,125 INFO ibapi.client disconnecting
+2025-09-11 22:37:11,125 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 22:37:21,133 ERROR src.lib.ib_async_wrapper TCP 192.168.56.1:4002 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:37:22,634 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 22:37:22,862 INFO ibapi.client could not connect
+2025-09-11 22:37:22,862 INFO ibapi.client disconnecting
+2025-09-11 22:37:34,928 INFO ibapi.client could not connect
+2025-09-11 22:37:35,969 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 22:37:47,216 INFO ibapi.client could not connect
+2025-09-11 22:37:47,480 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:37:57,481 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-11 22:37:59,507 INFO ibapi.client could not connect
+2025-09-11 22:37:59,508 INFO ibapi.client disconnecting
+2025-09-11 22:38:00,495 ERROR src.lib.ib_async_wrapper Connection failed: 'NoneType' object has no attribute 'isConnected'
+2025-09-11 22:38:00,495 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4002 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:38:03,779 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-11 22:38:11,520 INFO ibapi.client could not connect
+2025-09-11 22:38:11,521 INFO ibapi.client disconnecting
+2025-09-11 22:38:15,285 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-11 22:38:23,808 INFO ibapi.client could not connect
+2025-09-11 22:38:23,809 INFO ibapi.client disconnecting
+2025-09-11 22:38:26,792 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-11 22:38:38,098 INFO ibapi.client could not connect
+2025-09-11 22:38:40,302 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-11 22:38:51,811 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-11 22:38:58,578 INFO ibapi.client could not connect
+2025-09-11 22:38:58,578 INFO ibapi.client disconnecting
+2025-09-11 22:39:03,315 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-11 22:39:08,818 INFO ibapi.client could not connect
+2025-09-11 22:39:08,818 INFO ibapi.client disconnecting
+2025-09-11 22:39:16,562 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-11 22:39:22,847 INFO ibapi.client could not connect
+2025-09-11 22:39:22,847 INFO ibapi.client disconnecting
+2025-09-11 22:39:28,072 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-11 22:39:39,577 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-11 22:39:45,130 INFO ibapi.client could not connect
+2025-09-11 22:39:45,130 INFO ibapi.client disconnecting
+2025-09-11 22:39:52,887 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-11 22:39:57,417 INFO ibapi.client could not connect
+2025-09-11 22:39:57,418 INFO ibapi.client disconnecting
+2025-09-11 22:40:04,390 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-11 22:40:15,900 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-11 22:40:25,829 INFO ibapi.client could not connect
+2025-09-11 22:40:25,829 INFO ibapi.client disconnecting
+2025-09-11 22:40:29,187 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-11 22:40:36,065 INFO ibapi.client could not connect
+2025-09-11 22:40:40,689 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-11 22:40:48,353 INFO ibapi.client could not connect
+2025-09-11 22:40:48,353 INFO ibapi.client disconnecting
+2025-09-11 22:40:53,983 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-11 22:41:05,486 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-11 22:41:12,667 INFO ibapi.client could not connect
+2025-09-11 22:41:12,667 INFO ibapi.client disconnecting
+2025-09-11 22:41:16,995 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-11 22:41:24,955 INFO ibapi.client could not connect
+2025-09-11 22:41:24,955 INFO ibapi.client disconnecting
+2025-09-11 22:41:30,287 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-11 22:41:36,980 INFO ibapi.client could not connect
+2025-09-11 22:41:36,980 INFO ibapi.client disconnecting
+2025-09-11 22:41:41,790 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-11 22:41:53,300 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-11 22:42:06,588 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-11 22:42:13,582 INFO ibapi.client could not connect
+2025-09-11 22:42:18,093 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-11 22:42:25,870 INFO ibapi.client could not connect
+2025-09-11 22:42:25,870 INFO ibapi.client disconnecting
+2025-09-11 22:42:29,597 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-11 22:42:39,945 INFO ibapi.client could not connect
+2025-09-11 22:42:39,945 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,394 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-11 22:42:41,394 INFO ibapi.client could not connect
+2025-09-11 22:42:41,395 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,395 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7497
+2025-09-11 22:42:41,395 INFO ibapi.client could not connect
+2025-09-11 22:42:41,395 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,395 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7496
+2025-09-11 22:42:41,395 INFO ibapi.client could not connect
+2025-09-11 22:42:41,395 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,395 INFO ib_conn IB connect failed on 127.0.0.1:4002; trying next candidate
+2025-09-11 22:42:41,395 INFO ibapi.client could not connect
+2025-09-11 22:42:41,395 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,395 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:7497
+2025-09-11 22:42:41,807 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 22:42:41,808 INFO ibapi.client could not connect
+2025-09-11 22:42:41,808 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,808 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 22:42:41,809 INFO ibapi.client could not connect
+2025-09-11 22:42:41,809 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,809 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 22:42:41,809 INFO ibapi.client could not connect
+2025-09-11 22:42:41,809 INFO ibapi.client disconnecting
+2025-09-11 22:42:41,809 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 22:42:41,809 INFO ibapi.client could not connect
+2025-09-11 22:42:41,809 INFO ibapi.client disconnecting
+2025-09-11 22:42:43,311 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 22:42:50,185 INFO ibapi.client could not connect
+2025-09-11 22:42:50,185 INFO ibapi.client disconnecting
+2025-09-11 22:42:54,812 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 22:43:02,473 INFO ibapi.client could not connect
+2025-09-11 22:43:02,473 INFO ibapi.client disconnecting
+2025-09-11 22:43:06,316 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 22:43:14,500 INFO ibapi.client could not connect
+2025-09-11 22:43:14,500 INFO ibapi.client disconnecting
+2025-09-11 22:43:19,612 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:43:26,788 INFO ibapi.client could not connect
+2025-09-11 22:43:31,115 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-11 22:43:39,076 INFO ibapi.client could not connect
+2025-09-11 22:43:44,381 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-11 22:43:51,077 INFO ibapi.client could not connect
+2025-09-11 22:43:55,885 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-11 22:44:03,365 INFO ibapi.client could not connect
+2025-09-11 22:44:03,365 INFO ibapi.client disconnecting
+2025-09-11 22:44:07,395 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-11 22:44:20,710 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-11 22:44:27,705 INFO ibapi.client could not connect
+2025-09-11 22:44:27,705 INFO ibapi.client disconnecting
+2025-09-11 22:44:32,217 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-11 22:44:39,993 INFO ibapi.client could not connect
+2025-09-11 22:44:43,719 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-11 22:44:52,019 INFO ibapi.client could not connect
+2025-09-11 22:44:57,009 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-11 22:45:04,308 INFO ibapi.client could not connect
+2025-09-11 22:45:08,512 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-11 22:45:14,547 INFO ibapi.client could not connect
+2025-09-11 22:45:14,548 INFO ibapi.client disconnecting
+2025-09-11 22:45:20,016 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-11 22:45:28,619 INFO ibapi.client could not connect
+2025-09-11 22:45:28,619 INFO ibapi.client disconnecting
+2025-09-11 22:45:33,304 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-11 22:45:40,907 INFO ibapi.client could not connect
+2025-09-11 22:45:40,907 INFO ibapi.client disconnecting
+2025-09-11 22:45:44,806 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-11 22:45:53,195 INFO ibapi.client could not connect
+2025-09-11 22:45:53,195 INFO ibapi.client disconnecting
+2025-09-11 22:45:56,308 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-11 22:46:05,309 INFO ibapi.client could not connect
+2025-09-11 22:46:05,309 INFO ibapi.client disconnecting
+2025-09-11 22:46:09,692 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-11 22:46:17,597 INFO ibapi.client could not connect
+2025-09-11 22:46:17,597 INFO ibapi.client disconnecting
+2025-09-11 22:46:21,195 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-11 22:46:29,885 INFO ibapi.client could not connect
+2025-09-11 22:46:29,885 INFO ibapi.client disconnecting
+2025-09-11 22:46:34,435 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-11 22:46:41,853 INFO ibapi.client could not connect
+2025-09-11 22:46:41,854 INFO ibapi.client disconnecting
+2025-09-11 22:46:45,939 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-11 22:46:54,141 INFO ibapi.client could not connect
+2025-09-11 22:46:54,142 INFO ibapi.client disconnecting
+2025-09-11 22:46:57,446 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-11 22:47:04,381 INFO ibapi.client could not connect
+2025-09-11 22:47:04,382 INFO ibapi.client disconnecting
+2025-09-11 22:47:10,764 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-11 22:47:18,479 INFO ibapi.client could not connect
+2025-09-11 22:47:18,480 INFO ibapi.client disconnecting
+2025-09-11 22:47:22,274 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-11 22:47:30,767 INFO ibapi.client could not connect
+2025-09-11 22:47:30,768 INFO ibapi.client disconnecting
+2025-09-11 22:47:33,778 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-11 22:47:42,809 INFO ibapi.client could not connect
+2025-09-11 22:47:47,084 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-11 22:47:55,097 INFO ibapi.client could not connect
+2025-09-11 22:47:58,588 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-11 22:48:05,337 INFO ibapi.client could not connect
+2025-09-11 22:48:05,337 INFO ibapi.client disconnecting
+2025-09-11 22:48:10,094 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-11 22:48:19,441 INFO ibapi.client could not connect
+2025-09-11 22:48:21,913 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4002
+2025-09-11 22:48:21,913 INFO ibapi.client could not connect
+2025-09-11 22:48:21,913 INFO ibapi.client disconnecting
+2025-09-11 22:48:21,913 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-11 22:48:21,913 INFO ibapi.client could not connect
+2025-09-11 22:48:21,914 INFO ibapi.client disconnecting
+2025-09-11 22:48:21,914 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7496
+2025-09-11 22:48:21,914 INFO ibapi.client could not connect
+2025-09-11 22:48:21,914 INFO ibapi.client disconnecting
+2025-09-11 22:48:21,914 INFO ib_conn IB connect failed on 127.0.0.1:7497; trying next candidate
+2025-09-11 22:48:31,729 INFO ibapi.client could not connect
+2025-09-11 22:48:41,969 INFO ibapi.client could not connect
+2025-09-11 22:48:56,065 INFO ibapi.client could not connect
+2025-09-11 22:49:08,353 INFO ibapi.client could not connect
+2025-09-11 22:49:25,538 INFO ibapi.client could not connect
+2025-09-11 22:49:25,538 INFO ibapi.client disconnecting
+2025-09-11 22:49:25,538 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4003
+2025-09-11 22:49:25,940 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4003
+2025-09-11 22:49:25,940 INFO ibapi.client could not connect
+2025-09-11 22:49:25,940 INFO ibapi.client disconnecting
+2025-09-11 22:49:25,940 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 22:49:25,940 INFO ibapi.client could not connect
+2025-09-11 22:49:25,940 INFO ibapi.client disconnecting
+2025-09-11 22:49:25,940 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 22:49:25,941 INFO ibapi.client could not connect
+2025-09-11 22:49:25,941 INFO ibapi.client disconnecting
+2025-09-11 22:49:25,941 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 22:49:25,941 INFO ibapi.client could not connect
+2025-09-11 22:49:25,941 INFO ibapi.client disconnecting
+2025-09-11 22:49:25,941 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 22:49:25,941 INFO ibapi.client could not connect
+2025-09-11 22:49:25,941 INFO ibapi.client disconnecting
+2025-09-11 22:49:27,443 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4003
+2025-09-11 22:49:38,949 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 22:49:50,460 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 22:50:03,793 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 22:50:09,333 INFO ibapi.client could not connect
+2025-09-11 22:50:09,333 INFO ibapi.client disconnecting
+2025-09-11 22:50:15,302 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:50:19,573 INFO ibapi.client could not connect
+2025-09-11 22:50:19,573 INFO ibapi.client disconnecting
+2025-09-11 22:50:25,312 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4003
+2025-09-11 22:50:27,214 WARNING ibapi.client Disconnected; resetting connection
+2025-09-11 22:50:27,214 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4003 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-11 22:50:28,715 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-11 22:50:33,689 INFO ibapi.client could not connect
+2025-09-11 22:50:33,690 INFO ibapi.client disconnecting
+2025-09-11 22:50:42,054 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-11 22:50:53,557 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-11 22:51:06,943 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-11 22:51:18,450 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4003
+2025-09-11 22:51:29,956 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-11 22:51:43,344 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-11 22:51:54,853 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-11 22:52:06,363 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-11 22:52:19,659 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4003
+2025-09-11 22:52:25,740 INFO ibapi.client could not connect
+2025-09-11 22:52:25,740 INFO ibapi.client could not connect
+2025-09-11 22:52:31,165 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-11 22:52:35,980 INFO ibapi.client could not connect
+2025-09-11 22:52:35,980 INFO ibapi.client disconnecting
+2025-09-11 22:52:42,669 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-11 22:52:52,152 INFO ibapi.client could not connect
+2025-09-11 22:52:52,152 INFO ibapi.client disconnecting
+2025-09-11 22:52:56,010 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-11 22:53:07,520 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-11 22:53:19,023 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4003
+2025-09-11 22:53:32,460 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-11 22:53:43,970 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-11 22:53:57,323 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-11 22:54:05,560 INFO ibapi.client could not connect
+2025-09-11 22:54:05,560 INFO ibapi.client disconnecting
+2025-09-11 22:54:08,834 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-11 22:54:15,800 INFO ibapi.client could not connect
+2025-09-11 22:54:15,800 INFO ibapi.client disconnecting
+2025-09-11 22:54:20,340 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4003
+2025-09-11 22:54:28,088 INFO ibapi.client could not connect
+2025-09-11 22:54:28,088 INFO ibapi.client disconnecting
+2025-09-11 22:54:33,837 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-11 22:54:42,359 INFO ibapi.client could not connect
+2025-09-11 22:54:42,359 INFO ibapi.client disconnecting
+2025-09-11 22:54:45,343 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-11 22:54:52,599 INFO ibapi.client could not connect
+2025-09-11 22:54:56,847 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-11 22:55:06,880 INFO ibapi.client could not connect
+2025-09-11 22:55:10,342 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-11 22:55:17,120 INFO ibapi.client could not connect
+2025-09-11 22:55:17,120 INFO ibapi.client disconnecting
+2025-09-11 22:55:21,852 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4003
+2025-09-11 22:55:29,408 INFO ibapi.client could not connect
+2025-09-11 22:55:29,408 INFO ibapi.client disconnecting
+2025-09-11 22:55:33,360 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-11 22:55:43,822 INFO ibapi.client could not connect
+2025-09-11 22:55:43,822 INFO ibapi.client disconnecting
+2025-09-11 22:55:46,997 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-11 22:55:54,062 INFO ibapi.client could not connect
+2025-09-11 22:55:54,062 INFO ibapi.client disconnecting
+2025-09-11 22:55:58,506 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-11 22:56:06,350 INFO ibapi.client could not connect
+2025-09-11 22:56:06,350 INFO ibapi.client disconnecting
+2025-09-11 22:56:10,012 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-11 22:56:20,770 INFO ibapi.client could not connect
+2025-09-11 22:56:20,770 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,147 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4002
+2025-09-11 22:56:22,147 INFO ibapi.client could not connect
+2025-09-11 22:56:22,147 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,147 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-11 22:56:22,147 INFO ibapi.client could not connect
+2025-09-11 22:56:22,147 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,147 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7497
+2025-09-11 22:56:22,147 INFO ibapi.client could not connect
+2025-09-11 22:56:22,148 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,148 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7496
+2025-09-11 22:56:22,148 INFO ibapi.client could not connect
+2025-09-11 22:56:22,148 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,148 INFO ib_conn IB connect failed on 127.0.0.1:4003; trying next candidate
+2025-09-11 22:56:22,148 INFO ibapi.client could not connect
+2025-09-11 22:56:22,148 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,148 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-11 22:56:22,529 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 22:56:22,530 INFO ibapi.client could not connect
+2025-09-11 22:56:22,530 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,530 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 22:56:22,530 INFO ibapi.client could not connect
+2025-09-11 22:56:22,530 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,530 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 22:56:22,530 INFO ibapi.client could not connect
+2025-09-11 22:56:22,530 INFO ibapi.client disconnecting
+2025-09-11 22:56:22,530 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 22:56:22,531 INFO ibapi.client could not connect
+2025-09-11 22:56:22,531 INFO ibapi.client disconnecting
+2025-09-11 22:56:24,032 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 22:56:31,010 INFO ibapi.client could not connect
+2025-09-11 22:56:35,537 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 22:56:43,297 INFO ibapi.client could not connect
+2025-09-11 22:56:43,298 INFO ibapi.client disconnecting
+2025-09-11 22:56:49,054 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 22:56:55,551 INFO ibapi.client could not connect
+2025-09-11 22:57:00,556 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 22:57:07,839 INFO ibapi.client could not connect
+2025-09-11 22:57:07,839 INFO ibapi.client disconnecting
+2025-09-11 22:57:12,066 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-11 22:57:22,174 INFO ibapi.client could not connect
+2025-09-11 22:57:22,174 INFO ibapi.client disconnecting
+2025-09-11 22:57:25,625 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-11 22:57:32,413 INFO ibapi.client could not connect
+2025-09-11 22:57:37,129 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-11 22:57:44,701 INFO ibapi.client could not connect
+2025-09-11 22:57:48,633 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-11 22:57:57,102 INFO ibapi.client could not connect
+2025-09-11 22:57:57,103 INFO ibapi.client disconnecting
+2025-09-11 22:58:02,300 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-11 22:58:09,391 INFO ibapi.client could not connect
+2025-09-11 22:58:09,391 INFO ibapi.client disconnecting
+2025-09-11 22:58:13,803 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-11 22:58:21,679 INFO ibapi.client could not connect
+2025-09-11 22:58:21,679 INFO ibapi.client disconnecting
+2025-09-11 22:58:25,307 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-11 22:58:33,936 INFO ibapi.client could not connect
+2025-09-11 22:58:38,829 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-11 22:58:46,224 INFO ibapi.client could not connect
+2025-09-11 22:58:46,224 INFO ibapi.client disconnecting
+2025-09-11 22:58:50,340 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-11 22:58:58,512 INFO ibapi.client could not connect
+2025-09-11 22:59:01,842 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-11 22:59:10,838 INFO ibapi.client could not connect
+2025-09-11 22:59:10,838 INFO ibapi.client disconnecting
+2025-09-11 22:59:15,435 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-11 22:59:23,126 INFO ibapi.client could not connect
+2025-09-11 22:59:26,937 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-11 22:59:35,414 INFO ibapi.client could not connect
+2025-09-11 22:59:35,414 INFO ibapi.client disconnecting
+2025-09-11 22:59:40,222 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-11 22:59:47,435 INFO ibapi.client could not connect
+2025-09-11 22:59:47,435 INFO ibapi.client disconnecting
+2025-09-11 22:59:51,726 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-11 22:59:59,723 INFO ibapi.client could not connect
+2025-09-11 22:59:59,724 INFO ibapi.client disconnecting
+2025-09-11 23:00:03,232 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-11 23:00:09,963 INFO ibapi.client could not connect
+2025-09-11 23:00:09,964 INFO ibapi.client disconnecting
+2025-09-11 23:00:16,707 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-11 23:00:24,217 INFO ibapi.client could not connect
+2025-09-11 23:00:28,211 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-11 23:00:36,505 INFO ibapi.client could not connect
+2025-09-11 23:00:36,506 INFO ibapi.client disconnecting
+2025-09-11 23:00:39,715 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-11 23:00:48,717 INFO ibapi.client could not connect
+2025-09-11 23:00:48,717 INFO ibapi.client disconnecting
+2025-09-11 23:00:53,197 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-11 23:01:01,005 INFO ibapi.client could not connect
+2025-09-11 23:01:04,701 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-11 23:01:13,293 INFO ibapi.client could not connect
+2025-09-11 23:01:13,293 INFO ibapi.client disconnecting
+2025-09-11 23:01:16,212 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-11 23:01:25,507 INFO ibapi.client could not connect
+2025-09-11 23:01:29,688 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-11 23:01:37,795 INFO ibapi.client could not connect
+2025-09-11 23:01:37,795 INFO ibapi.client disconnecting
+2025-09-11 23:01:41,196 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-11 23:01:48,035 INFO ibapi.client could not connect
+2025-09-11 23:01:52,701 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-11 23:02:04,675 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-11 23:02:04,676 INFO ibapi.client could not connect
+2025-09-11 23:02:04,676 INFO ibapi.client disconnecting
+2025-09-11 23:02:04,676 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7497
+2025-09-11 23:02:04,676 INFO ibapi.client could not connect
+2025-09-11 23:02:04,676 INFO ibapi.client disconnecting
+2025-09-11 23:02:04,676 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7496
+2025-09-11 23:02:04,676 INFO ibapi.client could not connect
+2025-09-11 23:02:04,676 INFO ibapi.client disconnecting
+2025-09-11 23:02:04,676 INFO ib_conn IB connect failed on 127.0.0.1:4002; trying next candidate
+2025-09-11 23:02:04,676 INFO ibapi.client could not connect
+2025-09-11 23:02:04,676 INFO ibapi.client disconnecting
+2025-09-11 23:02:04,677 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:7497
+2025-09-11 23:02:05,068 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-11 23:02:05,069 INFO ibapi.client could not connect
+2025-09-11 23:02:05,069 INFO ibapi.client disconnecting
+2025-09-11 23:02:05,069 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-11 23:02:05,069 INFO ibapi.client could not connect
+2025-09-11 23:02:05,069 INFO ibapi.client disconnecting
+2025-09-11 23:02:05,069 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-11 23:02:05,070 INFO ibapi.client could not connect
+2025-09-11 23:02:05,070 INFO ibapi.client disconnecting
+2025-09-11 23:02:05,070 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-11 23:02:05,070 INFO ibapi.client could not connect
+2025-09-11 23:02:05,070 INFO ibapi.client disconnecting
+2025-09-11 23:02:06,571 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-11 23:02:14,583 INFO ibapi.client could not connect
+2025-09-11 23:02:18,075 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-11 23:02:24,823 INFO ibapi.client could not connect
+2025-09-11 23:02:24,823 INFO ibapi.client disconnecting
+2025-09-11 23:02:31,554 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-11 23:02:39,085 INFO ibapi.client could not connect
+2025-09-11 23:02:39,085 INFO ibapi.client disconnecting
+2025-09-11 23:02:43,062 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-11 23:02:54,565 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-11 23:03:01,613 INFO ibapi.client could not connect
+2025-09-11 23:03:08,044 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-11 23:03:15,876 INFO ibapi.client could not connect
+2025-09-11 23:03:15,876 INFO ibapi.client disconnecting
+2025-09-11 23:03:19,549 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-11 23:03:26,116 INFO ibapi.client could not connect
+2025-09-11 23:03:31,054 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-11 23:03:40,380 INFO ibapi.client could not connect
+2025-09-11 23:03:40,380 INFO ibapi.client disconnecting
+2025-09-11 23:03:44,540 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-11 23:03:52,668 INFO ibapi.client could not connect
+2025-09-11 23:03:56,043 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-11 23:04:02,908 INFO ibapi.client could not connect
+2025-09-11 23:04:02,908 INFO ibapi.client disconnecting
+2025-09-11 23:04:07,553 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-11 23:04:21,027 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-11 23:04:29,451 INFO ibapi.client could not connect
+2025-09-11 23:04:29,451 INFO ibapi.client disconnecting
+2025-09-11 23:04:32,538 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-11 23:04:39,691 INFO ibapi.client could not connect
+2025-09-11 23:04:39,691 INFO ibapi.client disconnecting
+2025-09-11 23:04:44,042 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-11 23:04:53,939 INFO ibapi.client could not connect
+2025-09-11 23:04:57,507 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-11 23:05:09,017 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-11 23:05:16,467 INFO ibapi.client could not connect
+2025-09-11 23:05:16,467 INFO ibapi.client disconnecting
+2025-09-11 23:05:22,554 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-11 23:05:30,781 INFO ibapi.client could not connect
+2025-09-11 23:05:30,781 INFO ibapi.client disconnecting
+2025-09-11 23:05:34,057 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-11 23:05:41,021 INFO ibapi.client could not connect
+2025-09-11 23:05:41,021 INFO ibapi.client disconnecting
+2025-09-11 23:05:45,566 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-11 23:05:53,309 INFO ibapi.client could not connect
+2025-09-11 23:05:53,309 INFO ibapi.client disconnecting
+2025-09-11 23:05:58,893 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-11 23:06:07,418 INFO ibapi.client could not connect
+2025-09-11 23:06:07,418 INFO ibapi.client disconnecting
+2025-09-11 23:06:10,404 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-11 23:06:17,658 INFO ibapi.client could not connect
+2025-09-11 23:06:21,906 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-11 23:06:32,048 INFO ibapi.client could not connect
+2025-09-11 23:06:32,049 INFO ibapi.client disconnecting
+2025-09-11 23:06:35,518 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-11 23:06:42,288 INFO ibapi.client could not connect
+2025-09-11 23:06:47,023 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-11 23:06:54,576 INFO ibapi.client could not connect
+2025-09-11 23:06:58,526 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-11 23:07:08,764 INFO ibapi.client could not connect
+2025-09-11 23:07:08,764 INFO ibapi.client disconnecting
+2025-09-11 23:07:11,930 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-11 23:07:19,004 INFO ibapi.client could not connect
+2025-09-11 23:07:19,005 INFO ibapi.client disconnecting
+2025-09-11 23:07:23,433 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-11 23:07:31,292 INFO ibapi.client could not connect
+2025-09-11 23:07:34,935 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-11 23:07:45,547 INFO ibapi.client could not connect
+2025-09-11 23:07:46,903 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4002
+2025-09-11 23:07:46,904 INFO ibapi.client could not connect
+2025-09-11 23:07:46,904 INFO ibapi.client disconnecting
+2025-09-11 23:07:46,904 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-11 23:07:46,904 INFO ibapi.client could not connect
+2025-09-11 23:07:46,904 INFO ibapi.client disconnecting
+2025-09-11 23:07:46,904 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7496
+2025-09-11 23:07:46,904 INFO ibapi.client could not connect
+2025-09-11 23:07:46,904 INFO ibapi.client disconnecting
+2025-09-11 23:07:46,905 INFO ib_conn IB connect failed on 127.0.0.1:7497; trying next candidate
+2025-09-11 23:07:55,787 INFO ibapi.client could not connect
+2025-09-11 23:08:08,075 INFO ibapi.client could not connect
+2025-09-11 23:08:20,281 INFO ibapi.client could not connect
+2025-09-11 23:08:32,569 INFO ibapi.client could not connect
+2025-09-11 23:08:46,842 INFO ibapi.client could not connect
+2025-09-11 23:08:57,082 INFO ibapi.client could not connect
+2025-09-11 23:09:21,577 INFO ibapi.client could not connect
+2025-09-11 23:09:33,864 INFO ibapi.client could not connect
+2025-09-11 23:09:46,152 INFO ibapi.client could not connect
+2025-09-11 23:09:58,355 INFO ibapi.client could not connect
+2025-09-12 08:13:44,221 WARNING ibapi.client Disconnected; resetting connection
+2025-09-12 08:13:56,495 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-12 08:14:28,681 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-12 08:15:00,992 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-12 08:16:07,250 WARNING ibapi.client Disconnected; resetting connection
+2025-09-12 08:16:17,259 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-12 08:16:49,524 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-12 08:17:21,804 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-13 10:14:05,214 INFO ibapi.client could not connect
+2025-09-13 10:14:05,215 INFO ibapi.client disconnecting
+2025-09-13 10:14:05,215 INFO ib_conn IB connect failed on 172.17.208.1          # your Windows virtual switch IP:4003; trying next candidate
+2025-09-13 10:14:05,215 INFO ibapi.client could not connect
+2025-09-13 10:14:05,215 INFO ibapi.client disconnecting
+2025-09-13 10:14:05,215 INFO ib_conn IB connect failed on 172.17.208.1          # your Windows virtual switch IP:4002; trying next candidate
+2025-09-13 10:14:05,215 INFO ibapi.client could not connect
+2025-09-13 10:14:05,215 INFO ibapi.client disconnecting
+2025-09-13 10:14:05,215 INFO ib_conn IB connect failed on 172.17.208.1          # your Windows virtual switch IP:7497; trying next candidate
+2025-09-13 10:15:05,217 INFO ibapi.client could not connect
+2025-09-13 10:15:05,217 INFO ibapi.client disconnecting
+2025-09-13 10:15:05,218 INFO ib_conn IB connect failed on 172.17.208.1          # your Windows virtual switch IP:4003; trying next candidate
+2025-09-13 10:15:05,218 INFO ibapi.client could not connect
+2025-09-13 10:15:05,218 INFO ibapi.client disconnecting
+2025-09-13 10:15:05,218 INFO ib_conn IB connect failed on 172.17.208.1          # your Windows virtual switch IP:4002; trying next candidate
+2025-09-13 10:15:05,218 INFO ibapi.client could not connect
+2025-09-13 10:15:05,218 INFO ibapi.client disconnecting
+2025-09-13 10:15:05,218 INFO ib_conn IB connect failed on 172.17.208.1          # your Windows virtual switch IP:7497; trying next candidate
+2025-09-13 10:18:06,270 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-13 10:18:36,300 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-13 10:19:06,331 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-13 10:19:40,479 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-13 10:20:10,510 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-13 10:20:40,541 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-13 10:22:24,487 INFO ibapi.client could not connect
+2025-09-13 10:22:24,487 INFO ibapi.client disconnecting
+2025-09-13 10:22:24,487 WARNING ibapi.client Disconnected; resetting connection
+2025-09-13 10:22:24,487 WARNING ibapi.client Disconnected; resetting connection
+2025-09-13 10:22:24,487 WARNING ibapi.client Disconnected; resetting connection
+2025-09-13 10:25:59,261 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-13 10:26:29,292 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-13 10:26:59,322 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-13 10:28:29,354 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-13 10:28:59,385 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-13 10:29:29,415 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-13 10:31:12,871 INFO ibapi.client could not connect
+2025-09-13 10:31:12,871 WARNING ibapi.client Disconnected; resetting connection
+2025-09-13 10:31:12,871 INFO ibapi.client disconnecting
+2025-09-13 10:31:12,871 WARNING ibapi.client Disconnected; resetting connection
+2025-09-13 10:35:57,925 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-13 10:36:27,956 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-13 10:36:57,986 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-13 10:38:28,018 INFO ib_conn IB connect failed on 172.17.208.1:4003; trying next candidate
+2025-09-13 10:38:58,049 INFO ib_conn IB connect failed on 172.17.208.1:4002; trying next candidate
+2025-09-13 10:39:28,079 INFO ib_conn IB connect failed on 172.17.208.1:7497; trying next candidate
+2025-09-13 10:41:12,935 INFO ibapi.client could not connect
+2025-09-13 10:41:12,935 INFO ibapi.client disconnecting
+2025-09-13 10:41:12,936 WARNING ibapi.client Disconnected; resetting connection
+2025-09-13 10:41:12,936 WARNING ibapi.client Disconnected; resetting connection
+2025-09-15 10:11:41,840 INFO ibapi.client could not connect
+2025-09-15 10:11:41,840 INFO ibapi.client disconnecting
+2025-09-15 10:11:41,840 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-15 10:11:42,852 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-15 10:11:42,853 INFO ibapi.client could not connect
+2025-09-15 10:11:42,853 INFO ibapi.client disconnecting
+2025-09-15 10:11:42,853 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4003
+2025-09-15 10:11:42,853 INFO ibapi.client could not connect
+2025-09-15 10:11:42,853 INFO ibapi.client disconnecting
+2025-09-15 10:11:42,854 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-15 10:11:42,854 INFO ibapi.client could not connect
+2025-09-15 10:11:42,854 INFO ibapi.client disconnecting
+2025-09-15 10:11:42,854 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-15 10:11:42,855 INFO ibapi.client could not connect
+2025-09-15 10:11:42,855 INFO ibapi.client disconnecting
+2025-09-15 10:11:42,855 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-15 10:11:42,855 INFO ibapi.client could not connect
+2025-09-15 10:11:42,855 INFO ibapi.client disconnecting
+2025-09-15 10:11:46,312 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-15 10:11:57,823 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4003
+2025-09-15 10:12:09,333 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-15 10:12:23,194 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-15 10:12:34,705 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-15 10:12:46,212 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-15 10:12:58,229 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4003
+2025-09-15 10:13:00,156 WARNING ibapi.client Disconnected; resetting connection
+2025-09-15 10:13:10,166 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4003 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-15 10:13:11,668 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-15 10:13:23,177 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-15 10:13:36,630 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-15 10:13:48,139 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-15 10:13:59,655 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4003
+2025-09-15 10:14:13,133 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-15 10:14:24,636 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-15 10:14:38,101 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-15 10:14:49,612 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-15 10:15:01,122 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4003
+2025-09-15 10:15:14,479 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-15 10:15:25,989 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-15 10:15:37,493 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-15 10:15:50,937 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-15 10:16:02,440 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4003
+2025-09-15 10:16:13,950 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-15 10:16:23,364 INFO ibapi.client could not connect
+2025-09-15 10:16:23,364 INFO ibapi.client disconnecting
+2025-09-15 10:16:27,346 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-15 10:16:35,652 INFO ibapi.client could not connect
+2025-09-15 10:16:35,652 INFO ibapi.client disconnecting
+2025-09-15 10:16:38,855 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-15 10:16:45,892 INFO ibapi.client could not connect
+2025-09-15 10:16:45,892 INFO ibapi.client disconnecting
+2025-09-15 10:16:50,375 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-15 10:16:59,991 INFO ibapi.client could not connect
+2025-09-15 10:16:59,991 INFO ibapi.client disconnecting
+2025-09-15 10:17:03,694 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4003
+2025-09-15 10:17:12,283 INFO ibapi.client could not connect
+2025-09-15 10:17:12,283 INFO ibapi.client disconnecting
+2025-09-15 10:17:15,205 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-15 10:17:22,519 INFO ibapi.client could not connect
+2025-09-15 10:17:22,519 INFO ibapi.client disconnecting
+2025-09-15 10:17:28,753 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-15 10:17:40,258 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-15 10:17:47,036 INFO ibapi.client could not connect
+2025-09-15 10:17:47,036 INFO ibapi.client disconnecting
+2025-09-15 10:17:51,767 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-15 10:17:59,324 INFO ibapi.client could not connect
+2025-09-15 10:17:59,324 INFO ibapi.client disconnecting
+2025-09-15 10:18:04,384 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4003
+2025-09-15 10:18:12,719 INFO ibapi.client could not connect
+2025-09-15 10:18:12,720 INFO ibapi.client disconnecting
+2025-09-15 10:18:15,892 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-15 10:18:22,959 INFO ibapi.client could not connect
+2025-09-15 10:18:22,960 INFO ibapi.client disconnecting
+2025-09-15 10:18:27,398 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-15 10:18:36,832 INFO ibapi.client could not connect
+2025-09-15 10:18:40,484 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-15 10:18:49,117 INFO ibapi.client could not connect
+2025-09-15 10:18:49,117 INFO ibapi.client disconnecting
+2025-09-15 10:18:50,486 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4002
+2025-09-15 10:18:50,487 INFO ibapi.client could not connect
+2025-09-15 10:18:50,487 INFO ibapi.client disconnecting
+2025-09-15 10:18:50,487 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4003
+2025-09-15 10:18:50,487 INFO ibapi.client could not connect
+2025-09-15 10:18:50,487 INFO ibapi.client disconnecting
+2025-09-15 10:18:50,487 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-15 10:18:50,487 INFO ibapi.client could not connect
+2025-09-15 10:18:50,487 INFO ibapi.client disconnecting
+2025-09-15 10:18:50,488 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7497
+2025-09-15 10:18:50,488 INFO ibapi.client could not connect
+2025-09-15 10:18:50,488 INFO ibapi.client disconnecting
+2025-09-15 10:18:59,357 INFO ibapi.client could not connect
+2025-09-15 10:18:59,357 INFO ibapi.client could not connect
+2025-09-15 10:19:13,422 INFO ibapi.client could not connect
+2025-09-15 10:19:23,662 INFO ibapi.client could not connect
+2025-09-15 10:19:35,950 INFO ibapi.client could not connect
+2025-09-15 10:19:50,040 INFO ibapi.client could not connect
+2025-09-15 10:20:00,280 INFO ibapi.client could not connect
+2025-09-15 10:20:12,568 INFO ibapi.client could not connect
+2025-09-15 10:20:24,625 INFO ibapi.client could not connect
+2025-09-15 10:20:24,626 INFO ibapi.client could not connect
+2025-09-15 10:21:01,257 INFO ibapi.client could not connect
+2025-09-15 10:21:01,280 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,281 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,281 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_happy_path_write0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_happy_path_write0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,281 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:01,293 INFO backfill.l2 L2 backfill written rows=3 path=/tmp/pytest-of-jrae/pytest-0/test_happy_path_write0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:01,295 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,295 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,295 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,295 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:01,300 INFO backfill.l2 L2 backfill written rows=3 path=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:01,300 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,300 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,300 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,300 INFO backfill.l2 L2 backfill skipped (exists) path=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:01,300 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,300 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,301 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,301 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:01,306 INFO backfill.l2 L2 backfill written rows=3 path=/tmp/pytest-of-jrae/pytest-0/test_idempotent_skip_and_force0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:01,307 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,307 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,307 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_zero_rows0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_zero_rows0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,308 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:01,308 WARNING backfill.l2 Vendor returned zero rows for AAPL 2025-07-29
+2025-09-15 10:21:01,309 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,309 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,309 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_vendor_unavailable0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_vendor_unavailable0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,309 ERROR backfill.l2 DataBento unavailable api_key=True pkg=True
+2025-09-15 10:21:01,430 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,430 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,430 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_zero_row_handling_and_man0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_zero_row_handling_and_man0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,430 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:01,430 WARNING backfill.l2 Vendor returned zero rows for AAPL 2025-07-29
+2025-09-15 10:21:01,437 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,437 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-28 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,437 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,437 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,437 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_summary_shape_and_last_fi0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_summary_shape_and_last_fi0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,438 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:01,443 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_summary_shape_and_last_fi0/Level2/AAPL/2025-07-28_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_summary_shape_and_last_fi0/Level2/AAPL/2025-07-28_snapshots.parquet)
+2025-09-15 10:21:01,444 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:01,449 INFO backfill.l2 L2 backfill written rows=2 path=/tmp/pytest-of-jrae/pytest-0/test_summary_shape_and_last_fi0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:01,450 INFO backfill.l2 L2 backfill written rows=2 path=/tmp/pytest-of-jrae/pytest-0/test_summary_shape_and_last_fi0/Level2/AAPL/2025-07-28_snapshots_databento.parquet
+2025-09-15 10:21:01,453 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:01,453 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:01,453 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_retry_stop0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_retry_stop0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:01,453 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,204 ERROR backfill.l2 Unexpected exception during vendor fetch
+Traceback (most recent call last):
+  File "/home/jrae/wsl projects/Trading/src/services/market_data/backfill_api.py", line 196, in _fetch_vendor
+    return vendor_service.fetch_l2(vreq)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrae/wsl projects/Trading/src/services/market_data/databento_l2_service.py", line 126, in fetch_l2
+    df: pd.DataFrame = self._get_with_backoff(client, req, start_iso, end_iso)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrae/wsl projects/Trading/src/services/market_data/databento_l2_service.py", line 81, in _get_with_backoff
+    store = client.timeseries.get_range(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrae/wsl projects/Trading/tests/l2/test_backfill_enhancements.py", line 200, in get_range
+    raise RuntimeError("boom")
+RuntimeError: boom
+2025-09-15 10:21:02,250 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=2 force=False strict=False concurrency=1
+2025-09-15 10:21:02,250 INFO warrior_backfill_orchestrator START AAPL 2025-07-29
+2025-09-15 10:21:02,250 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,250 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,250 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:02,250 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,256 INFO backfill.l2 L2 backfill written rows=2 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:02,256 INFO warrior_backfill_orchestrator END AAPL 2025-07-29 status=written
+2025-09-15 10:21:02,256 INFO warrior_backfill_orchestrator START AAPL 2025-07-30
+2025-09-15 10:21:02,256 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-30 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,256 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,256 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-30_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-30_snapshots.parquet)
+2025-09-15 10:21:02,256 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,260 INFO backfill.l2 L2 backfill written rows=2 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-30_snapshots_databento.parquet
+2025-09-15 10:21:02,260 INFO warrior_backfill_orchestrator END AAPL 2025-07-30 status=written
+2025-09-15 10:21:02,261 INFO warrior_backfill_orchestrator SUMMARY WRITE=2 SKIP=0 EMPTY=0 ERROR=0 total=2 concurrency=1 duration=0.011s
+2025-09-15 10:21:02,263 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=2 force=False strict=False concurrency=2
+2025-09-15 10:21:02,263 INFO warrior_backfill_orchestrator START AAPL 2025-07-29
+2025-09-15 10:21:02,263 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,263 INFO warrior_backfill_orchestrator START AAPL 2025-07-30
+2025-09-15 10:21:02,263 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-30 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,263 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,264 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:02,264 INFO backfill.l2 L2 backfill skipped (exists) path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:02,264 INFO warrior_backfill_orchestrator END AAPL 2025-07-29 status=skipped
+2025-09-15 10:21:02,264 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,264 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-30_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-30_snapshots.parquet)
+2025-09-15 10:21:02,264 INFO backfill.l2 L2 backfill skipped (exists) path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_param_roundtr0/Level2/AAPL/2025-07-30_snapshots_databento.parquet
+2025-09-15 10:21:02,264 INFO warrior_backfill_orchestrator END AAPL 2025-07-30 status=skipped
+2025-09-15 10:21:02,265 INFO warrior_backfill_orchestrator SUMMARY WRITE=0 SKIP=2 EMPTY=0 ERROR=0 total=2 concurrency=2 duration=0.002s
+2025-09-15 10:21:02,311 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=0 force=False strict=False concurrency=2
+2025-09-15 10:21:02,311 INFO warrior_backfill_orchestrator SUMMARY WRITE=0 SKIP=0 EMPTY=0 ERROR=0 total=0 concurrency=2 duration=0.000s
+2025-09-15 10:21:02,325 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=6 force=False strict=False concurrency=3
+2025-09-15 10:21:02,325 INFO warrior_backfill_orchestrator START AAPL 2025-07-29
+2025-09-15 10:21:02,325 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,326 INFO warrior_backfill_orchestrator START AAPL 2025-07-30
+2025-09-15 10:21:02,326 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-30 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,326 INFO warrior_backfill_orchestrator START AAPL 2025-07-31
+2025-09-15 10:21:02,326 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-31 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,327 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,327 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,327 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,327 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:02,327 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-31_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-31_snapshots.parquet)
+2025-09-15 10:21:02,327 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-30_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-30_snapshots.parquet)
+2025-09-15 10:21:02,328 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,331 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,332 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,344 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-30_snapshots_databento.parquet
+2025-09-15 10:21:02,344 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-31_snapshots_databento.parquet
+2025-09-15 10:21:02,344 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:02,344 INFO warrior_backfill_orchestrator END AAPL 2025-07-30 status=written
+2025-09-15 10:21:02,345 INFO warrior_backfill_orchestrator END AAPL 2025-07-31 status=written
+2025-09-15 10:21:02,345 INFO warrior_backfill_orchestrator END AAPL 2025-07-29 status=written
+2025-09-15 10:21:02,345 INFO warrior_backfill_orchestrator START AAPL 2025-08-01
+2025-09-15 10:21:02,345 INFO warrior_backfill_orchestrator START AAPL 2025-08-02
+2025-09-15 10:21:02,345 INFO warrior_backfill_orchestrator START AAPL 2025-08-03
+2025-09-15 10:21:02,345 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-08-01 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,345 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-08-02 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,345 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-08-03 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,346 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,346 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-02_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-02_snapshots.parquet)
+2025-09-15 10:21:02,346 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,346 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,347 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-01_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-01_snapshots.parquet)
+2025-09-15 10:21:02,351 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,354 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,354 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-03_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-03_snapshots.parquet)
+2025-09-15 10:21:02,354 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,361 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-02_snapshots_databento.parquet
+2025-09-15 10:21:02,361 INFO warrior_backfill_orchestrator END AAPL 2025-08-02 status=written
+2025-09-15 10:21:02,361 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-01_snapshots_databento.parquet
+2025-09-15 10:21:02,361 INFO warrior_backfill_orchestrator END AAPL 2025-08-01 status=written
+2025-09-15 10:21:02,361 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_concurrency_respects_max_0/Level2/AAPL/2025-08-03_snapshots_databento.parquet
+2025-09-15 10:21:02,361 INFO warrior_backfill_orchestrator END AAPL 2025-08-03 status=written
+2025-09-15 10:21:02,362 INFO warrior_backfill_orchestrator SUMMARY WRITE=6 SKIP=0 EMPTY=0 ERROR=0 total=6 concurrency=3 duration=0.037s
+2025-09-15 10:21:02,363 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=4 force=False strict=False concurrency=4
+2025-09-15 10:21:02,364 INFO warrior_backfill_orchestrator START AAPL 2025-07-29
+2025-09-15 10:21:02,364 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,364 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,364 INFO warrior_backfill_orchestrator START MSFT 2025-07-30
+2025-09-15 10:21:02,364 INFO warrior_backfill_orchestrator START GOOG 2025-07-31
+2025-09-15 10:21:02,365 INFO backfill.l2 L2 backfill start symbol=MSFT day=2025-07-30 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,365 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:02,365 INFO warrior_backfill_orchestrator START TSLA 2025-08-01
+2025-09-15 10:21:02,365 INFO backfill.l2 L2 backfill start symbol=GOOG day=2025-07-31 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,365 INFO backfill.l2 L2 backfill start symbol=TSLA day=2025-08-01 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,365 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,370 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,370 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,370 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/MSFT/2025-07-30_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/MSFT/2025-07-30_snapshots.parquet)
+2025-09-15 10:21:02,370 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/GOOG/2025-07-31_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/GOOG/2025-07-31_snapshots.parquet)
+2025-09-15 10:21:02,371 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,371 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=GOOG start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,374 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=MSFT start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,378 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/TSLA/2025-08-01_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/TSLA/2025-08-01_snapshots.parquet)
+2025-09-15 10:21:02,379 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=TSLA start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,387 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/GOOG/2025-07-31_snapshots_databento.parquet
+2025-09-15 10:21:02,387 INFO warrior_backfill_orchestrator END GOOG 2025-07-31 status=written
+2025-09-15 10:21:02,387 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/MSFT/2025-07-30_snapshots_databento.parquet
+2025-09-15 10:21:02,387 INFO warrior_backfill_orchestrator END MSFT 2025-07-30 status=written
+2025-09-15 10:21:02,387 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:02,387 INFO warrior_backfill_orchestrator END AAPL 2025-07-29 status=written
+2025-09-15 10:21:02,387 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_manifest_is_deterministic0/Level2/TSLA/2025-08-01_snapshots_databento.parquet
+2025-09-15 10:21:02,388 INFO warrior_backfill_orchestrator END TSLA 2025-08-01 status=written
+2025-09-15 10:21:02,388 INFO warrior_backfill_orchestrator SUMMARY WRITE=4 SKIP=0 EMPTY=0 ERROR=0 total=4 concurrency=4 duration=0.025s
+2025-09-15 10:21:02,392 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=0 force=False strict=False concurrency=3
+2025-09-15 10:21:02,392 INFO warrior_backfill_orchestrator SUMMARY WRITE=0 SKIP=0 EMPTY=0 ERROR=0 total=0 concurrency=3 duration=0.000s
+2025-09-15 10:21:02,394 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=3 force=False strict=False concurrency=3
+2025-09-15 10:21:02,394 INFO warrior_backfill_orchestrator START AAPL 2025-07-29
+2025-09-15 10:21:02,394 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,394 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,394 INFO warrior_backfill_orchestrator START MSFT 2025-07-30
+2025-09-15 10:21:02,395 INFO backfill.l2 L2 backfill start symbol=MSFT day=2025-07-30 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,395 INFO warrior_backfill_orchestrator START GOOG 2025-07-31
+2025-09-15 10:21:02,395 INFO backfill.l2 L2 backfill start symbol=GOOG day=2025-07-31 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,395 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_zero_row_and_error_paths_0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_zero_row_and_error_paths_0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:02,395 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,396 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,400 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_zero_row_and_error_paths_0/Level2/MSFT/2025-07-30_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_zero_row_and_error_paths_0/Level2/MSFT/2025-07-30_snapshots.parquet)
+2025-09-15 10:21:02,400 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=MSFT start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,401 WARNING backfill.l2 Vendor returned zero rows for MSFT 2025-07-30
+2025-09-15 10:21:02,401 INFO warrior_backfill_orchestrator END MSFT 2025-07-30 status=skipped
+2025-09-15 10:21:02,401 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,402 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_zero_row_and_error_paths_0/Level2/GOOG/2025-07-31_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_zero_row_and_error_paths_0/Level2/GOOG/2025-07-31_snapshots.parquet)
+2025-09-15 10:21:02,402 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=GOOG start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,402 ERROR backfill.l2 Unexpected exception during vendor fetch
+Traceback (most recent call last):
+  File "/home/jrae/wsl projects/Trading/src/services/market_data/backfill_api.py", line 196, in _fetch_vendor
+    return vendor_service.fetch_l2(vreq)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrae/wsl projects/Trading/tests/l2/test_warrior_backfill_concurrency.py", line 194, in fetch_l2
+    raise RuntimeError("boom")
+RuntimeError: boom
+2025-09-15 10:21:02,403 INFO warrior_backfill_orchestrator END GOOG 2025-07-31 status=error
+2025-09-15 10:21:02,403 INFO backfill.l2 L2 backfill written rows=1 path=/tmp/pytest-of-jrae/pytest-0/test_zero_row_and_error_paths_0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:02,403 INFO warrior_backfill_orchestrator END AAPL 2025-07-29 status=written
+2025-09-15 10:21:02,403 WARNING warrior_backfill_orchestrator ZERO_ROWS MSFT 2025-07-30
+2025-09-15 10:21:02,403 ERROR warrior_backfill_orchestrator ERROR GOOG 2025-07-31 RuntimeError('boom')
+2025-09-15 10:21:02,404 INFO warrior_backfill_orchestrator SUMMARY WRITE=1 SKIP=0 EMPTY=1 ERROR=1 total=3 concurrency=3 duration=0.010s
+2025-09-15 10:21:02,438 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=1 force=False strict=False concurrency=1
+2025-09-15 10:21:02,438 INFO warrior_backfill_orchestrator START AAPL 2025-07-29
+2025-09-15 10:21:02,438 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,438 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,438 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_run_backfill_writes_summa0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_run_backfill_writes_summa0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:02,438 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,443 INFO backfill.l2 L2 backfill written rows=2 path=/tmp/pytest-of-jrae/pytest-0/test_run_backfill_writes_summa0/Level2/AAPL/2025-07-29_snapshots_databento.parquet
+2025-09-15 10:21:02,443 INFO warrior_backfill_orchestrator END AAPL 2025-07-29 status=written
+2025-09-15 10:21:02,444 INFO warrior_backfill_orchestrator SUMMARY WRITE=1 SKIP=0 EMPTY=0 ERROR=0 total=1 concurrency=1 duration=0.006s
+2025-09-15 10:21:02,450 INFO warrior_backfill_orchestrator Starting warrior backfill: tasks=1 force=False strict=True concurrency=4
+2025-09-15 10:21:02,451 INFO warrior_backfill_orchestrator START AAPL 2025-07-29
+2025-09-15 10:21:02,451 INFO backfill.l2 L2 backfill start symbol=AAPL day=2025-07-29 dataset=NASDAQ.ITCH schema=mbp-10
+2025-09-15 10:21:02,451 INFO backfill.l2 L2 backfill window ET clamped start=08:30 end=11:00
+2025-09-15 10:21:02,451 INFO backfill.l2 L2 destination path=/tmp/pytest-of-jrae/pytest-0/test_strict_mode_nonzero_exit_0/Level2/AAPL/2025-07-29_snapshots_databento.parquet (base=/tmp/pytest-of-jrae/pytest-0/test_strict_mode_nonzero_exit_0/Level2/AAPL/2025-07-29_snapshots.parquet)
+2025-09-15 10:21:02,451 INFO backfill.l2 Fetch vendor dataset=XNAS.ITCH schema=mbp-10 vendor_symbol=AAPL start=08:30:00 end=11:00:00
+2025-09-15 10:21:02,451 ERROR backfill.l2 Unexpected exception during vendor fetch
+Traceback (most recent call last):
+  File "/home/jrae/wsl projects/Trading/src/services/market_data/backfill_api.py", line 196, in _fetch_vendor
+    return vendor_service.fetch_l2(vreq)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrae/wsl projects/Trading/tests/l2/test_warrior_backfill_orchestrator.py", line 147, in boom
+    raise RuntimeError("boom")
+RuntimeError: boom
+2025-09-15 10:21:02,452 INFO warrior_backfill_orchestrator END AAPL 2025-07-29 status=error
+2025-09-15 10:21:02,452 ERROR warrior_backfill_orchestrator ERROR AAPL 2025-07-29 RuntimeError('boom')
+2025-09-15 10:21:02,452 INFO warrior_backfill_orchestrator SUMMARY WRITE=0 SKIP=0 EMPTY=0 ERROR=1 total=1 concurrency=4 duration=0.002s
+2025-09-15 10:21:02,459 WARNING src.core.error_handler [ERR_20250915_102102_0001] SYSTEM: test
+2025-09-15 10:21:02,460 INFO src.core.integrated_error_handling Registered service: market_data
+2025-09-15 10:21:02,460 INFO src.core.integrated_error_handling Registered service: historical_data
+2025-09-15 10:21:02,460 INFO src.core.integrated_error_handling Registered service: order_management
+2025-09-15 10:21:02,460 INFO src.core.integrated_error_handling Registered service: data_persistence
+2025-09-15 10:21:02,460 INFO src.core.integrated_error_handling Registered service: ml_signal_execution
+2025-09-15 10:21:02,460 INFO src.core.integrated_error_handling Registered service: ml_risk_management
+2025-09-15 10:21:02,462 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:02,466 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:02,556 INFO src.core.connection_pool Created new connection with client_id 1000
+2025-09-15 10:21:02,560 INFO src.core.connection_pool Created new connection with client_id 1000
+2025-09-15 10:21:04,374 WARNING src.infra.async_utils Attempt 1 failed: fail, retrying...
+2025-09-15 10:21:04,384 WARNING src.infra.async_utils Attempt 2 failed: fail, retrying...
+2025-09-15 10:21:04,456 ERROR src.infra.async_utils Operation timed out after 0.05s
+2025-09-15 10:21:04,582 INFO src.core.connection_pool Created new connection with client_id 1002
+2025-09-15 10:21:04,683 INFO src.core.connection_pool Created new connection with client_id 1002
+2025-09-15 10:21:04,785 WARNING src.core.connection_pool Circuit breaker OPENED after 2 failures
+2025-09-15 10:21:04,805 INFO src.core.connection_pool Circuit breaker entering HALF_OPEN state
+2025-09-15 10:21:04,805 WARNING src.core.connection_pool Circuit breaker OPENED after 3 failures
+2025-09-15 10:21:09,343 ERROR src.core.error_handler [ERR_20250915_102109_0001] DATA: fail
+2025-09-15 10:21:09,344 ERROR src.core.error_handler [ERR_20250915_102109_0001] DATA: fail
+2025-09-15 10:21:09,345 CRITICAL src.core.error_handler [ERR_20250915_102109_0001] DATA: fail
+2025-09-15 10:21:09,345 CRITICAL src.core.error_handler Traceback: NoneType: None
+
+2025-09-15 10:21:09,360 INFO src.core.integrated_error_handling Registered service: market_data
+2025-09-15 10:21:09,361 INFO src.core.integrated_error_handling Registered service: historical_data
+2025-09-15 10:21:09,361 INFO src.core.integrated_error_handling Registered service: order_management
+2025-09-15 10:21:09,361 INFO src.core.integrated_error_handling Registered service: data_persistence
+2025-09-15 10:21:09,361 INFO src.core.integrated_error_handling Registered service: ml_signal_execution
+2025-09-15 10:21:09,361 INFO src.core.integrated_error_handling Registered service: ml_risk_management
+2025-09-15 10:21:09,461 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:09,461 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:09,461 WARNING src.core.retry_manager Attempt 1 failed: failing. Retrying in 0.1s...
+2025-09-15 10:21:09,669 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:09,669 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:09,671 ERROR src.core.error_handler [ERR_20250915_102109_0002] SYSTEM: failing | Context: {'attempt': 2, 'total_attempts': 2, 'function': 'wrapped_operation'}
+2025-09-15 10:21:09,671 ERROR src.core.error_handler [ERR_20250915_102109_0003] SYSTEM: failing | Context: {'service': 'order_management', 'operation': 'failing_op', 'duration': 0.3102755546569824, 'service_health': 59.379448890686035, 'system_health': 80.0}
+2025-09-15 10:21:09,772 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:09,772 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:09,772 WARNING src.core.retry_manager Attempt 1 failed: failing. Retrying in 0.1s...
+2025-09-15 10:21:09,972 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:09,972 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:09,972 ERROR src.core.error_handler [ERR_20250915_102109_0004] SYSTEM: failing | Context: {'attempt': 2, 'total_attempts': 2, 'function': 'wrapped_operation'}
+2025-09-15 10:21:09,973 ERROR src.core.error_handler [ERR_20250915_102109_0005] SYSTEM: failing | Context: {'service': 'order_management', 'operation': 'failing_op', 'duration': 0.301069974899292, 'service_health': 59.38129000663757, 'system_health': 80.0}
+2025-09-15 10:21:10,073 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:10,073 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:10,073 WARNING src.core.retry_manager Attempt 1 failed: failing. Retrying in 0.1s...
+2025-09-15 10:21:10,277 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:10,278 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:10,278 ERROR src.core.error_handler [ERR_20250915_102110_0006] SYSTEM: failing | Context: {'attempt': 2, 'total_attempts': 2, 'function': 'wrapped_operation'}
+2025-09-15 10:21:10,278 ERROR src.core.error_handler [ERR_20250915_102110_0007] SYSTEM: failing | Context: {'service': 'order_management', 'operation': 'failing_op', 'duration': 0.3052232265472412, 'service_health': 59.38211636066437, 'system_health': 80.0}
+2025-09-15 10:21:10,378 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:10,379 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:10,379 WARNING src.core.retry_manager Attempt 1 failed: failing. Retrying in 0.1s...
+2025-09-15 10:21:10,584 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:10,584 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:10,585 ERROR src.core.error_handler [ERR_20250915_102110_0008] SYSTEM: failing | Context: {'attempt': 2, 'total_attempts': 2, 'function': 'wrapped_operation'}
+2025-09-15 10:21:10,585 ERROR src.core.error_handler [ERR_20250915_102110_0009] SYSTEM: failing | Context: {'service': 'order_management', 'operation': 'failing_op', 'duration': 0.3064258098602295, 'service_health': 59.38261956262589, 'system_health': 80.0}
+2025-09-15 10:21:10,685 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:10,685 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:10,685 WARNING src.core.retry_manager Attempt 1 failed: failing. Retrying in 0.1s...
+2025-09-15 10:21:10,892 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:10,892 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:10,892 ERROR src.core.error_handler [ERR_20250915_102110_0010] SYSTEM: failing | Context: {'attempt': 2, 'total_attempts': 2, 'function': 'wrapped_operation'}
+2025-09-15 10:21:10,892 ERROR src.core.error_handler [ERR_20250915_102110_0011] SYSTEM: failing | Context: {'service': 'order_management', 'operation': 'failing_op', 'duration': 0.30727267265319824, 'service_health': 59.38290307183266, 'system_health': 80.0}
+2025-09-15 10:21:10,894 INFO src.core.integrated_error_handling Registered service: market_data
+2025-09-15 10:21:10,894 INFO src.core.integrated_error_handling Registered service: historical_data
+2025-09-15 10:21:10,894 INFO src.core.integrated_error_handling Registered service: order_management
+2025-09-15 10:21:10,894 INFO src.core.integrated_error_handling Registered service: data_persistence
+2025-09-15 10:21:10,894 INFO src.core.integrated_error_handling Registered service: ml_signal_execution
+2025-09-15 10:21:10,894 INFO src.core.integrated_error_handling Registered service: ml_risk_management
+2025-09-15 10:21:10,995 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:10,996 INFO src.core.integrated_error_handling Registered service: market_data
+2025-09-15 10:21:10,996 INFO src.core.integrated_error_handling Registered service: historical_data
+2025-09-15 10:21:10,996 INFO src.core.integrated_error_handling Registered service: order_management
+2025-09-15 10:21:10,996 INFO src.core.integrated_error_handling Registered service: data_persistence
+2025-09-15 10:21:10,996 INFO src.core.integrated_error_handling Registered service: ml_signal_execution
+2025-09-15 10:21:10,996 INFO src.core.integrated_error_handling Registered service: ml_risk_management
+2025-09-15 10:21:10,996 INFO src.core.connection_pool Removed connection 1001 from pool
+2025-09-15 10:21:10,997 WARNING src.core.retry_manager Attempt 1 failed: transient. Retrying in 0.1s...
+2025-09-15 10:21:11,197 INFO src.core.connection_pool Created new connection with client_id 1001
+2025-09-15 10:21:11,197 INFO src.core.retry_manager Operation succeeded on attempt 2
+2025-09-15 10:21:11,217 INFO src.core.integrated_error_handling Registered service: market_data
+2025-09-15 10:21:11,217 INFO src.core.integrated_error_handling Registered service: historical_data
+2025-09-15 10:21:11,217 INFO src.core.integrated_error_handling Registered service: order_management
+2025-09-15 10:21:11,217 INFO src.core.integrated_error_handling Registered service: data_persistence
+2025-09-15 10:21:11,217 INFO src.core.integrated_error_handling Registered service: ml_signal_execution
+2025-09-15 10:21:11,217 INFO src.core.integrated_error_handling Registered service: ml_risk_management
+2025-09-15 10:21:11,217 INFO src.core.integrated_error_handling Registered service: ml_performance_monitoring
+2025-09-15 10:21:11,218 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] Metric Anomaly Detected: Unusual value in MODEL_PERFORMANCE_test_metric: 100.00 (z-score: 3.75)
+2025-09-15 10:21:11,219 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] W1: msg
+2025-09-15 10:21:11,219 ERROR src.monitoring.ml_performance_monitor ALERT [ERROR] E1: msg
+2025-09-15 10:21:11,219 ERROR src.monitoring.ml_performance_monitor ALERT [CRITICAL] C1: msg
+2025-09-15 10:21:11,219 INFO src.monitoring.ml_performance_monitor Alert 971335b6-a3a5-4ce5-a411-5addd0377a3d acknowledged
+2025-09-15 10:21:11,219 INFO src.monitoring.ml_performance_monitor Alert 971335b6-a3a5-4ce5-a411-5addd0377a3d resolved: ok
+2025-09-15 10:21:11,225 WARNING src.risk.ml_risk_manager Signal sig1 validation failed: ['Signal confidence 0.10 below threshold 0.60']
+2025-09-15 10:21:11,226 INFO src.risk.ml_risk_manager Signal sig1 passed validation
+2025-09-15 10:21:11,227 WARNING src.risk.ml_risk_manager Signal sig1 validation failed: ['Signal rate limit exceeded: 101/100 per hour']
+2025-09-15 10:21:11,228 WARNING src.risk.ml_risk_manager Signal sig1 validation failed: ['Model performance 0.10 below threshold 0.50']
+2025-09-15 10:21:11,229 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:11,229 INFO src.execution.ml_signal_executor Received ML signal 24ac8a7e-3337-4142-b70b-2ff20ec1c77e: AAPL 1 qty=10.0 confidence=0.900
+2025-09-15 10:21:11,229 INFO src.execution.ml_signal_executor Signal 24ac8a7e-3337-4142-b70b-2ff20ec1c77e validated successfully
+2025-09-15 10:21:11,230 INFO src.execution.ml_signal_executor HOLD signal 24ac8a7e-3337-4142-b70b-2ff20ec1c77e processed
+2025-09-15 10:21:11,230 WARNING src.execution.ml_signal_executor Signal 24ac8a7e-3337-4142-b70b-2ff20ec1c77e failed - all orders cancelled/failed
+2025-09-15 10:21:11,231 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:11,231 INFO src.execution.ml_signal_executor Received ML signal f78ad5a9-a421-4c5a-a4d3-43204cc381f4: AAPL 1 qty=10.0 confidence=0.100
+2025-09-15 10:21:11,231 WARNING src.execution.ml_signal_executor Signal f78ad5a9-a421-4c5a-a4d3-43204cc381f4 rejected: low confidence
+2025-09-15 10:21:11,283 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:11,283 INFO src.execution.ml_signal_executor Received ML signal 5321c0f0-edfc-4aa6-b86c-7f9f748efa09: AAPL 1 qty=10.0 confidence=0.100
+2025-09-15 10:21:11,283 WARNING src.execution.ml_signal_executor Signal 5321c0f0-edfc-4aa6-b86c-7f9f748efa09 rejected: low confidence
+2025-09-15 10:21:11,334 INFO src.execution.ml_signal_executor Received ML signal 88e82d8e-146c-4efd-924b-972f9c1f6899: AAPL 1 qty=10000000 confidence=0.900
+2025-09-15 10:21:11,334 WARNING src.execution.ml_signal_executor Signal 88e82d8e-146c-4efd-924b-972f9c1f6899 rejected: position size too large
+2025-09-15 10:21:11,386 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:11,386 INFO src.execution.ml_signal_executor Received ML signal 44387e0f-727f-410b-ac5e-e147874e751a: AAPL 1 qty=10.0 confidence=0.900
+2025-09-15 10:21:11,386 INFO src.execution.ml_signal_executor Signal 44387e0f-727f-410b-ac5e-e147874e751a validated successfully
+2025-09-15 10:21:11,386 INFO src.execution.ml_signal_executor HOLD signal 44387e0f-727f-410b-ac5e-e147874e751a processed
+2025-09-15 10:21:11,386 WARNING src.execution.ml_signal_executor Signal 44387e0f-727f-410b-ac5e-e147874e751a failed - all orders cancelled/failed
+2025-09-15 10:21:12,688 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:12,688 INFO src.execution.ml_signal_executor Received ML signal 8215bdf1-d4b5-49ce-8288-4a5ee4d93534: AAPL 1 qty=10.0 confidence=0.950
+2025-09-15 10:21:12,688 INFO src.execution.ml_signal_executor Signal 8215bdf1-d4b5-49ce-8288-4a5ee4d93534 validated successfully
+2025-09-15 10:21:12,688 INFO src.execution.ml_signal_executor HOLD signal 8215bdf1-d4b5-49ce-8288-4a5ee4d93534 processed
+2025-09-15 10:21:12,688 WARNING src.execution.ml_signal_executor Signal 8215bdf1-d4b5-49ce-8288-4a5ee4d93534 failed - all orders cancelled/failed
+2025-09-15 10:21:13,189 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,190 INFO src.execution.ml_signal_executor Received ML signal 427706b8-cf7b-464f-b444-4e0d4ea1352f: AAPL 1 qty=10.0 confidence=0.100
+2025-09-15 10:21:13,190 WARNING src.execution.ml_signal_executor Signal 427706b8-cf7b-464f-b444-4e0d4ea1352f rejected: low confidence
+2025-09-15 10:21:13,191 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,191 INFO src.execution.ml_signal_executor Order 101 placed for signal mon-1
+2025-09-15 10:21:13,191 INFO src.execution.ml_signal_executor Signal mon-1 executed successfully: 7 shares at avg $100.5000
+2025-09-15 10:21:13,192 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,192 INFO src.execution.ml_signal_executor Order 101 placed for signal mon-2
+2025-09-15 10:21:13,193 WARNING src.execution.ml_signal_executor Signal mon-2 failed - all orders cancelled/failed
+2025-09-15 10:21:13,193 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,193 INFO src.execution.ml_signal_executor Order 101 placed for signal mon-3
+2025-09-15 10:21:13,194 WARNING src.execution.ml_signal_executor Signal mon-3 timed out
+2025-09-15 10:21:13,194 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,195 INFO src.execution.ml_signal_executor Received ML signal 3167344a-278c-4971-8d0c-0a9788d189a2: AAPL SELL qty=3 confidence=0.900
+2025-09-15 10:21:13,195 INFO src.execution.ml_signal_executor Signal 3167344a-278c-4971-8d0c-0a9788d189a2 validated successfully
+2025-09-15 10:21:13,195 INFO src.execution.ml_signal_executor Order 1 placed for signal 3167344a-278c-4971-8d0c-0a9788d189a2
+2025-09-15 10:21:13,195 INFO src.execution.ml_signal_executor Signal 3167344a-278c-4971-8d0c-0a9788d189a2 executed successfully: 5 shares at avg $100.0000
+2025-09-15 10:21:13,196 INFO src.execution.ml_signal_executor Received ML signal a0eace22-0de8-4908-832f-664ee0ba15d8: AAPL CLOSE_SHORT qty=0 confidence=0.900
+2025-09-15 10:21:13,196 INFO src.execution.ml_signal_executor Signal a0eace22-0de8-4908-832f-664ee0ba15d8 validated successfully
+2025-09-15 10:21:13,196 INFO src.execution.ml_signal_executor Order 2 placed for signal a0eace22-0de8-4908-832f-664ee0ba15d8
+2025-09-15 10:21:13,196 INFO src.execution.ml_signal_executor Signal a0eace22-0de8-4908-832f-664ee0ba15d8 executed successfully: 5 shares at avg $100.0000
+2025-09-15 10:21:13,298 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,298 INFO src.execution.ml_signal_executor Received ML signal 1928a8df-06d7-4e8a-898b-cb5de6c1bbe6: AAPL SELL qty=2 confidence=0.900
+2025-09-15 10:21:13,298 INFO src.execution.ml_signal_executor Signal 1928a8df-06d7-4e8a-898b-cb5de6c1bbe6 validated successfully
+2025-09-15 10:21:13,298 INFO src.execution.ml_signal_executor Order 1 placed for signal 1928a8df-06d7-4e8a-898b-cb5de6c1bbe6
+2025-09-15 10:21:13,298 WARNING src.execution.ml_signal_executor Signal 1928a8df-06d7-4e8a-898b-cb5de6c1bbe6 timed out
+2025-09-15 10:21:13,350 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,351 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,352 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,353 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,353 INFO src.execution.ml_signal_executor MLSignalExecutor initialized - ready to receive ML signals
+2025-09-15 10:21:13,353 INFO src.execution.ml_signal_executor Order 42 placed for signal e-b
+2025-09-15 10:21:13,353 INFO src.execution.ml_signal_executor HOLD signal e-h processed
+2025-09-15 10:21:13,355 WARNING src.core.error_handler [ERR_20250915_102113_0012] SYSTEM: fail
+2025-09-15 10:21:13,355 WARNING src.core.error_handler [ERR_20250915_102113_0013] SYSTEM: fail
+2025-09-15 10:21:13,356 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] w: w
+2025-09-15 10:21:13,356 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] w: w
+2025-09-15 10:21:13,356 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] w: w
+2025-09-15 10:21:13,356 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] w: w
+2025-09-15 10:21:13,356 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] w: w
+2025-09-15 10:21:13,357 WARNING src.monitoring.ml_performance_monitor ALERT [WARNING] w: w
+2025-09-15 10:21:13,357 ERROR src.monitoring.ml_performance_monitor ALERT [CRITICAL] c: c
+2025-09-15 10:21:13,402 WARNING src.risk.ml_risk_manager Signal sig-1 validation failed: ['Signal confidence 0.55 below threshold 0.60', 'Model performance 0.50 below threshold 0.90']
+2025-09-15 10:21:13,403 INFO src.risk.ml_risk_manager Signal sig-2 passed validation
+2025-09-15 10:21:13,403 INFO src.risk.ml_risk_manager Position sizing for AAPL: 34 shares (confidence: 0.95)
+2025-09-15 10:21:13,412 WARNING src.core.error_handler [ERR_20250915_102113_0014] DATA: Failed to save Feather file BADIDENT: Invalid identifier format: BADIDENT
+2025-09-15 10:21:13,417 WARNING src.core.error_handler [ERR_20250915_102113_0015] SYSTEM: 'types.SimpleNamespace' object has no attribute 'price_slippage_bps'
+2025-09-15 10:21:13,419 WARNING src.core.error_handler [ERR_20250915_102113_0016] SYSTEM: boom
+2025-09-15 10:21:13,420 WARNING src.core.error_handler [ERR_20250915_102113_0017] SYSTEM: boom
+2025-09-15 10:21:13,422 WARNING src.core.retry_manager Attempt 1 failed: boom. Retrying in 0.5s...
+2025-09-15 10:21:13,422 INFO src.core.retry_manager Operation succeeded on attempt 2
+2025-09-15 10:21:13,423 WARNING src.core.retry_manager Attempt 1 failed: x. Retrying in 0.1s...
+2025-09-15 10:21:13,423 WARNING src.core.retry_manager Attempt 2 failed: x. Retrying in 0.2s...
+2025-09-15 10:21:13,423 INFO src.core.retry_manager Operation succeeded on attempt 3
+2025-09-15 10:21:13,424 WARNING src.core.retry_manager Attempt 1 failed: j. Retrying in 0.2s...
+2025-09-15 10:21:13,424 WARNING src.core.retry_manager Attempt 2 failed: j. Retrying in 0.4s...
+2025-09-15 10:21:13,424 INFO src.core.retry_manager Operation succeeded on attempt 3
+2025-09-15 10:21:13,424 WARNING src.core.retry_manager Attempt 1 failed: lin. Retrying in 0.1s...
+2025-09-15 10:21:13,424 WARNING src.core.retry_manager Attempt 2 failed: lin. Retrying in 0.1s...
+2025-09-15 10:21:13,425 INFO src.core.retry_manager Operation succeeded on attempt 3
+2025-09-15 10:21:13,426 WARNING src.core.error_handler [ERR_20250915_102113_0018] SYSTEM: no retry | Context: {'attempt': 1, 'total_attempts': 5, 'function': 'bad'}
+2025-09-15 10:21:13,427 WARNING src.core.retry_manager Attempt 1 failed: try again. Retrying in 0.1s...
+2025-09-15 10:21:13,427 INFO src.core.retry_manager Operation succeeded on attempt 2
+2025-09-15 10:21:13,428 WARNING src.core.retry_manager Attempt 1 failed: net down. Retrying in 0.1s...
+2025-09-15 10:21:13,428 WARNING src.core.retry_manager Attempt 2 failed: net down. Retrying in 0.1s...
+2025-09-15 10:21:13,428 WARNING src.core.error_handler [ERR_20250915_102113_0019] SYSTEM: net down | Context: {'attempt': 3, 'total_attempts': 3, 'function': 'always_fail'}
+2025-09-15 10:21:13,429 WARNING src.core.error_handler [ERR_20250915_102113_0020] SYSTEM: nope | Context: {'attempt': 1, 'total_attempts': 5, 'function': 'raises_value_error'}
+2025-09-15 13:41:15,224 INFO ibapi.client could not connect
+2025-09-15 13:41:15,224 INFO ibapi.client disconnecting
+2025-09-15 13:41:15,225 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-15 13:41:16,122 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-15 13:41:16,122 INFO ibapi.client could not connect
+2025-09-15 13:41:16,122 INFO ibapi.client disconnecting
+2025-09-15 13:41:16,122 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4003
+2025-09-15 13:41:16,122 INFO ibapi.client could not connect
+2025-09-15 13:41:16,122 INFO ibapi.client disconnecting
+2025-09-15 13:41:16,122 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-15 13:41:16,123 INFO ibapi.client could not connect
+2025-09-15 13:41:16,123 INFO ibapi.client disconnecting
+2025-09-15 13:41:16,123 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-15 13:41:16,123 INFO ibapi.client could not connect
+2025-09-15 13:41:16,123 INFO ibapi.client disconnecting
+2025-09-15 13:41:16,123 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-15 13:41:16,123 INFO ibapi.client could not connect
+2025-09-15 13:41:16,123 INFO ibapi.client disconnecting
+2025-09-15 13:41:17,625 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-15 13:41:31,277 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4003
+2025-09-15 13:41:42,788 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-15 13:41:54,297 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-15 13:42:09,314 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-15 13:42:20,825 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-15 13:42:30,829 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4003
+2025-09-15 13:42:34,368 WARNING ibapi.client Disconnected; resetting connection
+2025-09-15 13:42:44,369 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4003 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-15 13:42:45,870 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-15 13:42:57,377 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-15 13:43:12,327 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-15 13:43:23,837 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-15 13:43:35,346 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4003
+2025-09-15 13:43:49,222 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-15 13:44:00,732 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-15 13:44:12,243 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-15 13:44:27,161 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-15 13:44:38,668 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4003
+2025-09-15 13:44:50,175 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-15 13:45:04,831 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-15 13:45:16,337 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-15 13:45:31,138 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-15 13:45:42,649 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4003
+2025-09-15 13:45:54,160 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-15 13:46:05,088 INFO ibapi.client could not connect
+2025-09-15 13:46:05,088 INFO ibapi.client disconnecting
+2025-09-15 13:46:08,726 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-15 13:46:17,376 INFO ibapi.client could not connect
+2025-09-15 13:46:17,376 INFO ibapi.client disconnecting
+2025-09-15 13:46:20,232 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-15 13:46:27,616 INFO ibapi.client could not connect
+2025-09-15 13:46:27,616 INFO ibapi.client disconnecting
+2025-09-15 13:46:31,743 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-15 13:46:43,295 INFO ibapi.client could not connect
+2025-09-15 13:46:43,296 INFO ibapi.client disconnecting
+2025-09-15 13:46:46,646 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4003
+2025-09-15 13:46:53,535 INFO ibapi.client could not connect
+2025-09-15 13:46:53,536 INFO ibapi.client disconnecting
+2025-09-15 13:46:58,156 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-15 13:47:05,823 INFO ibapi.client could not connect
+2025-09-15 13:47:05,824 INFO ibapi.client disconnecting
+2025-09-15 13:47:09,664 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-15 13:47:24,266 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-15 13:47:31,443 INFO ibapi.client could not connect
+2025-09-15 13:47:31,443 INFO ibapi.client disconnecting
+2025-09-15 13:47:35,777 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-15 13:47:43,731 INFO ibapi.client could not connect
+2025-09-15 13:47:43,731 INFO ibapi.client disconnecting
+2025-09-15 13:47:47,281 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4003
+2025-09-15 13:47:56,930 INFO ibapi.client could not connect
+2025-09-15 13:47:56,931 INFO ibapi.client disconnecting
+2025-09-15 13:48:01,751 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-15 13:48:09,218 INFO ibapi.client could not connect
+2025-09-15 13:48:09,219 INFO ibapi.client disconnecting
+2025-09-15 13:48:13,262 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-15 13:48:21,506 INFO ibapi.client could not connect
+2025-09-15 13:48:21,506 INFO ibapi.client disconnecting
+2025-09-15 13:48:27,692 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-15 13:48:34,673 INFO ibapi.client could not connect
+2025-09-15 13:48:34,673 INFO ibapi.client disconnecting
+2025-09-15 13:48:37,695 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4002
+2025-09-15 13:48:37,696 INFO ibapi.client could not connect
+2025-09-15 13:48:37,696 INFO ibapi.client disconnecting
+2025-09-15 13:48:37,696 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4003
+2025-09-15 13:48:37,696 INFO ibapi.client could not connect
+2025-09-15 13:48:37,696 INFO ibapi.client disconnecting
+2025-09-15 13:48:37,697 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-15 13:48:37,697 INFO ibapi.client could not connect
+2025-09-15 13:48:37,697 INFO ibapi.client disconnecting
+2025-09-15 13:48:37,697 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7497
+2025-09-15 13:48:37,697 INFO ibapi.client could not connect
+2025-09-15 13:48:37,697 INFO ibapi.client disconnecting
+2025-09-15 13:48:46,961 INFO ibapi.client could not connect
+2025-09-15 13:49:02,174 INFO ibapi.client could not connect
+2025-09-15 13:49:12,414 INFO ibapi.client could not connect
+2025-09-15 13:49:12,415 INFO ibapi.client could not connect
+2025-09-15 13:49:24,702 INFO ibapi.client could not connect
+2025-09-15 13:49:37,860 INFO ibapi.client could not connect
+2025-09-15 13:49:50,148 INFO ibapi.client could not connect
+2025-09-15 13:50:02,436 INFO ibapi.client could not connect
+2025-09-15 13:50:15,589 INFO ibapi.client could not connect
+2025-09-15 13:50:27,877 INFO ibapi.client could not connect
+2025-09-15 13:50:53,316 INFO ibapi.client could not connect
+2025-09-15 13:51:04,610 INFO ibapi.client could not connect
+2025-09-15 13:51:04,610 INFO ibapi.client disconnecting
+2025-09-15 13:51:04,611 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-15 13:51:05,021 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-15 13:51:05,022 INFO ibapi.client could not connect
+2025-09-15 13:51:05,022 INFO ibapi.client disconnecting
+2025-09-15 13:51:05,022 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4003
+2025-09-15 13:51:05,022 INFO ibapi.client could not connect
+2025-09-15 13:51:05,022 INFO ibapi.client disconnecting
+2025-09-15 13:51:05,023 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-15 13:51:05,023 INFO ibapi.client could not connect
+2025-09-15 13:51:05,023 INFO ibapi.client disconnecting
+2025-09-15 13:51:05,023 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-15 13:51:05,023 INFO ibapi.client could not connect
+2025-09-15 13:51:05,023 INFO ibapi.client disconnecting
+2025-09-15 13:51:05,023 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-15 13:51:05,023 INFO ibapi.client could not connect
+2025-09-15 13:51:05,023 INFO ibapi.client disconnecting
+2025-09-15 13:51:06,525 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-15 13:51:18,035 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4003
+2025-09-15 13:51:32,454 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-15 13:51:43,957 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-15 13:51:58,369 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-15 13:52:09,878 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-15 13:52:19,886 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4003
+2025-09-15 13:52:21,724 WARNING ibapi.client Disconnected; resetting connection
+2025-09-15 13:52:34,638 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4003 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-15 13:52:36,140 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-15 13:52:47,646 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-15 13:52:59,153 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-15 13:53:13,568 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-15 13:53:25,079 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4003
+2025-09-15 13:53:36,582 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-15 13:53:50,990 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-15 13:54:02,500 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-15 13:54:14,008 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-15 13:54:28,686 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4003
+2025-09-15 13:54:40,195 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-15 13:54:55,235 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-15 15:26:26,467 INFO ibapi.client could not connect
+2025-09-15 15:26:26,468 INFO ibapi.client disconnecting
+2025-09-15 15:26:26,469 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-15 15:26:27,131 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-15 15:26:27,131 INFO ibapi.client could not connect
+2025-09-15 15:26:27,131 INFO ibapi.client disconnecting
+2025-09-15 15:26:27,132 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4003
+2025-09-15 15:26:27,132 INFO ibapi.client could not connect
+2025-09-15 15:26:27,132 INFO ibapi.client disconnecting
+2025-09-15 15:26:27,132 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-15 15:26:27,132 INFO ibapi.client could not connect
+2025-09-15 15:26:27,132 INFO ibapi.client disconnecting
+2025-09-15 15:26:27,133 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-15 15:26:27,133 INFO ibapi.client could not connect
+2025-09-15 15:26:27,133 INFO ibapi.client disconnecting
+2025-09-15 15:26:27,133 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-15 15:26:27,133 INFO ibapi.client could not connect
+2025-09-15 15:26:27,133 INFO ibapi.client disconnecting
+2025-09-15 15:26:28,634 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-15 15:26:40,167 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4003
+2025-09-15 15:26:51,676 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-15 15:27:03,184 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-15 15:27:14,703 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496
+2025-09-15 15:27:26,213 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4002
+2025-09-15 15:27:36,220 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4003
+2025-09-15 15:27:38,217 WARNING ibapi.client Disconnected; resetting connection
+2025-09-15 15:27:48,233 ERROR src.lib.ib_async_wrapper TCP 172.17.208.1:4003 is reachable but API handshake failed. Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, and allow the port through Windows Firewall.
+2025-09-15 15:27:49,735 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:4001
+2025-09-15 15:28:01,237 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7497
+2025-09-15 15:28:12,746 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 172.17.208.1:7496
+2025-09-15 15:28:24,262 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4002
+2025-09-15 15:28:35,763 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4003
+2025-09-15 15:28:47,295 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:4001
+2025-09-15 15:28:58,807 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7497
+2025-09-15 15:29:10,317 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.202.54:7496
+2025-09-15 15:29:21,831 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4002
+2025-09-15 15:29:33,344 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4003
+2025-09-15 15:29:44,855 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:4001
+2025-09-15 15:29:56,368 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7497
+2025-09-15 15:30:07,880 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.253.25:7496
+2025-09-15 15:30:19,390 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4002
+2025-09-15 15:30:30,904 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4003
+2025-09-15 15:30:42,414 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:4001
+2025-09-15 15:30:49,438 INFO ibapi.client could not connect
+2025-09-15 15:30:49,438 INFO ibapi.client disconnecting
+2025-09-15 15:30:53,933 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7497
+2025-09-15 15:31:01,730 INFO ibapi.client could not connect
+2025-09-15 15:31:01,730 INFO ibapi.client disconnecting
+2025-09-15 15:31:05,446 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.61.51:7496
+2025-09-15 15:31:14,014 INFO ibapi.client could not connect
+2025-09-15 15:31:14,014 INFO ibapi.client disconnecting
+2025-09-15 15:31:16,957 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4002
+2025-09-15 15:31:24,254 INFO ibapi.client could not connect
+2025-09-15 15:31:24,254 INFO ibapi.client disconnecting
+2025-09-15 15:31:28,485 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4003
+2025-09-15 15:31:36,542 INFO ibapi.client could not connect
+2025-09-15 15:31:36,542 INFO ibapi.client disconnecting
+2025-09-15 15:31:39,997 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:4001
+2025-09-15 15:31:46,782 INFO ibapi.client could not connect
+2025-09-15 15:31:46,782 INFO ibapi.client disconnecting
+2025-09-15 15:31:51,506 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7497
+2025-09-15 15:32:03,019 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 169.254.103.238:7496
+2025-09-15 15:32:11,358 INFO ibapi.client could not connect
+2025-09-15 15:32:11,358 INFO ibapi.client disconnecting
+2025-09-15 15:32:14,531 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4002
+2025-09-15 15:32:21,598 INFO ibapi.client could not connect
+2025-09-15 15:32:21,598 INFO ibapi.client disconnecting
+2025-09-15 15:32:26,043 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4003
+2025-09-15 15:32:33,892 INFO ibapi.client could not connect
+2025-09-15 15:32:33,892 INFO ibapi.client disconnecting
+2025-09-15 15:32:37,560 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:4001
+2025-09-15 15:32:46,174 INFO ibapi.client could not connect
+2025-09-15 15:32:46,174 INFO ibapi.client disconnecting
+2025-09-15 15:32:49,072 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7497
+2025-09-15 15:32:56,414 INFO ibapi.client could not connect
+2025-09-15 15:32:56,414 INFO ibapi.client disconnecting
+2025-09-15 15:33:00,574 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.68.50:7496
+2025-09-15 15:33:08,702 INFO ibapi.client could not connect
+2025-09-15 15:33:08,703 INFO ibapi.client disconnecting
+2025-09-15 15:33:10,582 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4002
+2025-09-15 15:33:18,942 INFO ibapi.client could not connect
+2025-09-15 15:33:18,942 INFO ibapi.client disconnecting
+2025-09-15 15:33:18,943 INFO ibapi.client could not connect
+2025-09-15 15:33:18,943 INFO ibapi.client disconnecting
+2025-09-15 15:33:18,943 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4003
+2025-09-15 15:33:18,943 INFO ibapi.client could not connect
+2025-09-15 15:33:18,943 INFO ibapi.client disconnecting
+2025-09-15 15:33:18,944 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:4001
+2025-09-15 15:33:18,944 INFO ibapi.client could not connect
+2025-09-15 15:33:18,944 INFO ibapi.client disconnecting
+2025-09-15 15:33:18,944 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 127.0.0.1:7497
+2025-09-15 15:33:18,944 INFO ibapi.client could not connect
+2025-09-15 15:33:18,944 INFO ibapi.client disconnecting
+2025-09-15 15:33:31,230 INFO ibapi.client could not connect
+2025-09-15 15:33:43,518 INFO ibapi.client could not connect
+2025-09-15 15:33:53,758 INFO ibapi.client could not connect
+2025-09-15 15:34:06,046 INFO ibapi.client could not connect
+2025-09-15 15:34:16,286 INFO ibapi.client could not connect
+2025-09-15 15:34:28,574 INFO ibapi.client could not connect
+2025-09-15 15:34:40,870 INFO ibapi.client could not connect
+2025-09-15 15:34:40,870 INFO ibapi.client could not connect
+2025-09-15 15:34:51,102 INFO ibapi.client could not connect
+2025-09-15 15:35:11,582 INFO ibapi.client could not connect
+2025-09-15 15:35:23,870 INFO ibapi.client could not connect
+2025-09-15 19:15:10,763 INFO ibapi.client could not connect
+2025-09-15 19:15:10,764 INFO ibapi.client disconnecting
+2025-09-15 19:15:10,764 ERROR src.lib.ib_async_wrapper Failed to connect to IB at 127.0.0.1:4002
+2025-09-15 19:15:11,505 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4002
+2025-09-15 19:15:11,506 INFO ibapi.client could not connect
+2025-09-15 19:15:11,506 INFO ibapi.client disconnecting
+2025-09-15 19:15:11,506 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4003
+2025-09-15 19:15:11,507 INFO ibapi.client could not connect
+2025-09-15 19:15:11,507 INFO ibapi.client disconnecting
+2025-09-15 19:15:11,507 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:4001
+2025-09-15 19:15:11,507 INFO ibapi.client could not connect
+2025-09-15 19:15:11,507 INFO ibapi.client disconnecting
+2025-09-15 19:15:11,507 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7497
+2025-09-15 19:15:11,507 INFO ibapi.client could not connect
+2025-09-15 19:15:11,507 INFO ibapi.client disconnecting
+2025-09-15 19:15:11,507 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 10.255.255.254:7496
+2025-09-15 19:15:11,508 INFO ibapi.client could not connect
+2025-09-15 19:15:11,508 INFO ibapi.client disconnecting
+2025-09-15 19:15:13,009 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4002
+2025-09-15 19:15:25,653 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4003
+2025-09-15 19:15:37,159 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:4001
+2025-09-15 19:15:48,669 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7497
+2025-09-15 19:16:01,338 INFO src.lib.ib_async_wrapper Retrying IB connect via candidate 192.168.56.1:7496

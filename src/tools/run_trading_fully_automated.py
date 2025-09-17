@@ -43,6 +43,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from src.automation.headless_gateway import HeadlessGateway
+from src.infra.ib_conn import get_ib_connect_plan, try_connect_candidates
 from src.lib.ib_async_wrapper import IBAsync
 
 try:
@@ -119,24 +120,24 @@ async def fully_automated_trading(
         # Step 2: Connect to API
         logger.info("🔌 Step 2: Connecting to IB API...")
         ib = IBAsync()
-        cfg = get_config().ib_connection
-        default_port = (
-            cfg.gateway_paper_port if paper_trading else cfg.gateway_live_port
-        )
-        host = os.getenv("IB_HOST", cfg.host)
-        port = int(os.getenv("IB_PORT", str(default_port)))
-        client_id = int(os.getenv("IB_CLIENT_ID", str(cfg.client_id)))
+        plan = get_ib_connect_plan()
         logger.info(
-            "Connecting with host=%s port=%s clientId=%s (paper=%s)",
-            host,
-            port,
-            client_id,
-            paper_trading,
+            "🔌 IB connection plan: host=%s candidates=%s clientId=%s",
+            plan["host"],
+            plan["candidates"],
+            plan["client_id"],
         )
-        if not await ib.connect(host, port, client_id):
-            logger.error("❌ Failed to connect to IB API")
+        ok, used_port = await try_connect_candidates(
+            ib.connect,
+            plan["host"],
+            plan["candidates"],
+            int(plan["client_id"]),
+            autostart=True,
+        )
+        if not ok:
+            logger.error("❌ Failed to connect to IB API with planned candidates")
             return False
-        logger.info("✅ Connected to IB API!")
+        logger.info("✅ Connected to IB API on port %s!", used_port)
 
         # Step 3: Process each symbol
         logger.info(f"📊 Step 3: Processing {len(symbols)} symbols...")

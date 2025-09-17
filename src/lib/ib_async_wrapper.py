@@ -8,6 +8,7 @@ no legacy dependencies.
 
 import asyncio
 import logging
+import os
 import time
 from collections import defaultdict, deque
 from collections.abc import Callable
@@ -453,10 +454,26 @@ class IBAsync:
         self.client: AsyncIBClient = AsyncIBClient(self.wrapper)
         self.logger: logging.Logger = logging.getLogger(__name__)
 
-        # Connection parameters - Updated for IB Gateway
-        self.host = "127.0.0.1"
-        self.port = 4002  # IB Gateway Paper Trading (4001 for Live)
-        self.client_id = 1
+        # Helper to sanitize host strings (strip inline comments/whitespace)
+        def _sanitize_host(val: str) -> str:
+            try:
+                h = val.strip()
+                if "#" in h:
+                    h = h.split("#", 1)[0].rstrip()
+                return h.split()[0] if h else h
+            except Exception:
+                return val
+
+        # Connection parameters - Env-first (WSL→Windows portproxy friendly)
+        self.host = _sanitize_host(os.getenv("IB_HOST", "172.17.208.1"))
+        try:
+            self.port = int(os.getenv("IB_PORT", "4003"))
+        except ValueError:
+            self.port = 4003
+        try:
+            self.client_id = int(os.getenv("IB_CLIENT_ID", "2011"))
+        except ValueError:
+            self.client_id = 2011
 
         # State management
         self.connected = False
@@ -481,10 +498,12 @@ class IBAsync:
 
     async def connect(  # noqa: C901 - Contains platform/port fallback logic; keep inline for clarity
         self,
-        host: str = "127.0.0.1",
-        port: int = 4002,
-        clientId: int = 1,
+        host: str | None = None,
+        port: int | None = None,
+        clientId: int | None = None,
         timeout: float = 30,
+        *,
+        fallback: bool = True,
     ) -> bool:
         """
         Connect to IB Gateway/TWS with automatic reconnection.
@@ -494,12 +513,40 @@ class IBAsync:
         - Better error reporting
         - Automatic pacing setup
         """
-        self.host = host
-        self.port = port
-        self.client_id = clientId
+
+        # Resolve env-first defaults when not explicitly provided
+        # Sanitize env/arg-sourced host to avoid inline comments causing DNS errors
+        def _sanitize_host(val: str) -> str:
+            try:
+                s = val.strip()
+                if "#" in s:
+                    s = s.split("#", 1)[0].rstrip()
+                return s.split()[0] if s else s
+            except Exception:
+                return val
+
+        h = (
+            _sanitize_host(host)
+            if host
+            else _sanitize_host(os.getenv("IB_HOST", "172.17.208.1"))
+        )
+        try:
+            p = int(port if port is not None else os.getenv("IB_PORT", "4003"))
+        except ValueError:
+            p = 4003
+        try:
+            cid = int(
+                clientId if clientId is not None else os.getenv("IB_CLIENT_ID", "2011")
+            )
+        except ValueError:
+            cid = 2011
+
+        self.host = h
+        self.port = p
+        self.client_id = cid
 
         # Primary attempt
-        success = await self.client.connect_async(host, port, clientId, timeout)
+        success = await self.client.connect_async(h, p, cid, timeout)
 
         if success:
             self.connected = True
@@ -518,10 +565,13 @@ class IBAsync:
             self._error_handling_task = asyncio.create_task(self._handle_errors())
 
             self.logger.info(
-                f"Connected to IB at {host}:{port} (Client ID: {clientId})"
+                f"Connected to IB at {self.host}:{self.port} (Client ID: {self.client_id})"
             )
         else:
-            self.logger.error(f"Failed to connect to IB at {host}:{port}")
+            if not fallback:
+                # Caller requested no platform fallback; return immediate failure
+                return False
+            self.logger.error(f"Failed to connect to IB at {h}:{p}")
             # WSL fallback: if running inside WSL, try Windows host IPs and common ports.
             # Also include an early TCP probe to give actionable hints when the port is open
             # but the API handshake is rejected by settings (e.g., Trusted IPs).
@@ -568,12 +618,12 @@ class IBAsync:
             candidates: list[tuple[str, int]] = []
             port_order: list[int] = []
             # Prefer the requested port first
-            if port not in port_order:
-                port_order.append(port)
-            # Then common ports
-            for p in [4002, 4001, 7497, 7496]:
-                if p not in port_order:
-                    port_order.append(p)
+            if p not in port_order:
+                port_order.append(p)
+            # Then common ports (include WSL portproxy 4003 early)
+            for _pp in [4003, 4002, 4001, 7497, 7496]:
+                if _pp not in port_order:
+                    port_order.append(_pp)
 
             if wsl:
                 # 1) Nameserver IP (Windows host in many WSL distros)
@@ -609,7 +659,7 @@ class IBAsync:
             seen: set[tuple[str, int]] = set()
             uniq: list[tuple[str, int]] = []
             for c in candidates:
-                if c not in seen and not (c[0] == host and c[1] == port):
+                if c not in seen and not (c[0] == h and c[1] == p):
                     uniq.append(c)
                     seen.add(c)
 
@@ -633,7 +683,7 @@ class IBAsync:
                         pass
 
                 self.logger.info("Retrying IB connect via candidate %s:%s", h, p)
-                if await self.client.connect_async(h, p, clientId, 10):
+                if await self.client.connect_async(h, p, cid, 10):
                     self.host, self.port = h, p
                     self.connected = True
                     try:
@@ -647,7 +697,7 @@ class IBAsync:
                         self._handle_errors()
                     )
                     self.logger.info(
-                        "Connected to IB at %s:%s (Client ID: %s)", h, p, clientId
+                        "Connected to IB at %s:%s (Client ID: %s)", h, p, cid
                     )
                     return True
                 else:
@@ -1137,10 +1187,15 @@ IB = IBAsync
 if __name__ == "__main__":
     # Demo usage
     async def main() -> None:
+        import os
+
         ib = IBAsync()
 
-        # Connect
-        connected = await ib.connect("127.0.0.1", 7497, 1)
+        # Connect (env-first with WSL defaults)
+        h = os.getenv("IB_HOST", "172.17.208.1")
+        p = int(os.getenv("IB_PORT", "4003"))
+        cid = int(os.getenv("IB_CLIENT_ID", "2011"))
+        connected = await ib.connect(h, p, cid)
         if not connected:
             print("Failed to connect")
             return

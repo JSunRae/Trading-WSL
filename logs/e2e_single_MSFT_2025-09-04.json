@@ -32,22 +32,25 @@
   },
   "ib_events": [
     {
+      "event": "ib_connect_plan",
+      "host": "172.17.208.1",
+      "candidates": [
+        4003,
+        4002,
+        7497
+      ]
+    },
+    {
       "event": "gateway_autostart_attempt",
       "script": "start_gateway.sh"
     },
     {
-      "event": "gateway_autostart_timeout"
-    },
-    {
-      "event": "gateway_autostart_attempt",
-      "script": "start_gateway.sh"
-    },
-    {
-      "event": "gateway_autostart_timeout"
+      "event": "gateway_autostart_error",
+      "error": "Command '['bash', 'start_gateway.sh']' timed out after 59.999984936002875 seconds"
     },
     {
       "event": "ib_unreachable",
-      "error": "Failed to connect to IB at 127.0.0.1:[4002, 7497]"
+      "error": "Failed: 172.17.208.1:[4003, 4002, 7497]"
     }
   ],
   "env": {

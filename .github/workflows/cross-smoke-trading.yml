@@ -61,17 +61,23 @@ jobs:
           fi
 
       - name: PASS - validate manifest with production.alias present
+        shell: bash
         run: |
           set -e
           mkdir -p artifacts/model_dir
           echo 'tf1-model-stable' > artifacts/model_dir/production.alias
-          python -m src.tools.validate_export_manifest --manifest artifacts/*.json --model-dir artifacts/model_dir
+          MANIFEST=$(ls artifacts/*.json | head -n 1)
+          echo "Using manifest: $MANIFEST"
+          python -m src.tools.validate_export_manifest --manifest "$MANIFEST" --model-dir artifacts/model_dir
 
       - name: FAIL - validate manifest without production.alias should exit non-zero
+        shell: bash
         run: |
           set -e
           rm -f artifacts/model_dir/production.alias || true
-          if python -m src.tools.validate_export_manifest --manifest artifacts/*.json --model-dir artifacts/model_dir; then
+          MANIFEST=$(ls artifacts/*.json | head -n 1)
+          echo "Using manifest: $MANIFEST"
+          if python -m src.tools.validate_export_manifest --manifest "$MANIFEST" --model-dir artifacts/model_dir; then
             echo 'Expected non-zero exit when production.alias missing' >&2
             exit 1
           fi

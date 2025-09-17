@@ -429,10 +429,15 @@ class RequestManagerAdapter:
                 client_id or legacy_client_id
             ) or cfg.ib_connection.client_id
         except Exception:  # pragma: no cover
+            import os
+
             legacy_client_id = legacy_kwargs.get("clientId")
-            resolved_host = host or "127.0.0.1"
-            resolved_port = port or 7497
-            resolved_client_id = (client_id or legacy_client_id) or 1
+            resolved_host = host or os.getenv("IB_HOST", "172.17.208.1")
+            # Prefer IB_PORT when provided; else WSL-friendly 4003
+            resolved_port = port or int(os.getenv("IB_PORT", "4003"))
+            resolved_client_id = (
+                client_id or legacy_client_id or int(os.getenv("IB_CLIENT_ID", "2011"))
+            )
 
         self._host = resolved_host
         self._port = resolved_port

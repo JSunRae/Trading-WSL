@@ -122,7 +122,10 @@ def test_dry_run_outputs_preview(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     assert rc == 0
     preview = json.loads(out)
     assert preview["task_count"] >= 1
-    assert "first_tasks" in preview
+    # first_tasks removed; ensure summary fields exist
+    assert "symbol_count" in preview
+    assert "date_range" in preview
+    assert "completed_tasks_count" in preview
 
 
 def test_strict_mode_nonzero_exit_on_errors(

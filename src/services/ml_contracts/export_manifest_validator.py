@@ -37,7 +37,9 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
-ALLOWED_SCHEMA_VERSIONS = {"1.0"}
+# Accept both semantic and tagged forms for schema version for backward/forward compat
+# with TF_1 exports and contracts repo. Keep list narrow and explicit.
+ALLOWED_SCHEMA_VERSIONS = {"1.0", "v1"}
 
 
 def _contracts_base(repo_root: Path) -> Path | None:

@@ -10,6 +10,7 @@ Adds standardized --describe JSON output.
 import importlib
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -20,11 +21,11 @@ except Exception:  # pragma: no cover
 
     def get_config():  # type: ignore
         class C:
-            host = "127.0.0.1"
-            gateway_paper_port = 4002
-            gateway_live_port = 4001
-            paper_port = 7497
-            live_port = 7496
+            host = os.getenv("IB_HOST", "172.17.208.1")
+            gateway_paper_port = int(os.getenv("IB_GATEWAY_PAPER_PORT", "4002"))
+            gateway_live_port = int(os.getenv("IB_GATEWAY_LIVE_PORT", "4001"))
+            paper_port = int(os.getenv("IB_PAPER_PORT", "7497"))
+            live_port = int(os.getenv("IB_LIVE_PORT", "7496"))
             client_id = 1
 
         class Dummy:

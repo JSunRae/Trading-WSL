@@ -1,0 +1,1 @@
+pytest -q -s tests/e2e/test_single_symbol_single_day_e2e.py

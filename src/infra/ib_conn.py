@@ -2,14 +2,14 @@
 Lightweight IBKR connection helper using ib_async.
 
 Features:
-- Env-driven defaults suitable for WSL→Windows portproxy.
+- Linux-first defaults (local IB Gateway at 127.0.0.1:4002) with Windows portproxy supported via env overrides.
 - Simple retry policy with exponential backoff.
 - Structured logging of connection target + basic server/account info.
 
-Env vars (defaults chosen for WSL→Windows portproxy):
-- IB_HOST            default "172.17.208.1"
-- IB_PORT            default 4003
-- IB_CLIENT_ID       default 1001
+Env vars (Linux-first defaults; Windows portproxy supported via overrides):
+- IB_HOST            default "127.0.0.1"
+- IB_PORT            default 4002
+- IB_CLIENT_ID       default 2011
 - IB_CONNECT_TIMEOUT default 20 (seconds)
 - LOG_LEVEL          default INFO
 
@@ -42,10 +42,26 @@ def _load_dotenv_if_present() -> None:
                 line = raw.strip()
                 if not line or line.startswith("#") or "=" not in line:
                     continue
-                k, v = line.split("=", 1)
+                k, raw_v = line.split("=", 1)
                 k = k.strip()
-                # Strip surrounding quotes if present
-                v = v.strip().strip('"').strip("'")
+
+                def _parse_env_value(s: str) -> str:
+                    s = s.lstrip()
+                    # If quoted, take content up to the matching quote and ignore the rest
+                    if s.startswith('"') or s.startswith("'"):
+                        q = s[0]
+                        end = s.find(q, 1)
+                        if end != -1:
+                            return s[1:end]
+                        # Fallback: strip outer quote if unmatched
+                        return s.strip().strip('"').strip("'")
+                    # Unquoted: strip inline comments starting with #
+                    hash_pos = s.find("#")
+                    if hash_pos != -1:
+                        s = s[:hash_pos]
+                    return s.strip()
+
+                v = _parse_env_value(raw_v)
                 if k and k not in os.environ:
                     os.environ[k] = v
     except Exception:
@@ -73,6 +89,83 @@ def _configure_logging() -> None:
     )
 
 
+def _sanitize_host(val: str) -> str:
+    """Remove inline comments and whitespace from a host string.
+
+    Examples:
+      '172.17.208.1  # comment' -> '172.17.208.1'
+      ' localhost ' -> 'localhost'
+    """
+    try:
+        h = val.strip()
+        # Drop inline comments
+        if "#" in h:
+            h = h.split("#", 1)[0].rstrip()
+        # Collapse internal whitespace (hosts shouldn't contain spaces)
+        return h.split()[0] if h else h
+    except Exception:
+        return val
+
+
+async def _attempt_connect_once(
+    ib_ctor: Any,
+    log: logging.Logger,
+    host: str,
+    port: int,
+    base_client_id: int,
+    timeout: int,
+    attempt_no: int,
+) -> tuple[Any | None, Exception | None]:
+    """Try a few nearby clientIds to avoid duplicate-client collisions.
+
+    Returns (ib, err). If ib is not None, it's a connected instance.
+    """
+    last_err: Exception | None = None
+    for cid in (base_client_id, base_client_id + 1, base_client_id + 2):
+        ib = ib_ctor()
+        log.info(
+            "Connecting to IBKR host=%s port=%s clientId=%s timeout=%ss (attempt %s/%s)",
+            host,
+            port,
+            cid,
+            timeout,
+            attempt_no,
+            3,
+        )
+        try:
+            ok = await ib.connectAsync(host, port, clientId=cid)  # type: ignore[attr-defined]
+        except Exception as e:  # pragma: no cover - vendor dependent
+            last_err = e
+            log.warning(
+                "Connect failed (clientId=%s) on attempt %s: %s", cid, attempt_no, e
+            )
+            try:
+                ib.disconnect()
+            except Exception:
+                pass
+            continue
+
+        if ok:
+            server_version = _get_server_version(ib)
+            accounts = _get_managed_accounts(ib)
+            log.info(
+                "Connected. serverVersion=%s accounts=%s",
+                server_version if server_version is not None else "?",
+                json.dumps(accounts) if accounts else "[]",
+            )
+            return ib, None
+
+        last_err = RuntimeError("connectAsync returned False")
+        try:
+            ib.disconnect()
+        except Exception:
+            pass
+        log.warning(
+            "connectAsync returned False with clientId=%s; trying next clientId", cid
+        )
+    return None, last_err
+
+
 async def connect_ib(
     host: str | None = None,
     port: int | None = None,
@@ -87,11 +180,11 @@ async def connect_ib(
     _configure_logging()
     log = logging.getLogger("ib_conn")
 
-    # Resolve defaults (favor explicit args over env)
-    host = host or _env_str("IB_HOST", "172.17.208.1")
-    port = int(port if port is not None else _env_int("IB_PORT", 4003))
+    # Resolve defaults (favor explicit args over env) and sanitize host
+    host = _sanitize_host(host or _env_str("IB_HOST", "127.0.0.1"))
+    port = int(port if port is not None else _env_int("IB_PORT", 4002))
     client_id = int(
-        client_id if client_id is not None else _env_int("IB_CLIENT_ID", 1001)
+        client_id if client_id is not None else _env_int("IB_CLIENT_ID", 2011)
     )
     timeout = int(
         timeout if timeout is not None else _env_int("IB_CONNECT_TIMEOUT", 20)
@@ -109,37 +202,14 @@ async def connect_ib(
     for attempt, delay in enumerate(delays, start=1):
         if delay:
             await asyncio.sleep(delay)
-        try:
-            ib = IB()
-            log.info(
-                "Connecting to IBKR host=%s port=%s clientId=%s timeout=%ss (attempt %s/%s)",
-                host,
-                port,
-                client_id,
-                timeout,
-                attempt,
-                len(delays),
-            )
-            # Some variants don't support timeout kw; call with required args only
-            ok = await ib.connectAsync(host, port, clientId=client_id)  # type: ignore[attr-defined]
-            if ok:
-                # Try to extract diagnostics (best-effort across variants)
-                server_version = _get_server_version(ib)
-                accounts = _get_managed_accounts(ib)
-                log.info(
-                    "Connected. serverVersion=%s accounts=%s",
-                    server_version if server_version is not None else "?",
-                    json.dumps(accounts) if accounts else "[]",
-                )
-                return ib
-            else:
-                last_err = RuntimeError("connectAsync returned False")
-        except Exception as e:  # pragma: no cover - depends on runtime
-            last_err = e
-            log.warning("Connect failed on attempt %s: %s", attempt, e)
+        ib, last_err = await _attempt_connect_once(
+            IB, log, host, port, int(client_id), int(timeout), attempt
+        )
+        if ib is not None:
+            return ib
 
     # Exhausted attempts
-    msg = f"Failed to connect to IB at {host}:{port} (clientId={client_id}) after {len(delays)} attempts"
+    msg = f"Failed to connect to IB at {host}:{port} (clientId~={client_id}) after {len(delays)} attempts"
     raise RuntimeError(msg) from last_err
 
 
@@ -216,6 +286,64 @@ __all__ = ["connect_ib", "disconnect_ib"]
 # ---------------------------------------------------------------------------
 
 
+def _dedupe_ints(items: Iterable[int]) -> list[int]:
+    """Deduplicate integers preserving order."""
+    seen: set[int] = set()
+    out: list[int] = []
+    for p in items:
+        if p not in seen:
+            out.append(p)
+            seen.add(p)
+    return out
+
+
+def _candidate_base_ports() -> tuple[int, int]:
+    """Return (gateway_paper, tws_paper) base ports, consulting config if present."""
+    gw, tws = 4002, 7497
+    try:  # best-effort enrichment from project config
+        from src.core.config import get_config  # type: ignore
+
+        cfg = get_config().ib_connection
+        gw = int(getattr(cfg, "gateway_paper_port", gw))
+        tws = int(getattr(cfg, "paper_port", tws))
+    except Exception:
+        pass
+    return gw, tws
+
+
+def _build_candidate_ports() -> list[int]:
+    """Build candidate port list env-first, Linux-first order.
+
+    Order: [IB_PORT?, gateway_paper(4002), tws_paper(7497), 4003]
+    """
+    out: list[int] = []
+    env_port = os.environ.get("IB_PORT")
+    if env_port:
+        try:
+            out.append(int(env_port))
+        except ValueError:
+            pass
+    gw_paper, tws_paper = _candidate_base_ports()
+    for p in (gw_paper, tws_paper, 4003):
+        if p not in out:
+            out.append(p)
+    return out
+
+
+def _detect_connect_method(env_host: str, env_port: str, have_virtual: bool) -> str:
+    """Detect connection method label for logging/telemetry."""
+    if have_virtual:
+        return "windows-portproxy"
+    try:
+        p_int = int(env_port) if env_port else None
+    except ValueError:
+        p_int = None
+    if env_host.startswith("172.") or env_host.startswith("192.168."):
+        if p_int in {4003, 4004} or p_int is None:
+            return "windows-portproxy"
+    return "linux"
+
+
 def get_ib_connect_plan() -> dict[str, Any]:
     """Return a connection plan with env-first defaults and candidate ports.
 
@@ -228,57 +356,40 @@ def get_ib_connect_plan() -> dict[str, Any]:
     """
     _load_dotenv_if_present()
 
-    # Host: prefer explicit env, else WSL→Windows adapter default
-    host = _env_str("IB_HOST", "172.17.208.1")
+    # Host: prefer explicit env, else Linux Gateway default (sanitize to drop inline comments)
+    host = _sanitize_host(_env_str("IB_HOST", "127.0.0.1"))
 
     # Client ID and timeout
-    client_id = _env_int("IB_CLIENT_ID", 1001)
+    client_id = _env_int("IB_CLIENT_ID", 2011)
     timeout = _env_int("IB_CONNECT_TIMEOUT", 20)
 
-    # Seed candidates from env IB_PORT if present
-    port_env = os.environ.get("IB_PORT")
-    candidates: list[int] = []
-    if port_env:
-        try:
-            candidates.append(int(port_env))
-        except ValueError:
-            pass
-
-    # Enrich with config-driven defaults when available
-    gw_paper = 4002
-    tws_paper = 7497
-    try:
-        from src.core.config import get_config  # type: ignore
-
-        cfg = get_config().ib_connection
-        gw_paper = int(getattr(cfg, "gateway_paper_port", gw_paper))
-        tws_paper = int(getattr(cfg, "paper_port", tws_paper))
-    except Exception:
-        # Best-effort; keep fallbacks
-        pass
-
-    if not candidates:
-        # Prefer portproxy 4003 (WSL→Windows), then Gateway Paper, then TWS Paper
-        candidates = [4003, gw_paper, tws_paper]
-    else:
-        # Ensure unique but stable order with common fallbacks appended
-        for p in (4003, gw_paper, tws_paper):
-            if p not in candidates:
-                candidates.append(p)
+    candidates = _build_candidate_ports()
 
     # De-duplicate while preserving order
-    seen: set[int] = set()
-    deduped: list[int] = []
-    for p in candidates:
-        if p not in seen:
-            deduped.append(p)
-            seen.add(p)
+    deduped = _dedupe_ints(candidates)
+
+    # WSL-specific host rewriting removed; rely on explicit env overrides
+    # Determine method for logging/reporting
+    env_host = os.environ.get("IB_HOST", "")
+    env_port = os.environ.get("IB_PORT", "")
+    have_virtual = bool(
+        os.environ.get("IB_HOST_Virtual") or os.environ.get("IB_PORT_Virtual")
+    )
+
+    method = _detect_connect_method(env_host, env_port, have_virtual)
+
+    log = logging.getLogger("ib_conn")
+    if method == "linux":
+        log.info("Using Linux IB Gateway (default)")
+    else:
+        log.info("Using Windows Gateway via portproxy (fallback)")
 
     return {
         "host": host,
         "candidates": deduped,
         "client_id": client_id,
         "timeout": timeout,
+        "method": method,
     }
 
 
@@ -401,7 +512,14 @@ async def connect_ib_planned(
     ib = IB()
 
     async def _cb(h: str, p: int, c: int) -> Any:
-        return await ib.connect(h, p, c)  # type: ignore[attr-defined]
+        # Support both async and sync connect methods
+        try:
+            res = ib.connect(h, p, c)  # type: ignore[attr-defined]
+        except TypeError:
+            res = ib.connect(h, p, clientId=c)  # type: ignore[attr-defined]
+        if asyncio.iscoroutine(res):
+            return await res
+        return bool(res)
 
     ok, _ = await try_connect_candidates(
         _cb,

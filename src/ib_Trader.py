@@ -251,26 +251,6 @@ if __name__ == "__main__":
     #     except (KeyboardInterrupt, SystemExit):
     #         LoopNow = False
     """
-    class App:
-
-        async def run(self):
-            self.ib = IB()
-            with await self.ib.connectAsync(port = 7497):
-                contracts = [Stock(symbol, 'SMART', 'USD') for symbol in ['AAPL', 'TSLA']]
-                for contract in contracts:
-                    #self.ib.reqMktData(contract)
-                    self.ib.reqTickByTickData(contract, tickType='AllLast', numberOfTicks=0, ignoreSize=False)
-                    #self.ib.reqTickByTickData(self.contract, tickType='BidAsk', numberOfTicks=0, ignoreSize=False)
-
-                async for tickers in self.ib.pendingTickersEvent:
-                    for ticker in tickers:
-                        print(ticker)
-
-        def stop(self):
-            self.ib.disconnect()
-
-    app = App()
-    try:
-        asyncio.run(app.run())
-    except (KeyboardInterrupt, SystemExit):
-        app.stop()"""
+    # Legacy async demo removed/updated; prefer env-first connection via IBAsync.
+    # See src/lib/ib_async_wrapper.py __main__ for a current example.
+    """

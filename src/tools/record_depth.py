@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import socket as _sock
 import threading
 import time
@@ -35,11 +36,11 @@ except Exception:  # pragma: no cover
 
     def get_config():  # type: ignore
         class C:
-            host = "127.0.0.1"
-            gateway_paper_port = 4002
-            gateway_live_port = 4001
-            paper_port = 7497
-            live_port = 7496
+            host = os.getenv("IB_HOST", "172.17.208.1")
+            gateway_paper_port = int(os.getenv("IB_GATEWAY_PAPER_PORT", "4002"))
+            gateway_live_port = int(os.getenv("IB_GATEWAY_LIVE_PORT", "4001"))
+            paper_port = int(os.getenv("IB_PAPER_PORT", "7497"))
+            live_port = int(os.getenv("IB_LIVE_PORT", "7496"))
             client_id = 1
 
         class D:
@@ -53,6 +54,8 @@ from ibapi.client import EClient  # type: ignore
 from ibapi.common import TickerId  # type: ignore
 from ibapi.contract import Contract  # type: ignore
 from ibapi.wrapper import EWrapper  # type: ignore
+
+from src.infra.ib_conn import get_ib_connect_plan
 
 
 # ---------------------------------------------------------------------------
@@ -100,12 +103,17 @@ class DepthRecorder(EWrapper, EClient):
         self.interval_ms = interval_ms
         self.output_dir = Path(output_dir)
         self.paper_mode = paper_mode
-        self.host = host or cfg.host
-        self.port = (
-            port
-            if port is not None
+        # Prefer env-first plan (WSL portproxy aware) unless explicit host/port provided
+        plan = get_ib_connect_plan()
+        self.host = host or str(plan.get("host", cfg.host))
+        # Choose first candidate by default; allow override via port arg
+        plan_ports = [int(p) for p in plan.get("candidates", [])]
+        default_port = (
+            plan_ports[0]
+            if plan_ports
             else (cfg.gateway_paper_port if paper_mode else cfg.gateway_live_port)
         )
+        self.port = int(port) if port is not None else int(default_port)
         self.client_id = client_id
 
         # Order book state
@@ -146,20 +154,43 @@ class DepthRecorder(EWrapper, EClient):
     # ----- Connection ---------------------------------------------
     def connect_to_ib(self) -> bool:
         try:
+            plan = get_ib_connect_plan()
+            host = self.host or str(plan.get("host", self.host))
+            candidates = [int(self.port)]
+            # Append plan candidates ensuring uniqueness
+            for p in [int(p) for p in plan.get("candidates", [])]:
+                if p not in candidates:
+                    candidates.append(p)
             self.logger.info(
-                f"Connecting {self.host}:{self.port} paper={self.paper_mode}"
+                "Connecting depth recorder host=%s candidates=%s paper=%s",
+                host,
+                candidates,
+                self.paper_mode,
             )
-            self.connect(self.host, self.port, self.client_id)
-            if not self.api_thread or not self.api_thread.is_alive():
-                self.api_thread = threading.Thread(target=super().run, daemon=True)
-                self.api_thread.start()
-            start = time.time()
-            while not self.connected and time.time() - start < 10:
-                time.sleep(0.1)
-            if not self.connected:
-                self.logger.error("Connection timeout")
-                return False
-            return True
+            # Try each candidate until connected
+            for port in candidates:
+                try:
+                    self.connect(host, port, self.client_id)
+                    if not self.api_thread or not self.api_thread.is_alive():
+                        self.api_thread = threading.Thread(
+                            target=super().run, daemon=True
+                        )
+                        self.api_thread.start()
+                    start = time.time()
+                    while not self.connected and time.time() - start < 10:
+                        time.sleep(0.1)
+                    if self.connected:
+                        self.port = port
+                        return True
+                    self.logger.warning(
+                        "Timeout connecting %s:%s; trying next", host, port
+                    )
+                except Exception as e:
+                    self.logger.warning("Connect error on %s:%s -> %s", host, port, e)
+            self.logger.error(
+                "Unable to connect to any candidate ports: %s", candidates
+            )
+            return False
         except Exception as e:  # pragma: no cover
             self.logger.error(f"Connect error: {e}")
             return False
@@ -565,12 +596,14 @@ def main(
     if port in {cfg.gateway_live_port, cfg.gateway_paper_port}:
         print("   • Ensure IB Gateway is running & logged in")
         print("   • Check Configuration → API settings")
-        print("   • Confirm port & trusted IP (127.0.0.1)")
+        print(
+            "   • Confirm port & trusted IP (127.0.0.1) or use WSL proxy 172.17.208.1:4003"
+        )
     else:
         print("   • Ensure TWS is running & logged in")
         print("   • Enable 'Enable ActiveX and Socket Clients'")
         print(f"   • Socket Port must be {port}")
-        print("   • Add 127.0.0.1 to trusted IPs")
+    print("   • Add 127.0.0.1 to trusted IPs (or keep proxy on 172.17.208.1:4003)")
     raise SystemExit(1)
 
 

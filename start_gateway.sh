@@ -10,6 +10,16 @@ echo "=============================="
 HOST=${IB_HOST:-}
 PORT=${IB_PORT:-}
 
+# Helper: sanitize a port string (strip comments and non-digits)
+sanitize_port() {
+    local x="$1"
+    # Drop everything after a '#'
+    x="${x%%#*}"
+    # Remove all non-digits
+    x="$(echo "$x" | sed 's/[^0-9]//g')"
+    echo "$x"
+}
+
 # Detect WSL and compute Windows host IP (first nameserver)
 is_wsl=false
 if grep -qi "microsoft" /proc/version 2>/dev/null; then
@@ -29,24 +39,38 @@ fi
 # Default ports if not provided
 if [ -z "$PORT" ]; then
     if [ "${IB_USE_TWS:-0}" = "1" ]; then
-        PORT=${IB_PAPER_PORT:-7497}
+        PORT="$(sanitize_port "${IB_PAPER_PORT:-7497}")"
     else
-        PORT=${IB_GATEWAY_PAPER_PORT:-4002}
+        PORT="$(sanitize_port "${IB_GATEWAY_PAPER_PORT:-4002}")"
     fi
+else
+    PORT="$(sanitize_port "$PORT")"
+fi
+
+# Optional: Show Windows portproxy rules (WSL-only) for quick diagnostics
+if [ "$is_wsl" = true ]; then
+    echo "\n🔎 Checking Windows portproxy rules (if any):"
+    powershell.exe -NoProfile -Command "netsh interface portproxy show v4tov4" 2>/dev/null | tr -d '\r' || true
 fi
 
 # Check if Gateway is already running
 check_once() {
     local h="$1" p="$2"
-    python3 - <<'PY'
-import os,socket,sys
-h=os.environ.get('CHK_HOST'); p=int(os.environ.get('CHK_PORT','0') or '0')
-s=socket.socket(); s.settimeout(2)
+    PYBIN=${VENV_PY:-./.venv/bin/python}
+    "$PYBIN" - <<'PY'
+import os, re, socket, sys
+h = os.environ.get('CHK_HOST')
+raw = os.environ.get('CHK_PORT', '0') or '0'
+# Extract first integer from the string safely (tolerate inline comments)
+m = re.search(r"\d+", raw)
+p = int(m.group(0)) if m else 0
+s = socket.socket()
+s.settimeout(2)
 try:
-        r=s.connect_ex((h,p))
+    r = s.connect_ex((h, p))
 finally:
-        s.close()
-sys.exit(0 if r==0 else 1)
+    s.close()
+sys.exit(0 if r == 0 else 1)
 PY
 }
 
@@ -66,9 +90,13 @@ check_gateway() {
         done
     fi
 
-    CANDIDATE_PORTS=("$PORT")
-    # Add common alternates (both Gateway and TWS)
-    CANDIDATE_PORTS+=("${IB_GATEWAY_PAPER_PORT:-4002}" "${IB_GATEWAY_LIVE_PORT:-4001}" "${IB_PAPER_PORT:-7497}" "${IB_LIVE_PORT:-7496}")
+    # Build sanitized candidate port list
+    CANDIDATE_PORTS=()
+    sp="$(sanitize_port "$PORT")"; [ -n "$sp" ] && CANDIDATE_PORTS+=("$sp")
+    for v in "${IB_GATEWAY_PAPER_PORT:-4002}" "${IB_GATEWAY_LIVE_PORT:-4001}" "${IB_PAPER_PORT:-7497}" "${IB_LIVE_PORT:-7496}"; do
+        sp="$(sanitize_port "$v")"
+        [ -n "$sp" ] && CANDIDATE_PORTS+=("$sp")
+    done
 
     for h in "${CANDIDATE_HOSTS[@]}"; do
         for p in "${CANDIDATE_PORTS[@]}"; do
@@ -128,7 +156,8 @@ fi
 
 echo ""
 echo "🧪 Testing connection..."
-python3 - <<PY
+PYBIN=${VENV_PY:-./.venv/bin/python}
+"$PYBIN" - <<PY
 import asyncio,sys,os
 HOST=os.environ.get('HOST')
 PORT=int(os.environ.get('PORT','0') or '0')

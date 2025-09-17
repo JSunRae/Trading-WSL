@@ -11,17 +11,18 @@ import os
 import time as _time
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 try:  # Optional import guard
     from databento import Historical  # type: ignore
-
-    DATABENTO_AVAILABLE = True
 except Exception:  # pragma: no cover - absence path
     Historical = None  # type: ignore
-    DATABENTO_AVAILABLE = False
+
+# Compute availability once to avoid reassignment of an UPPER_CASE constant
+DATABENTO_AVAILABLE: bool = Historical is not None
 
 
 @dataclass
@@ -59,9 +60,13 @@ class DataBentoL2Service:
                 return Historical()  # type: ignore[call-arg]
 
     def _get_with_backoff(
-        self, client, req: VendorL2Request, start_iso: str, end_iso: str
+        self, client: Any, req: VendorL2Request, start_iso: str, end_iso: str
     ) -> pd.DataFrame:
-        """Fetch range with small exponential backoff and return DataFrame."""
+        """Fetch range with small exponential backoff and return DataFrame.
+
+        Tries multiple symbology inputs to avoid 422 symbology_invalid_request:
+        prefers 'smart' → 'parent' → 'raw_symbol'.
+        """
         last_err: Exception | None = None
         try:
             base_ms = int(os.getenv("L2_TASK_BACKOFF_BASE_MS", "250") or 250)
@@ -74,27 +79,41 @@ class DataBentoL2Service:
         if max_ms < base_ms:
             max_ms = base_ms
 
+        # Prefer robust symbol resolution first
+        stype_order = ["smart", "parent", "raw_symbol"]
+
         for attempt in range(1, 4):
-            try:
-                stype_in = "raw_symbol"
-                stype_out = "instrument_id"
-                store = client.timeseries.get_range(
-                    dataset=req.dataset,
-                    start=start_iso,
-                    end=end_iso,
-                    symbols=req.symbol,
-                    schema=req.schema,
-                    stype_in=stype_in,
-                    stype_out=stype_out,
-                    limit=None,
-                )
-                return store.to_df()
-            except Exception as e:
-                last_err = e
-                if attempt == 3:
-                    raise
-                exp_ms = min(base_ms * (2 ** (attempt - 1)), max_ms)
-                _time.sleep(exp_ms / 1000.0)
+            for stype_in in stype_order:
+                try:
+                    stype_out = "instrument_id"
+                    store = client.timeseries.get_range(
+                        dataset=req.dataset,
+                        start=start_iso,
+                        end=end_iso,
+                        symbols=req.symbol,
+                        schema=req.schema,
+                        stype_in=stype_in,
+                        stype_out=stype_out,
+                        limit=None,
+                    )
+                    return store.to_df()
+                except Exception as e:  # noqa: PERF203 - narrow on message
+                    last_err = e
+                    # If the error is specifically symbology-related, try next stype
+                    # Avoid tight loop on other errors (rate-limit, network) by breaking
+                    msg = repr(e)
+                    if (
+                        "symbology_invalid_request" in msg
+                        or "invalid symbology" in msg.lower()
+                    ) and stype_in != stype_order[-1]:
+                        # try next stype_in without backoff
+                        continue
+                    # For non-symbology or last stype_in, apply backoff unless last attempt
+                    if attempt == 3:
+                        raise
+                    exp_ms = min(base_ms * (2 ** (attempt - 1)), max_ms)
+                    _time.sleep(exp_ms / 1000.0)
+                    break  # move to next outer attempt after backoff
 
         # Should not reach here
         if last_err:

@@ -81,12 +81,12 @@ def load_config_safely():  # type: ignore[return-any]
     except Exception:  # pragma: no cover
 
         class _IB:
-            host = os.getenv("IB_HOST", "127.0.0.1")
+            host = os.getenv("IB_HOST", "172.17.208.1")
             gateway_paper_port = int(os.getenv("IB_GATEWAY_PAPER_PORT", "4002"))
             gateway_live_port = int(os.getenv("IB_GATEWAY_LIVE_PORT", "4001"))
             paper_port = int(os.getenv("IB_PAPER_PORT", "7497"))
             live_port = int(os.getenv("IB_LIVE_PORT", "7496"))
-            client_id = int(os.getenv("IB_CLIENT_ID", "1"))
+            client_id = int(os.getenv("IB_CLIENT_ID", "2011"))
 
         class _Cfg:
             ib_connection = _IB()

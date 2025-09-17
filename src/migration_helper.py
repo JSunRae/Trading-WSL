@@ -41,10 +41,12 @@ class LegacyDataManagerAdapter:
             if clientId is None:
                 clientId = config.ib_connection.client_id
         except Exception:
-            # Fallback to old defaults
-            host = host or "127.0.0.1"
-            port = port or 7497
-            clientId = clientId or 1
+            # Fallback to env-first with WSL-friendly defaults
+            import os
+
+            host = host or os.getenv("IB_HOST", "172.17.208.1")
+            port = port or int(os.getenv("IB_PORT", "4003"))
+            clientId = clientId or int(os.getenv("IB_CLIENT_ID", "2011"))
         # Issue deprecation warning
         warnings.warn(
             "LegacyDataManagerAdapter is deprecated. Use DataManager directly.",
@@ -330,13 +332,21 @@ def get_migration_status() -> dict[str, Any]:
 
 
 # Convenience function for gradual migration
-def get_data_manager_legacy(host="127.0.0.1", port=7497, clientId=1, ib=None):  # noqa: N803
+def get_data_manager_legacy(host=None, port=None, clientId=None, ib=None):  # noqa: N803
     """
     Get a data manager with legacy compatibility.
 
     This function can be used as a drop-in replacement for requestCheckerCLS
     initialization while providing new functionality.
     """
+    # Resolve env-first with WSL-friendly defaults if None
+    import os
+
+    host = host if host is not None else os.getenv("IB_HOST", "172.17.208.1")
+    port = port if port is not None else int(os.getenv("IB_PORT", "4003"))
+    clientId = (
+        clientId if clientId is not None else int(os.getenv("IB_CLIENT_ID", "2011"))
+    )
     return LegacyDataManagerAdapter(host, port, clientId, ib)
 
 

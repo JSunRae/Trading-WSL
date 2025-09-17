@@ -507,18 +507,16 @@ python src/tools/setup/setup_automated_trading.py   # Installs deps, validates e
 
 Configuration: override via `.env` (see `src/core/config.py`). Missing keys fall back to safe defaults.
 
-WSL→Windows IBKR connectivity (recommended):
+WSL/Linux IBKR connectivity (recommended):
 
-- Run IB Gateway on Windows (Paper). Enable API socket clients.
-- Use Windows portproxy so WSL connects to 172.17.208.1:4003 → 127.0.0.1:4002.
-  This avoids Trusted IP quirks for non-localhost connections.
-  Defaults in this repo target that proxy.
+- Run IB Gateway inside WSL/Linux with IBC (headless) or TWS/Gateway on Linux.
+- Enable API socket clients. Defaults target Linux gateway on localhost.
 
-Env vars (WSL-friendly defaults):
+Env vars (Linux-first defaults):
 
-- IB_HOST=172.17.208.1
-- IB_PORT=4003
-- IB_CLIENT_ID=1001
+- IB_HOST=127.0.0.1
+- IB_PORT=4002 # Paper (4001 for live gateway, 7496/7497 for TWS)
+- IB_CLIENT_ID=2011
 - IB_CONNECT_TIMEOUT=20
 
 Probe connectivity from WSL venv:
@@ -527,7 +525,7 @@ Probe connectivity from WSL venv:
 python scripts/ib_probe.py
 ```
 
-Expected: a single JSON line like {"connected":true,"serverVersion":...,"accounts":[...]} and exit 0.
+Expected: a single JSON line like {"connected":true,"method":"linux","serverVersion":...,"accounts":[...]} and exit 0.
 
 Fake vs Real IB client resolution order:
 
@@ -778,6 +776,10 @@ git push origin main --tags
 
 Maintain `CHANGELOG.md` (Keep a Changelog + SemVer).
 
+Notable change:
+
+- Default IB connectivity switched to Linux-first (localhost:4002 via Gateway/IBC). Windows portproxy remains available as a fallback and is auto-detected when `IB_HOST_Virtual`/`IB_PORT_Virtual` or equivalent overrides are set.
+
 ---
 
 ## 9. Troubleshooting & Support
@@ -926,7 +928,7 @@ See also: `docs/ENVIRONMENT.md` (kept in sync) and `.env.example`.
 | IB_PAPER_PORT             | 7497                         | Paper TWS/Gateway port                  | ib connection              |
 | IB_GATEWAY_LIVE_PORT      | 4001                         | Headless gateway live port              | headless gateway           |
 | IB_GATEWAY_PAPER_PORT     | 4002                         | Headless gateway paper port             | headless gateway           |
-| IB_CLIENT_ID              | 1                            | Client id for session                   | ib connection              |
+| IB_CLIENT_ID              | 2011                         | Client id for session                   | ib connection              |
 | IB_PAPER_TRADING          | 1                            | Paper vs live flag                      | connection config          |
 | IB_USERNAME               | (empty)                      | Headless auth username                  | headless gateway           |
 | IB_PASSWORD               | (empty)                      | Headless auth password                  | headless gateway           |
@@ -953,6 +955,22 @@ See also: `docs/ENVIRONMENT.md` (kept in sync) and `.env.example`.
 | L2_TASK_BACKOFF_MAX_MS    | 2000                         | Max backoff ms                          | databento_l2_service       |
 | SYMBOL_MAPPING_FILE       | config/symbol_mapping.json   | Local→vendor mapping                    | backfill & mapping         |
 | LOG_LEVEL                 | INFO                         | Log verbosity                           | orchestrators, batch tools |
+
+### IBKR Gateway connectivity (Windows portproxy alternative)
+
+- If you run Gateway on Windows and connect from WSL, you can use Windows portproxy.
+- Set `IB_HOST_Virtual` and/or `IB_PORT_Virtual`, or override `IB_HOST/IB_PORT` directly.
+- Tools auto-detect and log "Using Windows Gateway via portproxy (fallback)".
+
+- Probe connectivity from WSL:
+
+```bash
+python scripts/ib_probe.py
+```
+
+Prints a JSON line and exits 0 on success.
+
+Troubleshooting: If direct 192.168.x.x:4002 fails due to Trusted IPs, keep using the portproxy listener at 172.17.208.1:4003.
 
 ## Quickstart (Condensed)
 

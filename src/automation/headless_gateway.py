@@ -559,13 +559,22 @@ async def demo_headless_gateway():
             import sys
 
             sys.path.append(str(Path(__file__).parent.parent))
+            from infra.ib_conn import get_ib_connect_plan, try_connect_candidates
             from lib.ib_async_wrapper import IBAsync
 
             ib = IBAsync()
-            connected = await ib.connect("127.0.0.1", 4002, 1)
+            plan = get_ib_connect_plan()
+            ok, used = await try_connect_candidates(
+                ib.connect,
+                plan["host"],
+                [int(p) for p in plan["candidates"]],
+                int(plan["client_id"]),
+                autostart=False,
+            )
+            connected = ok
 
             if connected:
-                print("✅ Connected to IB API!")
+                print(f"✅ Connected to IB API on port {used}!")
 
                 # Test data retrieval
                 contract = ib.create_stock_contract("AAPL")
