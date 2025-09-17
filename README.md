@@ -15,25 +15,18 @@
 8. [Release Workflow](#8-release-workflow)
 9. [Troubleshooting & Support](#9-troubleshooting--support)
 10. [Coverage Targets](#10-coverage--incremental-targets)
-11. [License](#11-license)
-12. [Contributing](#12-contributing)
-13. [Data Flows](#data-flows)
-14. [Unified Environment Variables](#unified-environment-variables-authoritative)
-15. [Condensed Backfill Quickstart](#quickstart-condensed)
-16. [VS Code Tasks (One-click)](#vs-code-tasks-one-click)
-17. [TF_1 ML Alignment](#tf_1-ml-alignment)
-18. [For Agents (AI assistants)](#for-agents-ai-assistants)
+11. [Data Flows](#data-flows)
+12. [Unified Environment Variables](#unified-environment-variables-authoritative)
+13. [Condensed Backfill Quickstart](#quickstart-condensed)
+14. [VS Code Tasks (One-click)](#vs-code-tasks-one-click)
+15. [TF_1 ML Alignment](#tf_1-ml-alignment)
+16. [For Agents (AI assistants)](#for-agents-ai-assistants)
 
 > Tip: All tools self‑document with `--describe`; see Section 6.
 
 ## For Agents (AI assistants)
 
-Use these rules before making changes or answering ambiguous tasks:
-
-- Context-first: On any new task or when unsure, skim `README.md` and `docs/ARCHITECTURE.md`. Also glance `pyproject.toml`, the `src/` layout, and the VS Code tasks list in this README.
-- Read efficiently: Prefer reading larger, meaningful chunks over many tiny reads; summarize key takeaways in 1–2 bullets before proceeding.
-- Contracts: When touching `src/tools/*`, run with `--describe` to get inputs/outputs and assumptions.
-- Quality gates: After edits, run lint/format/types/tests (Ruff, Pyright/MyPy, Pytest) and keep the build green.
+Agent guidance moved: see `.github/copilot-instructions.md` for the authoritative workflow, guardrails, and quality gates. For architecture diagrams, see `docs/ARCHITECTURE.md`. For TF_1 contracts, see `docs/TF_1_ALIGNMENT.md`.
 
 ## 1. Quick Start (90% use‑case)
 
@@ -75,22 +68,24 @@ Ensure your Databento API key is configured (see Installation / Environment). Th
 python src/tools/auto_backfill_from_warrior.py [OPTIONS]
 ```
 
-Options (common):
+Recommended unified CLI (uses the orchestrator + programmatic API):
 
-- `--dry-run` — Summary-only JSON preview (task_count, symbol_count, date_range, needs_summary); no vendor calls or writes.
-- `--max-workers N` — Parallel workers (default from `L2_MAX_WORKERS` or 4).
+- `--date YYYY-MM-DD` | `--start YYYY-MM-DD --end YYYY-MM-DD` — Filter to explicit trading day(s). If the Warrior list is absent, an ad‑hoc task is created for the requested dates using `--symbol` or `AAPL` by default.
+- `--symbol SYM` — Filter to a single ticker. With explicit dates and no Warrior list, this sets the ad‑hoc symbol to backfill.
 - `--since DAYS` — Include tasks with `trading_day >= today - DAYS`.
-- `--last N` — Keep only the last N distinct trading days (after other filters).
-- `--strict` — Exit non‑zero if any errors occurred; still processes all tasks.
-- `--force` — Redownload even if destination files already exist (overwrites).
-- `--max-tasks N` — Cap total tasks processed (safety for large sets).
+- `--last N` — Keep only the last N distinct dates (applied after other filters).
+- `--max-tasks N` — Cap total tasks processed.
+- `--strict` — Exit non‑zero if any errors occurred.
+- `--force` — Overwrite existing files.
+- `--dry-run` — JSON preview; no writes/vendor calls.
+- `--max-workers N` — Parallel workers (default `L2_MAX_WORKERS` or 4).
 
-Unified workflow (optional IB bars + L2 in one run):
+Optional IB bars prefetch (same command):
 
-- `--fetch-bars` — Before L2 backfill, download IB hourly and 1‑sec bars for each task that needs them.
-- `--force-bars` — Force re-download hourly and 1‑sec bars even if present.
-- `--ib-host HOST` / `--ib-port PORT` — Override IB host/port (auto-detects common defaults otherwise).
-- `--use-tws` — Prefer TWS port 7497 over Gateway defaults.
+- `--fetch-bars` (default) / `--no-fetch-bars`
+- `--force-bars`
+- `--ib-host HOST` / `--ib-port PORT`
+- `--use-tws`
 
 Verification: you’ll see a single SUMMARY line in stdout; artifacts are written under your configured data base path:
 
@@ -99,114 +94,21 @@ backfill_l2_manifest.jsonl   # Append per-task results
 backfill_l2_summary.json     # Aggregate counts + concurrency
 ```
 
+IB historical bars (when --fetch-bars is enabled):
+
+- Stored under ML*BASE_PATH/IBDownloads with deterministic filenames from config: `<SYMBOL>\_USUSD*<BAR*SIZE>*<YYYY-MM-DD>.ftr`.
+- Examples: `AAPL_USUSD_1 hour_2025-09-04.ftr`, `AAPL_USUSD_1 sec_2025-09-04.ftr`.
+- Downstream ingestion (TF repo): enumerate `IBDownloads/` and parse filename parts or use `src/core/config.get_data_file_path('ib_download', symbol, timeframe, date_str)` for exact paths. No separate bars manifest is written today; the directory itself is the source of truth.
+
 See details in [Warrior Historical L2 Backfill (Automation)](#warrior-historical-l2-backfill-automation).
 
-**Automated Trading Flow:**
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Script as run_trading_fully_automated.py
-    participant Gateway as HeadlessGateway
-    participant IB as IB Gateway
-    participant Data as DataManager
-    participant Analysis as TradingAnalysis
-
-    User->>Script: python src/tools/run_trading_fully_automated.py --symbols AAPL
-    Script->>Gateway: Initialize headless gateway
-    Gateway->>IB: Start IB Gateway (headless)
-    IB-->>Gateway: Gateway ready ✅
-    Gateway->>IB: Login with credentials
-    IB-->>Gateway: Authentication success ✅
-
-    Script->>Data: Request market data
-    Data->>IB: Historical data request
-    IB-->>Data: Market data response
-    Data->>Analysis: Process data (Parquet format)
-
-    Analysis->>Analysis: Generate trading signals
-    Analysis-->>Script: Analysis complete
-    Script->>Script: Save results & cleanup
-    Script-->>User: Trading analysis complete! 🎉
-```
+**Automated Trading Flow:** See the full sequence diagram in `docs/ARCHITECTURE.md`.
 
 ---
 
 ## 2. Architecture Snapshot
 
-Layers (green=modern, amber=legacy/transition):
-
-```mermaid
-graph LR
- A(run_trading_fully_automated.py)-->G(headless_gateway.py)
- G-->C(ib_client / async wrappers)
- C-->D(contract_factories & ib_requests)
- A-->DM(data_manager)
- DM-->R(parquet_repository)
- R-->L2(record_depth / analyze_depth)
- C-->S(services: order mgmt, risk)
- subgraph Legacy
-  L1[ib_Main.py]
-  L2a[ib_Trader.py]
-  L3[MasterPy_Trading.py]
- end
-```
-
-### Detailed Architecture (grouped)
-
-```mermaid
-graph TB
-    subgraph "🚀 AUTOMATED CORE (Phase 1 - COMPLETE)"
-        A[run_trading_fully_automated.py] --> B[src/automation/headless_gateway.py]
-    B --> C[src/lib/ib_async_wrapper.py]
-  %% Removed legacy compatibility layer; using async infra only
-        E[setup_automated_trading.py] --> A
-    end
-
-    subgraph "📊 ENTERPRISE DATA LAYER (COMPLETE)"
-        F[src/core/config.py] --> G[src/core/error_handler.py]
-        G --> H[src/core/connection_pool.py]
-        H --> I[src/core/retry_manager.py]
-
-        J[src/data/data_manager.py] --> K[src/data/parquet_repository.py]
-        K --> L[src/data/record_depth.py]
-        L --> M[src/data/analyze_depth.py]
-    end
-
-  subgraph "🧩 IB CLIENT INFRASTRUCTURE (NEW - COMPLETE)"
-        N[ib_client.py] --> O[contract_factories.py]
-        O --> P[ib_requests.py]
-        P --> Q[project_types.py]
-    end
-
-  subgraph "�️ MODERNIZED SERVICES (Phase 1 - COMPLETE)"
-        R[services/stock_split_detection_service.py]
-        S[services/ml_order_management_service.py]
-        T[risk/ml_risk_manager.py]
-    end
-
-    subgraph "⚠️ LEGACY COMPONENTS (Phase 2 - IN PROGRESS)"
-        U[src/MasterPy_Trading.py]
-        V[src/ib_Main.py]
-        W[src/ib_Trader.py]
-    end
-
-    A --> N
-    B --> N
-    N --> R
-    N --> S
-    J --> T
-
-    style A fill:#4CAF50,stroke:#333,stroke-width:2px,color:#fff
-    style B fill:#4CAF50,stroke:#333,stroke-width:2px,color:#fff
-    style C fill:#4CAF50,stroke:#333,stroke-width:2px,color:#fff
-    style N fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
-    style O fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
-    style P fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
-    style Q fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
-    style U fill:#ff9800,stroke:#333,stroke-width:2px,color:#fff
-    style V fill:#ff9800,stroke:#333,stroke-width:2px,color:#fff
-```
+All architecture diagrams are now centralized. See `docs/ARCHITECTURE.md` for high-level and detailed diagrams.
 
 ### Project File Structure (high level)
 
@@ -272,10 +174,9 @@ Within ~10 seconds the table will populate with candidates (gap-up only, price $
 
 ### Warrior Historical L2 Backfill (Automation)
 
-Two CLIs support historical Level 2 backfill from DataBento:
+Unified flow via two entry points (same engine under the hood):
 
-- `backfill_l2_from_warrior.py` (legacy, sequential by default, now emits a SUMMARY line with concurrency)
-- `auto_backfill_from_warrior.py` (modern orchestrator, parallel workers, deterministic manifest ordering)
+- `auto_backfill_from_warrior.py` — Primary. Orchestrator + parallel workers, optional IB bars prefetch, and now supports explicit `--date/--start/--end --symbol` filters.
 
 Environment knobs:
 
@@ -321,11 +222,11 @@ result = backfill_l2("AAPL", date(2025, 7, 29))
 print(result["status"], result["rows"], result["path"])  # written|skipped|error
 ```
 
-Behavior matches the CLI (`src/tools/backfill_l2_from_warrior.py`): idempotent, atomic Parquet write with `_databento` suffix, optional vendor availability, and structured result dict.
+Behavior matches the automation CLI: idempotent, atomic Parquet write with `_databento` suffix, optional vendor availability, and structured result dict.
 
 ### Automatic Historical L2 Backfill from Warrior (New Orchestrator)
 
-In addition to the legacy batch CLI (`backfill_l2_from_warrior.py`) a lightweight orchestrator + automation CLI is available for cron / CI. The unified automation tool can also fetch IB hourly/1‑sec bars when requested.
+Use the lightweight orchestrator + automation CLI for cron / CI. The unified automation tool can also fetch IB hourly/1‑sec bars when requested.
 
 Programmatic orchestration:
 
@@ -365,7 +266,7 @@ Note: The orchestrator and programmatic API classify vendor zero-row results as 
 
 ### Legacy Deprecation Notice
 
-Legacy helper `WarriorList` now issues a `DeprecationWarning`. Use the programmatic API (`backfill_l2`) or the unified CLI `auto_backfill_from_warrior.py` instead. The older `backfill_l2_from_warrior.py` usage examples below are retained for context but the recommended path is the unified automation tool.
+Legacy helper `WarriorList` now issues a `DeprecationWarning`. Use the programmatic API (`backfill_l2`) or the unified CLI `auto_backfill_from_warrior.py` instead.
 
 Core files of interest:
 | Area | File | Purpose |
@@ -512,36 +413,7 @@ Core metrics (via analyzer): order flow imbalance, volume profile, price impact,
 
 ### Level 2 Flow (visual)
 
-```mermaid
-flowchart TD
-    A[📊 Level 2 Data Request] --> B[IB Gateway API]
-    B --> C[record_depth.py]
-
-    C --> D{Real-time Processing}
-    D --> E[Order Book Snapshots<br/>100ms intervals]
-    D --> F[Market Messages<br/>Event stream]
-
-    E --> G[Parquet Storage<br/>25-100x faster]
-    F --> H[JSON Event Log<br/>Message details]
-
-    G --> I[analyze_depth.py]
-    H --> I
-
-    I --> J[📈 Order Flow Analysis]
-    I --> K[💹 Volume Profile]
-    I --> L[🎯 Price Impact Analysis]
-    I --> M[📊 Market Microstructure]
-
-    J --> N[🧠 ML Training Data]
-    K --> N
-    L --> N
-    M --> N
-
-    style A fill:#e3f2fd
-    style G fill:#4caf50,color:#fff
-    style H fill:#4caf50,color:#fff
-    style N fill:#ff9800,color:#fff
-```
+See `docs/ARCHITECTURE.md` for the Level 2 flow diagram.
 
 ### Level 2 File Layout
 
@@ -590,7 +462,7 @@ Representative tools: setup (`setup_automated_trading.py`), automation (`run_tra
 | run_trading_fully_automated  | `python src/tools/run_trading_fully_automated.py`          | `python src/tools/run_trading_fully_automated.py --describe`          |
 | analyze_depth                | `python src/tools/analyze_depth.py`                        | `python src/tools/analyze_depth.py --describe`                        |
 | record_depth                 | `python src/tools/record_depth.py`                         | `python src/tools/record_depth.py --describe`                         |
-| backfill_l2_from_warrior     | `python src/tools/backfill_l2_from_warrior.py`             | `python src/tools/backfill_l2_from_warrior.py --describe`             |
+| auto_backfill_from_warrior   | `python src/tools/auto_backfill_from_warrior.py`           | `python src/tools/auto_backfill_from_warrior.py --describe`           |
 | analyze_scripts              | `python src/tools/analysis/analyze_scripts.py`             | `python src/tools/analysis/analyze_scripts.py --describe`             |
 | system_check_analysis        | `python src/tools/analysis/system_check_analysis.py`       | `python src/tools/analysis/system_check_analysis.py --describe`       |
 | validate_ml_structure        | `python src/tools/analysis/validate_ml_structure.py`       | `python src/tools/analysis/validate_ml_structure.py --describe`       |
@@ -763,37 +635,9 @@ pytest --cov=src --cov-branch --cov-report=xml:coverage.xml
 
 ---
 
-## 11. License
-
-See `LICENSE`.
-
----
-
-## 12. Contributing
-
-Small PRs preferred. Include:
-
-1. Tests (or justification) 2. Type hints 3. Passing quality gates 4. Updated README / CHANGELOG when user-visible.
-
----
-
-Questions? Run the `quick_start` or `verify_setup` tools with `--describe` for structured guidance.
-
 ## Data Flows
 
-```mermaid
-flowchart LR
-    Warrior[Warrior Trades Excel/Source] -->|task discovery| Tasks[Unique (Symbol, Day) Tasks]
-    Tasks -->|08:00–11:30 ET window| Fetch[DataBento Fetch]
-    Fetch --> Adapter[Vendor Adapter]\n
-    Adapter --> Parquet[(Parquet L2 Snapshots *_databento)]
-    Parquet --> ML[ML Workflows]
-    Parquet --> Analysis[Depth / Microstructure Analysis]
-    ML --> Monitoring[Monitoring & Guardrails]
-    Analysis --> Monitoring
-```
-
-The system discovers candidate (symbol, trading day) tasks from Warrior trade history, filters by the configured ET window (default 08:00–11:30), fetches historical Level 2 from DataBento via an adapter that emits parquet files schema‑compatible with live IBKR L2 capture (distinguished only by the `_databento` suffix), then feeds identical downstream ML feature generation, analysis, and monitoring pipelines.
+See `docs/ARCHITECTURE.md` for end-to-end data flow diagrams and explanations.
 
 ## Unified Environment Variables (Authoritative)
 
@@ -835,7 +679,7 @@ See also: `docs/ENVIRONMENT.md` (kept in sync) and `.env.example`.
 | L2_BACKFILL_WINDOW_ET     | 09:00-11:00                  | Historical slice window (ET)            | backfill_api               |
 | L2_ENFORCE_TRADING_WINDOW | 1                            | Clamp L2 fetch to trading window (ET)   | backfill_api               |
 | L2_TRADING_WINDOW_ET      | 09:00-11:00                  | Trading window for Level 2 (ET)         | backfill_api               |
-| L2_BACKFILL_CONCURRENCY   | 2                            | Legacy CLI concurrency                  | backfill_l2_from_warrior   |
+| L2_BACKFILL_CONCURRENCY   | 2                            | Deprecated (use L2_MAX_WORKERS)         | auto_backfill_from_warrior |
 | L2_MAX_WORKERS            | 4                            | Orchestrator workers                    | auto_backfill_from_warrior |
 | L2_TASK_BACKOFF_BASE_MS   | 250                          | Base backoff ms (vendor retry)          | databento_l2_service       |
 | L2_TASK_BACKOFF_MAX_MS    | 2000                         | Max backoff ms                          | databento_l2_service       |
@@ -903,7 +747,9 @@ SYMBOL_MAPPING_FILE=config/symbol_mapping.json
 Usage: prefer the unified automation CLI:
 
 ```
-python src/tools/auto_backfill_from_warrior.py --since 3 --fetch-bars --max-workers 4
+python src/tools/auto_backfill_from_warrior.py --since 3 --max-workers 4
+# To skip IB bar downloads, opt out explicitly:
+# python src/tools/auto_backfill_from_warrior.py --since 3 --no-fetch-bars --max-workers 4
 ```
 
 This downloads IB hourly/1‑sec (optional) and backfills L2 for the Warrior‑discovered tasks.

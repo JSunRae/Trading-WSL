@@ -20,6 +20,8 @@ from src.services.market_data.warrior_backfill_orchestrator import (
 def _patch_warrior(monkeypatch: Any, df: pd.DataFrame) -> None:
     from src.services import data_management_service as dms
 
+    # Disable modern data service path so fallback WarriorList is invoked
+    monkeypatch.setattr(dms, "get_data_service", None, raising=False)
     dms.WarriorList = lambda mode: df  # type: ignore
 
 
@@ -53,13 +55,12 @@ def test_find_tasks_dedupes_and_filters(monkeypatch: pytest.MonkeyPatch):
         }
     )
     _patch_warrior(monkeypatch, df)
-    # since_days=3 should drop the older date, last=1 should keep only the recent date
     tasks = find_warrior_tasks(since_days=3, last=1)
-    assert all(d >= today - timedelta(days=3) for _, d in tasks)
-    # Deduped symbols for recent date (AAPL once)
-    assert any(sym == "AAPL" for sym, _ in tasks)
-    # Older MSFT excluded by since_days filter
-    assert not any(sym == "MSFT" and d == older for sym, d in tasks)
+    # Expect exactly one deduped AAPL task (recent date)
+    assert len(tasks) == 1
+    sym, d = tasks[0]
+    assert sym == "AAPL"
+    assert d == recent
 
 
 def test_run_backfill_writes_summary_and_manifest(
@@ -86,6 +87,7 @@ def test_run_backfill_writes_summary_and_manifest(
     )
     tasks = find_warrior_tasks()
     summary = run_warrior_backfill(tasks)
+    # Exactly one injected task expected
     assert summary["counts"]["WRITE"] == 1
     manifest = tmp_path / "backfill_l2_manifest.jsonl"
     assert manifest.exists()

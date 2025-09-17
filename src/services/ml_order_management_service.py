@@ -210,8 +210,12 @@ class MLOrderManagementService:
         ] = {}  # order_id -> quality
 
         # Performance tracking
-        self.quality_history: deque = deque(maxlen=10000)  # Recent execution quality
-        self.latency_history: deque = deque(maxlen=10000)  # Recent latency measurements
+        self.quality_history: deque[float] = deque(
+            maxlen=10000
+        )  # Recent execution quality
+        self.latency_history: deque[float] = deque(
+            maxlen=10000
+        )  # Recent latency measurements
 
         # Real-time monitoring
         self.execution_alerts: list[str] = []
@@ -423,25 +427,26 @@ class MLOrderManagementService:
             if not order_ids:
                 return {"status": "NO_ORDERS", "signal_id": signal_id}
 
-            orders = [self.base_service.orders.get(oid) for oid in order_ids]
-            orders = [o for o in orders if o]  # Filter None values
+            orders_opt = [self.base_service.orders.get(oid) for oid in order_ids]
+            orders: list[Order] = [o for o in orders_opt if o is not None]
 
             if not orders:
                 return {"status": "ORDERS_NOT_FOUND", "signal_id": signal_id}
 
             # Aggregate status
-            total_quantity = sum(o.quantity for o in orders)
-            filled_quantity = sum(o.filled_quantity for o in orders)
-            avg_fill_price = (
-                sum(
-                    o.avg_fill_price * o.filled_quantity
+            total_quantity: int = sum(o.quantity for o in orders)
+            filled_quantity: int = sum(o.filled_quantity for o in orders)
+            if filled_quantity > 0:
+                numerator = sum(
+                    float(o.avg_fill_price) * o.filled_quantity
                     for o in orders
-                    if o.avg_fill_price
+                    if o.avg_fill_price is not None
                 )
-                / filled_quantity
-                if filled_quantity > 0
-                else None
-            )
+                avg_fill_price: float | None = (
+                    numerator / filled_quantity if numerator else None
+                )
+            else:
+                avg_fill_price = None
 
             # Get quality metrics
             quality_scores = [

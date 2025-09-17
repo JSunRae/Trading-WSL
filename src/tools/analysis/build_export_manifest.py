@@ -28,6 +28,7 @@ def tool_describe() -> dict[str, Any]:
     return {
         "name": "build_export_manifest",
         "description": "Compute Sharpe/MaxDD from returns or PnL and build a TF_1-style export manifest.",
+        "dependencies": [],
         "inputs": {
             "--model-id": {"type": "str", "required": True},
             "--version": {"type": "str", "required": True},
@@ -45,7 +46,11 @@ def tool_describe() -> dict[str, Any]:
             },
         },
         "outputs": {
-            "file": "manifest JSON (schema_version=1.0, metrics[sharpe,f1,max_drawdown])"
+            "stdout": {
+                "type": "text",
+                "description": "Path to written manifest (and validator JSON if --validate)",
+            },
+            "file": "manifest JSON (schema_version=1.0, metrics[sharpe,f1,max_drawdown])",
         },
         "version": 1,
     }

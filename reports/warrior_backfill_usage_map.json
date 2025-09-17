@@ -6,7 +6,7 @@
       "symbol": "WarriorList",
       "locations": [
         "src/services/data_management_service.py:438",
-        "src/tools/backfill_l2_from_warrior.py:120"
+        "src/tools/auto_backfill_from_warrior.py:1"
       ],
       "replacement": "Use auto_backfill_from_warrior (batch) or warrior_backfill_orchestrator.find_warrior_tasks + run_warrior_backfill"
     }

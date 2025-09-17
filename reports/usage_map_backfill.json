@@ -6,9 +6,9 @@
       "symbol": "WarriorList",
       "locations": [
         "src/services/data_management_service.py:438",
-        "src/tools/backfill_l2_from_warrior.py:120"
+        "src/tools/auto_backfill_from_warrior.py:1"
       ],
-      "replacement": "Use backfill_l2 (programmatic) or CLI backfill_l2_from_warrior (delegates to API)"
+      "replacement": "Use backfill_l2 (programmatic) or CLI auto_backfill_from_warrior (batch orchestrator)"
     }
   ]
 }

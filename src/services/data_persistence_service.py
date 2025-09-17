@@ -9,6 +9,7 @@ Created: December 2024 (Phase 2 Monolithic Decomposition)
 """
 
 import sys
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -18,61 +19,86 @@ import pandas as pd
 # Add src to path for imports using pathlib
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
+# --- Dependency aliases (avoid conditional redefinitions) ---
 try:
-    from src.core.config import get_config
-    from src.core.error_handler import DataError, handle_error
-except ImportError:
-    # Fallback for when running as standalone script
-    print("Warning: Could not import core modules, using fallback implementations")
+    from src.core.config import get_config as _real_get_config
+except Exception:  # pragma: no cover - best-effort import
+    _real_get_config = None  # type: ignore[assignment]
 
-    def get_config():  # type: ignore[override]
-        """Fallback config function"""
-
-        class FallbackConfig:
-            def __init__(self):
-                self.ib_download_location = "./data/ib_downloads"
-                # Use config-compatible fallback paths
-                data_dir = Path("./data")
-                self.failed_stocks_location = str(data_dir / "failed_stocks.csv")
-                self.downloadable_stocks_location = str(
-                    data_dir / "downloadable_stocks.csv"
-                )
-                self.downloaded_stocks_location = str(
-                    data_dir / "downloaded_stocks.csv"
-                )
-
-            def get_csv_file_path(self, csv_type: str):
-                """Fallback method compatible with main config"""
-                paths = {
-                    "failed_stocks": self.failed_stocks_location,
-                    "downloadable_stocks": self.downloadable_stocks_location,
-                    "downloaded_stocks": self.downloaded_stocks_location,
-                }
-                return Path(paths.get(csv_type, f"./data/{csv_type}.csv"))
-
-        return FallbackConfig()
-
-    def handle_error(error, context=None, module="", function=""):
-        """Fallback error handler"""
-        print(f"Error in {module}.{function}: {error}")
-        from dataclasses import dataclass
-        from datetime import datetime
-
-        @dataclass
-        class ErrorReport:
-            error_id: str = "fallback_error"
-            timestamp: datetime = datetime.now()
-            message: str = str(error)
-
-        return ErrorReport()
-
-    class DataError(Exception):
-        """Fallback exception class"""
-
-        pass
+try:
+    from src.core.error_handler import (
+        DataError as _RealDataError,
+    )
+    from src.core.error_handler import (
+        handle_error as _real_handle_error,
+    )
+except Exception:  # pragma: no cover - best-effort import
+    _RealDataError = None  # type: ignore[assignment]
+    _real_handle_error = None  # type: ignore[assignment]
 
 
-def safe_df_scalar_access(df: pd.DataFrame, row: str, col: str, default=None) -> Any:
+def _fallback_get_config(*_args: Any, **_kwargs: Any) -> Any:
+    """Fallback config factory returning a minimal config-like object.
+
+    Provides the get_data_file_path API used by this module.
+    """
+
+    class FallbackConfig:
+        def __init__(self):
+            self.ib_download_location = "./data/ib_downloads"
+            data_dir = Path("./data")
+            self.failed_stocks_location = str(data_dir / "failed_stocks.xlsx")
+            self.downloadable_stocks_location = str(
+                data_dir / "downloadable_stocks.xlsx"
+            )
+            self.downloaded_stocks_location = str(data_dir / "downloaded_stocks.xlsx")
+
+        def get_data_file_path(self, key: str) -> Path:
+            mapping: dict[str, str] = {
+                "ib_failed_stocks": self.failed_stocks_location,
+                "ib_downloadable_stocks": self.downloadable_stocks_location,
+                "ib_downloaded_stocks": self.downloaded_stocks_location,
+            }
+            return Path(mapping.get(key, f"./data/{key}.xlsx"))
+
+    return FallbackConfig()
+
+
+def _fallback_handle_error(
+    error: Exception,
+    context: dict[str, Any] | None = None,
+    module: str = "",
+    function: str = "",
+) -> Any:
+    """Fallback error handler that logs to stdout and returns a simple report."""
+    print(f"Error in {module}.{function}: {error}; context={context}")
+    from dataclasses import dataclass
+
+    @dataclass
+    class ErrorReport:
+        error_id: str = "fallback_error"
+        timestamp: datetime = datetime.now()
+        message: str = str(error)
+
+    return ErrorReport()
+
+
+# Public aliases used throughout this module
+get_config_fn: Callable[..., Any] = (
+    _real_get_config if _real_get_config is not None else _fallback_get_config
+)
+handle_error_fn: Callable[[Exception, dict[str, Any] | None, str, str], Any]
+handle_error_fn = (
+    _real_handle_error if _real_handle_error is not None else _fallback_handle_error
+)
+DataErrorCls: type[Exception] = (
+    _RealDataError if _RealDataError is not None else Exception
+)
+
+
+def safe_df_scalar_access(
+    df: pd.DataFrame, row: str, col: str, default: Any | None = None
+) -> Any | None:
     """
     Safely access a DataFrame scalar value with fallback.
 
@@ -150,9 +176,9 @@ class DataPersistenceService:
     def _load_config(self) -> None:
         """Load configuration and set up file paths."""
         try:
-            self.config = get_config()
+            self.config = get_config_fn()
         except Exception as e:
-            handle_error(e, module="DataPersistence", function="_load_config")
+            handle_error_fn(e, None, "DataPersistence", "_load_config")
             self.config = None
 
         # Set up file paths
@@ -160,17 +186,17 @@ class DataPersistenceService:
             self.failed_stocks_path = str(
                 self.config.get_data_file_path("ib_failed_stocks")
                 if self.config
-                else get_config().get_data_file_path("ib_failed_stocks")
+                else get_config_fn().get_data_file_path("ib_failed_stocks")
             )
             self.downloadable_stocks_path = str(
                 self.config.get_data_file_path("ib_downloadable_stocks")
                 if self.config
-                else get_config().get_data_file_path("ib_downloadable_stocks")
+                else get_config_fn().get_data_file_path("ib_downloadable_stocks")
             )
             self.downloaded_stocks_path = str(
                 self.config.get_data_file_path("ib_downloaded_stocks")
                 if self.config
-                else get_config().get_data_file_path("ib_downloaded_stocks")
+                else get_config_fn().get_data_file_path("ib_downloaded_stocks")
             )
         except Exception:
             # Last resort minimal fallback (should rarely happen)
@@ -247,18 +273,20 @@ class DataPersistenceService:
             True if record was added/updated, False otherwise
         """
         if not symbol:
-            handle_error(
+            handle_error_fn(
                 ValueError("Symbol cannot be blank for failed list"),
-                module="DataPersistence",
-                function="append_failed",
+                None,
+                "DataPersistence",
+                "append_failed",
             )
             return False
 
         if self.df_failed is None:
-            handle_error(
-                DataError("Failed DataFrame not initialized"),
-                module="DataPersistence",
-                function="append_failed",
+            handle_error_fn(
+                DataErrorCls("Failed DataFrame not initialized"),
+                None,
+                "DataPersistence",
+                "append_failed",
             )
             return False
 
@@ -400,10 +428,11 @@ class DataPersistenceService:
             return False
 
         if self.df_downloadable is None:
-            handle_error(
-                DataError("Downloadable DataFrame not initialized"),
-                module="DataPersistence",
-                function="append_downloadable",
+            handle_error_fn(
+                DataErrorCls("Downloadable DataFrame not initialized"),
+                None,
+                "DataPersistence",
+                "append_downloadable",
             )
             return False
 
@@ -446,10 +475,11 @@ class DataPersistenceService:
             return False
 
         if self.df_downloaded is None:
-            handle_error(
-                DataError("Downloaded DataFrame not initialized"),
-                module="DataPersistence",
-                function="append_downloaded",
+            handle_error_fn(
+                DataErrorCls("Downloaded DataFrame not initialized"),
+                None,
+                "DataPersistence",
+                "append_downloaded",
             )
             return False
 
@@ -572,7 +602,7 @@ class DataPersistenceService:
                 self.fail_changes = 0
                 print(f"✅ Saved failed stocks to {self.failed_stocks_path}")
         except Exception as e:
-            handle_error(e, module="DataPersistence", function="_save_failed_stocks")
+            handle_error_fn(e, None, "DataPersistence", "_save_failed_stocks")
 
     def _save_downloadable_stocks(self) -> None:
         """Save downloadable stocks DataFrame to file."""
@@ -594,9 +624,7 @@ class DataPersistenceService:
                     f"✅ Saved downloadable stocks to {self.downloadable_stocks_path}"
                 )
         except Exception as e:
-            handle_error(
-                e, module="DataPersistence", function="_save_downloadable_stocks"
-            )
+            handle_error_fn(e, None, "DataPersistence", "_save_downloadable_stocks")
 
     def _save_downloaded_stocks(self) -> None:
         """Save downloaded stocks DataFrame to file."""
@@ -616,9 +644,7 @@ class DataPersistenceService:
                 self.downloaded_changes = 0
                 print(f"✅ Saved downloaded stocks to {self.downloaded_stocks_path}")
         except Exception as e:
-            handle_error(
-                e, module="DataPersistence", function="_save_downloaded_stocks"
-            )
+            handle_error_fn(e, None, "DataPersistence", "_save_downloaded_stocks")
 
     def save_all(self) -> None:
         """Force save all DataFrames regardless of change count."""

@@ -82,20 +82,23 @@ class HeadlessGateway:
             "/Applications/IB Gateway.app/Contents/MacOS/ibgateway",  # macOS
         ]
 
-        self.java_paths = [
+        # Search candidates for Java; filter out None from which()
+        self.java_paths: list[str] = [
             "/opt/ibgateway/jre/bin/java",
             "/usr/bin/java",
             "/usr/local/bin/java",
-            shutil.which("java"),
         ]
+        _which_java = shutil.which("java")
+        if _which_java:
+            self.java_paths.append(_which_java)
 
     def find_gateway_installation(self) -> Path | None:
         """Find IB Gateway installation"""
         for path in self.gateway_paths:
-            path = Path(path)
-            if path.exists():
-                self.logger.info(f"Found IB Gateway at: {path}")
-                return path
+            p = Path(str(path))
+            if p.exists():
+                self.logger.info(f"Found IB Gateway at: {p}")
+                return p
 
         self.logger.error("IB Gateway installation not found")
         return None
@@ -123,7 +126,7 @@ class HeadlessGateway:
 
     def kill_existing_gateway(self):
         """Kill any existing IB Gateway processes"""
-        killed_processes = []
+        killed_processes: list[int] = []
 
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
@@ -139,13 +142,23 @@ class HeadlessGateway:
                             )
 
                 # Also check for processes using our port
-                for conn in proc.connections():
-                    if conn.laddr.port == self.port:
-                        proc.kill()
-                        killed_processes.append(proc.info["pid"])
-                        self.logger.info(
-                            f"Killed process using port {self.port}: {proc.info['pid']}"
-                        )
+                try:
+                    conns = proc.net_connections()
+                except Exception:
+                    conns = []
+                for conn in conns:
+                    try:
+                        if (
+                            conn.laddr
+                            and getattr(conn.laddr, "port", None) == self.port
+                        ):
+                            proc.kill()
+                            killed_processes.append(proc.info["pid"])
+                            self.logger.info(
+                                f"Killed process using port {self.port}: {proc.info['pid']}"
+                            )
+                    except Exception:
+                        continue
 
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
@@ -217,7 +230,7 @@ mode={"paper" if self.paper_trading else "live"}
             gateway_dir / "3rdparty",
         ]
 
-        classpath_parts = []
+        classpath_parts: list[str] = []
         for location in jar_locations:
             if location.is_file() and location.suffix == ".jar":
                 classpath_parts.append(str(location))

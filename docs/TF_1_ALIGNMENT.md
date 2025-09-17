@@ -63,6 +63,51 @@ Notes:
   - `counts` (dict of WRITE/SKIP/EMPTY/ERROR), `zero_row_tasks` ([symbol, date] list), `errors` (list[str])
   - `total_tasks`, `duration_sec`, `strict`, `force`, `max_tasks`, `concurrency`
 
+- `bars_download_manifest.jsonl` (append-only JSON Lines): emitted whenever hourly/minute/second bars are written. Fields:
+  - `schema_version` (string; currently `bars_manifest.v1`)
+  - `written_at` (ISO 8601)
+  - `vendor` (e.g., `IBKR`)
+  - `file_format` (e.g., `parquet`)
+  - `symbol` (string)
+  - `bar_size` (e.g., `1 hour`, `1 min`, `1 sec`)
+  - `path` (absolute path)
+  - `filename` (basename)
+  - `rows` (int)
+  - `columns` (list[str])
+  - `time_start` (ISO 8601 or null)
+  - `time_end` (ISO 8601 or null)
+
+- `bars_coverage_manifest.json` (compact summary built from the append-only manifest): summarizes current coverage per `(symbol, bar_size)` with per-day best files and overall date range. Fields:
+  - `schema_version` (string; currently `bars_coverage.v1`)
+  - `generated_at` (ISO 8601)
+  - `entries` (list): each entry has
+    - `symbol` (string)
+    - `bar_size` (string; `1 hour` | `1 min` | `1 sec`)
+    - `total` (object): `{ "date_start": YYYY-MM-DD, "date_end": YYYY-MM-DD }`
+    - `days` (list): best file per day with fields `{ "date", "time_start", "time_end", "path", "filename", "rows" }`
+
+Production path and refresh:
+
+- Location: `${DATA_PATH_OVERRIDE or ML_BASE_PATH}/bars_coverage_manifest.json`
+- Producer: `src/tools/analysis/build_bars_coverage.py`
+- Auto-refresh: invoked at the end of `auto_backfill_from_warrior.py` runs; can also be run directly.
+
+Consumption guidance for TF_1:
+
+- Treat this as the fast “current index” to plan incremental downloads and resume partial days.
+- Prefer coverage to discover which days are present and which are missing per `(symbol, bar_size)` without scanning directories.
+- For training, iterate `entries[*].days` and read `path` for the best available file per day. Fall back to the append-only manifest if deeper provenance is required.
+
+Compatibility:
+
+- This file is fully derived from `bars_download_manifest.jsonl`. If the schema evolves, a new `schema_version` will be introduced; reject unknown versions.
+
+Consumption guidance for TF_1:
+
+- Use this manifest to discover available bar files quickly instead of walking directories.
+- Filter by `bar_size` and `symbol`; prefer the newest `written_at` per `(symbol, bar_size, time_start, time_end)` if duplicates exist.
+- Treat `schema_version` as a gate; reject unknown versions.
+
 Usage guidance for TF_1:
 
 - Consume manifest incrementally to detect which (symbol, date) are newly written vs skipped vs empty.

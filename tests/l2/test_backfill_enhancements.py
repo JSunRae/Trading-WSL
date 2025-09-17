@@ -77,20 +77,20 @@ def test_zero_row_handling_and_manifest(monkeypatch: Any, tmp_path: Path):  # ty
     )
 
     _patch_warrior(monkeypatch)
-    mod = importlib.import_module("src.tools.backfill_l2_from_warrior")
+    mod = importlib.import_module("src.tools.auto_backfill_from_warrior")
     sys.argv = [
-        "backfill_l2_from_warrior",
+        "auto_backfill_from_warrior",
         "--date",
         "2025-07-29",
         "--max-tasks",
         "1",
+        "--no-fetch-bars",
     ]
     buf = io.StringIO()
     with redirect_stdout(buf):
         rc = mod.main()
     assert rc == 0
-    out = buf.getvalue()
-    assert "EMPTY AAPL 2025-07-29" in out
+    # auto cli does not emit per-task EMPTY lines; verify manifest and summary instead
     manifest = tmp_path / "backfill_l2_manifest.jsonl"
     assert manifest.exists()
     lines = manifest.read_text().strip().splitlines()
@@ -118,20 +118,17 @@ def test_strict_mode_vendor_unavailable(monkeypatch: Any, tmp_path: Path):  # ty
         "is_available",
         staticmethod(lambda api_key: False),  # type: ignore[arg-type]
     )
-    mod = importlib.import_module("src.tools.backfill_l2_from_warrior")
+    mod = importlib.import_module("src.tools.auto_backfill_from_warrior")
     sys.argv = [
-        "backfill_l2_from_warrior",
+        "auto_backfill_from_warrior",
         "--date",
         "2025-07-29",
         "--strict",
+        "--no-fetch-bars",
     ]
     with redirect_stdout(io.StringIO()):
-        try:
-            mod.main()
-        except SystemExit as e:  # strict should raise
-            assert e.code != 0
-        else:  # pragma: no cover - defensive
-            raise AssertionError("Expected SystemExit in strict mode")
+        rc = mod.main()
+    assert rc != 0
 
 
 def test_summary_shape_and_last_filter(monkeypatch: Any, tmp_path: Path):  # type: ignore[unused-argument]
@@ -161,13 +158,14 @@ def test_summary_shape_and_last_filter(monkeypatch: Any, tmp_path: Path):  # typ
         "fetch_l2",
         lambda self, req: _fake_vendor_df(),  # type: ignore[override]
     )
-    mod = importlib.import_module("src.tools.backfill_l2_from_warrior")
+    mod = importlib.import_module("src.tools.auto_backfill_from_warrior")
     sys.argv = [
-        "backfill_l2_from_warrior",
+        "auto_backfill_from_warrior",
         "--last",
         "2",
         "--since",
-        "2025-07-01",
+        "365",  # auto CLI uses days; keep sufficiently large for test
+        "--no-fetch-bars",
     ]
     with redirect_stdout(io.StringIO()):
         rc = mod.main()
@@ -205,15 +203,25 @@ def test_retry_stop(monkeypatch: Any, tmp_path: Path):  # type: ignore[unused-ar
         "is_available",
         staticmethod(lambda api_key: True),  # type: ignore[arg-type]
     )
-    mod = importlib.import_module("src.tools.backfill_l2_from_warrior")
-    sys.argv = ["backfill_l2_from_warrior", "--date", "2025-07-29"]
+    mod = importlib.import_module("src.tools.auto_backfill_from_warrior")
+    sys.argv = [
+        "auto_backfill_from_warrior",
+        "--date",
+        "2025-07-29",
+        "--no-fetch-bars",
+    ]
     buf = io.StringIO()
     with redirect_stdout(buf):
         rc = mod.main()
-    out = buf.getvalue()
     assert rc == 0
     assert attempts["n"] == 3  # 3 retry attempts
-    assert "ERROR AAPL 2025-07-29" in out or "UNAVAIL" in out
+    # auto cli surfaces errors via summary; ensure manifest/summary reflect error
+    summary_path = tmp_path / "backfill_l2_summary.json"
+    summary = json.loads(summary_path.read_text())
+    assert (
+        summary["counts"].get("ERROR", 0) >= 1
+        or summary["counts"].get("UNAVAIL", 0) >= 1
+    )
 
 
 def test_contract_schema_parity(monkeypatch: Any, tmp_path: Path):  # type: ignore[unused-argument]

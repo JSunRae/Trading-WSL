@@ -22,38 +22,65 @@ sys.path.append(str(Path(__file__).parent / ".."))
 # Type aliases for fallback compatibility
 SplitDetectionService = Any
 DataPersistenceService = Any
-ErrorHandler = Callable[[Any, Any | None, str, str], Any]
+ErrorHandler = Callable[[Exception, dict[str, Any] | None, str, str], Any]
+
+# --- Dependency aliases to avoid conditional redefinitions ---
+try:
+    from src.services.stock_split_detection_service import (
+        get_split_detection_service as _real_get_split_detection_service,
+    )
+except Exception:
+    _real_get_split_detection_service = None  # type: ignore[assignment]
 
 try:
-    from src.core.error_handler import handle_error
-    from src.services.data_persistence_service import get_data_persistence_service
-    from src.services.stock_split_detection_service import get_split_detection_service
+    from src.services.data_persistence_service import (
+        get_data_persistence_service as _real_get_data_persistence_service,
+    )
+except Exception:
+    _real_get_data_persistence_service = None  # type: ignore[assignment]
 
-    # Services available
-    SERVICES_AVAILABLE = True
+try:
+    from src.core.error_handler import handle_error as _real_handle_error
+except Exception:
+    _real_handle_error = None  # type: ignore[assignment]
 
-except ImportError as e:
-    print(f"Warning: Could not import core modules: {e}")
 
-    # Fallback implementations
-    SERVICES_AVAILABLE = False
+def _fallback_get_split_detection_service(
+    data_persistence_service: Any | None = None,
+) -> Any | None:
+    return None
 
-    def get_split_detection_service(
-        data_persistence_service=None,
-    ) -> SplitDetectionService | None:
-        """Fallback split detection service factory."""
-        return None
 
-    def get_data_persistence_service() -> DataPersistenceService | None:
-        """Fallback data persistence service factory."""
-        return None
+def _fallback_get_data_persistence_service() -> Any | None:
+    return None
 
-    def handle_error(
-        error: Any, context: Any | None = None, module: str = "", function: str = ""
-    ) -> Any:
-        """Fallback error handler."""
-        print(f"Error in {module}.{function}: {error}")
-        return None
+
+def _fallback_handle_error(
+    error: Exception,
+    context: dict[str, Any] | None = None,
+    module: str = "",
+    function: str = "",
+) -> Any:
+    print(f"Error in {module}.{function}: {error}; context={context}")
+    return None
+
+
+get_split_detection_service_fn: Callable[[Any | None], Any | None]
+get_split_detection_service_fn = (
+    _real_get_split_detection_service or _fallback_get_split_detection_service
+)
+
+get_data_persistence_service_fn: Callable[[], Any | None]
+get_data_persistence_service_fn = (
+    _real_get_data_persistence_service or _fallback_get_data_persistence_service
+)
+
+handle_error_fn: ErrorHandler = _real_handle_error or _fallback_handle_error
+
+SERVICES_AVAILABLE = (
+    _real_get_split_detection_service is not None
+    and _real_get_data_persistence_service is not None
+)
 
 
 class MLDataIntegrityManager:
@@ -66,10 +93,10 @@ class MLDataIntegrityManager:
 
     def __init__(self):
         """Initialize the ML Data Integrity Manager."""
-        self.split_service = get_split_detection_service()
-        self.data_service = get_data_persistence_service()
-        self.checked_symbols: set = set()  # Track already checked symbols
-        self.split_detected_symbols: set = set()  # Track symbols with splits
+        self.split_service = get_split_detection_service_fn(None)
+        self.data_service = get_data_persistence_service_fn()
+        self.checked_symbols: set[str] = set()  # Track already checked symbols
+        self.split_detected_symbols: set[str] = set()  # Track symbols with splits
         self.services_available = SERVICES_AVAILABLE
 
     def validate_data_for_ml(
@@ -143,7 +170,7 @@ class MLDataIntegrityManager:
                 }
 
         except Exception as e:
-            handle_error(e, module="MLDataIntegrity", function="validate_data_for_ml")
+            handle_error_fn(e, None, "MLDataIntegrity", "validate_data_for_ml")
             return {
                 "symbol": symbol,
                 "validation_status": "error",

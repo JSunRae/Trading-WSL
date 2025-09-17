@@ -39,3 +39,15 @@ A lightweight integration test validates the end-to-end path for one `(symbol, t
 ```bash
 pytest -q -s tests/e2e/test_single_symbol_single_day_e2e.py
 ```
+
+## Launch Gateway Linux
+
+# 1. Kill any old IB Gateway processes
+
+# 2. Launch fresh in the foreground so you can log in + set API port
+
+```bash
+pkill -f install4j.ibgateway.GWClient || true
+LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe \
+  ~/Jts/ibgateway/1037/ibgateway 2>&1 | tee /tmp/ibg_fg.log
+```

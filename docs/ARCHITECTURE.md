@@ -70,6 +70,82 @@ flowchart LR
 
 Design goals: idempotent parquet outputs, consistent manifest schema, unified SUMMARY line, minimal branching logic in orchestrator.
 
+## Automated Trading Flow (sequence)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Script as run_trading_fully_automated.py
+    participant Gateway as HeadlessGateway
+    participant IB as IB Gateway
+    participant Data as DataManager
+    participant Analysis as TradingAnalysis
+
+    User->>Script: python src/tools/run_trading_fully_automated.py --symbols AAPL
+    Script->>Gateway: Initialize headless gateway
+    Gateway->>IB: Start IB Gateway (headless)
+    IB-->>Gateway: Gateway ready ✅
+    Gateway->>IB: Login with credentials
+    IB-->>Gateway: Authentication success ✅
+
+    Script->>Data: Request market data
+    Data->>IB: Historical data request
+    IB-->>Data: Market data response
+    Data->>Analysis: Process data (Parquet format)
+
+    Analysis->>Analysis: Generate trading signals
+    Analysis-->>Script: Analysis complete
+    Script->>Script: Save results & cleanup
+    Script-->>User: Trading analysis complete! 🎉
+```
+
+## Level 2 Flow (visual)
+
+```mermaid
+flowchart TD
+    A[📊 Level 2 Data Request] --> B[IB Gateway API]
+    B --> C[record_depth.py]
+
+    C --> D{Real-time Processing}
+    D --> E[Order Book Snapshots<br/>100ms intervals]
+    D --> F[Market Messages<br/>Event stream]
+
+    E --> G[Parquet Storage<br/>25-100x faster]
+    F --> H[JSON Event Log<br/>Message details]
+
+    G --> I[analyze_depth.py]
+    H --> I
+
+    I --> J[📈 Order Flow Analysis]
+    I --> K[💹 Volume Profile]
+    I --> L[🎯 Price Impact Analysis]
+    I --> M[📊 Market Microstructure]
+
+    J --> N[🧠 ML Training Data]
+    K --> N
+    L --> N
+    M --> N
+
+    style A fill:#e3f2fd
+    style G fill:#4caf50,color:#fff
+    style H fill:#4caf50,color:#fff
+    style N fill:#ff9800,color:#fff
+```
+
+## End-to-End Data Flows
+
+```mermaid
+flowchart LR
+    Warrior[Warrior Trades Excel/Source] -->|task discovery| Tasks[Unique (Symbol, Day) Tasks]
+    Tasks -->|08:00–11:30 ET window| Fetch[DataBento Fetch]
+    Fetch --> Adapter[Vendor Adapter]\n
+    Adapter --> Parquet[(Parquet L2 Snapshots *_databento)]
+    Parquet --> ML[ML Workflows]
+    Parquet --> Analysis[Depth / Microstructure Analysis]
+    ML --> Monitoring[Monitoring & Guardrails]
+    Analysis --> Monitoring
+```
+
 ## Legacy Boundary
 
 Legacy scripts (e.g. `ib_Main.py`, `ib_Trader.py`, `MasterPy_Trading.py`) remain isolated; new code does not import them. Migration proceeds by extracting pure services into `src/services/` with tests, leaving thin shims until final removal.

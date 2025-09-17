@@ -72,6 +72,24 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
     start_ns = _now_ns()
     date_str = trading_day.strftime("%Y-%m-%d")
 
+    # Compute destination paths first so we can short-circuit with a concise log
+    base_path = cfg.get_data_file_path("level2", symbol=symbol, date_str=date_str)
+    dest = with_source_suffix(base_path, "databento")
+
+    # Early exit: when file exists and not forcing, avoid verbose logs
+    if dest.exists() and not force:
+        logger.info("Lvl2 %s Exists: %s", symbol, dest)
+        return {
+            "symbol": symbol,
+            "date": date_str,
+            "status": "skipped",
+            "rows": 0,
+            "path": str(dest),
+            "duration_ms": (_now_ns() - start_ns) // 1_000_000,
+            "zero_rows": False,
+            "error": None,
+        }
+
     # Resolve vendor mapping + window + dataset/schema
     api_key = cfg.databento_api_key()
     dataset = cfg.get_env("DATABENTO_DATASET")
@@ -109,8 +127,6 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
     )
 
     # Destination path (shared with CLI)
-    base_path = cfg.get_data_file_path("level2", symbol=symbol, date_str=date_str)
-    dest = with_source_suffix(base_path, "databento")
     logger.info("L2 destination path=%s (base=%s)", dest, base_path)
 
     def _final(
@@ -140,9 +156,7 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
                 summary["total_rows"] += rows
         return res
 
-    if dest.exists() and not force:
-        logger.info("L2 backfill skipped (exists) path=%s", dest)
-        return _final("skipped")
+    # Existence already handled by early exit above
 
     # Vendor availability guard (matches CLI semantics)
     vendor_service = DataBentoL2Service(api_key)

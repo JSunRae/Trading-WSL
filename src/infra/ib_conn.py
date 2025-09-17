@@ -330,16 +330,22 @@ def _build_candidate_ports() -> list[int]:
     return out
 
 
-def _detect_connect_method(env_host: str, env_port: str, have_virtual: bool) -> str:
-    """Detect connection method label for logging/telemetry."""
-    if have_virtual:
-        return "windows-portproxy"
+def _detect_connect_method(resolved_host: str, env_host: str, env_port: str) -> str:
+    """Detect connection method label for logging/telemetry (Linux-first).
+
+    - If resolved host is localhost/127.0.0.1 -> linux
+    - Else if env_host looks like a LAN address and env_port is a typical
+      portproxy port (4003/4004) -> windows-portproxy
+    - Else -> linux
+    """
     try:
+        if resolved_host in {"127.0.0.1", "localhost"}:
+            return "linux"
         p_int = int(env_port) if env_port else None
     except ValueError:
         p_int = None
     if env_host.startswith("172.") or env_host.startswith("192.168."):
-        if p_int in {4003, 4004} or p_int is None:
+        if p_int in {4003, 4004}:
             return "windows-portproxy"
     return "linux"
 
@@ -372,11 +378,7 @@ def get_ib_connect_plan() -> dict[str, Any]:
     # Determine method for logging/reporting
     env_host = os.environ.get("IB_HOST", "")
     env_port = os.environ.get("IB_PORT", "")
-    have_virtual = bool(
-        os.environ.get("IB_HOST_Virtual") or os.environ.get("IB_PORT_Virtual")
-    )
-
-    method = _detect_connect_method(env_host, env_port, have_virtual)
+    method = _detect_connect_method(host, env_host, env_port)
 
     log = logging.getLogger("ib_conn")
     if method == "linux":

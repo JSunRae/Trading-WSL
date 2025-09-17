@@ -531,12 +531,12 @@ class IBAsync:
             else _sanitize_host(os.getenv("IB_HOST", "172.17.208.1"))
         )
         try:
-            p = int(port if port is not None else os.getenv("IB_PORT", "4003"))
+            p = int(port if port is not None else os.getenv("IB_PORT", 4003))
         except ValueError:
             p = 4003
         try:
             cid = int(
-                clientId if clientId is not None else os.getenv("IB_CLIENT_ID", "2011")
+                clientId if clientId is not None else os.getenv("IB_CLIENT_ID", 2011)
             )
         except ValueError:
             cid = 2011

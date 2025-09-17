@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from time import perf_counter
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 import pandas as pd
 import pytz
@@ -43,6 +43,7 @@ def build_stock(symbol: str, exchange: str = "SMART", currency: str = "USD") -> 
     return {"symbol": symbol, "exchange": exchange, "currency": currency}
 
 
+@runtime_checkable
 class IB(Protocol):  # Minimal protocol of methods we use (vendor-style names kept)
     def isConnected(self) -> bool: ...  # noqa: D401,N802,E701
     def qualifyContracts(self, *args: Any, **kwargs: Any) -> Any: ...  # noqa: D401,N802,E701

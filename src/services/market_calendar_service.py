@@ -5,6 +5,7 @@ Extracted from monolithic Market_InfoCLS (200+ lines).
 """
 
 import sys
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -23,30 +24,63 @@ except ImportError:
     HAS_MARKET_CAL = False
     print("Note: pandas_market_calendars not available. Using fallback implementation.")
 
+# --- Dependency aliases (avoid conditional redefinitions) ---
 try:
-    from src.core.config import get_config
-    from src.core.error_handler import get_error_handler
-except ImportError as e:
-    print(f"Warning: Could not import core modules: {e}")
+    from src.core.config import get_config as _real_get_config
+except Exception:
+    _real_get_config = None  # type: ignore[assignment]
 
-    def get_error_handler():
-        class FallbackErrorHandler:
-            def log_info(self, msg):
-                print(f"INFO: {msg}")
+try:
+    from src.core.error_handler import get_error_handler as _real_get_error_handler
+except Exception:
+    _real_get_error_handler = None  # type: ignore[assignment]
 
-            def log_warning(self, msg):
-                print(f"WARNING: {msg}")
 
-            def log_error(self, msg):
-                print(f"ERROR: {msg}")
+def _fallback_get_config(*_args: Any, **_kwargs: Any) -> Any:
+    """Minimal config fallback; present for API compatibility."""
 
-            def handle_error(self, e, context=None):
-                print(f"ERROR: {e}")
+    class _Cfg:
+        pass
 
-        return FallbackErrorHandler()
+    return _Cfg()
 
-    def get_config():
-        return None
+
+def _fallback_get_error_handler() -> Any:
+    """Fallback error handler providing logger and handle_error APIs used here."""
+
+    class _Logger:
+        def info(self, msg: str) -> None:
+            print(f"INFO: {msg}")
+
+        def warning(self, msg: str) -> None:
+            print(f"WARNING: {msg}")
+
+        def error(self, msg: str) -> None:
+            print(f"ERROR: {msg}")
+
+    class _Handler:
+        def __init__(self) -> None:
+            self.logger = _Logger()
+
+        def handle_error(
+            self, e: Exception, context: dict[str, Any] | None = None
+        ) -> None:
+            print(f"ERROR: {e}; context={context}")
+
+    return _Handler()
+
+
+get_config_fn: Callable[..., Any]
+if _real_get_config is not None:
+    get_config_fn = _real_get_config
+else:
+    get_config_fn = _fallback_get_config
+
+get_error_handler_fn: Callable[[], Any]
+if _real_get_error_handler is not None:
+    get_error_handler_fn = _real_get_error_handler
+else:
+    get_error_handler_fn = _fallback_get_error_handler
 
 
 class MarketCalendarService:
@@ -63,18 +97,17 @@ class MarketCalendarService:
 
     def __init__(self, market: str = "NYSE", config=None):
         """Initialize market calendar service."""
-        self.error_handler = get_error_handler()
-        self.config = config or get_config()
+        self.error_handler = get_error_handler_fn()
+        self.config = config or get_config_fn()
         self.market = market.upper()
 
-        # Timezone settings
-        self.market_timezone = self._get_market_timezone(self.market)
-        self.utc_timezone = pytz.UTC
-
+    try:
+        import pandas_market_calendars as mcal
+        has_market_cal = True
         # Market calendars (if available)
         self.calendar = None
-        if HAS_MARKET_CAL:
-            try:
+        has_market_cal = False
+        print("Note: pandas_market_calendars not available. Using fallback implementation.")
                 if mcal:
                     self.calendar = mcal.get_calendar(
                         self._get_market_cal_name(self.market)
@@ -246,16 +279,15 @@ class MarketCalendarService:
             Last trading day
         """
         try:
-            if from_date is None:
-                from_date = date.today()
+            base_date: date = from_date or date.today()
 
             # Use pandas_market_calendars if available
             if self.calendar:
                 try:
                     # Get valid days for the past month
-                    start_date = from_date - timedelta(days=30)
+                    start_date = base_date - timedelta(days=30)
                     valid_days = self.calendar.valid_days(
-                        start_date=start_date, end_date=from_date
+                        start_date=start_date, end_date=base_date
                     )
 
                     if len(valid_days) > 0:
@@ -268,7 +300,7 @@ class MarketCalendarService:
                     # Fall through to fallback logic
 
             # Fallback: search backwards day by day
-            current_date = from_date
+            current_date = base_date
             for _ in range(10):  # Look back up to 10 days
                 if self.is_trading_day(current_date):
                     return current_date
@@ -276,13 +308,13 @@ class MarketCalendarService:
 
             # If we can't find a trading day, return the original date
             self.error_handler.logger.warning(
-                f"Could not find last trading day from {from_date}"
+                f"Could not find last trading day from {base_date}"
             )
-            return from_date
+            return base_date
 
         except Exception as e:
             self.error_handler.handle_error(e, {"from_date": str(from_date)})
-            return from_date
+            return base_date
 
     def get_next_trading_day(self, from_date: date | None = None) -> date:
         """
@@ -295,16 +327,15 @@ class MarketCalendarService:
             Next trading day
         """
         try:
-            if from_date is None:
-                from_date = date.today()
+            base_date: date = from_date or date.today()
 
             # Use pandas_market_calendars if available
             if self.calendar:
                 try:
                     # Get valid days for the next month
-                    end_date = from_date + timedelta(days=30)
+                    end_date = base_date + timedelta(days=30)
                     valid_days = self.calendar.valid_days(
-                        start_date=from_date + timedelta(days=1), end_date=end_date
+                        start_date=base_date + timedelta(days=1), end_date=end_date
                     )
 
                     if len(valid_days) > 0:
@@ -317,7 +348,7 @@ class MarketCalendarService:
                     # Fall through to fallback logic
 
             # Fallback: search forwards day by day
-            current_date = from_date + timedelta(days=1)
+            current_date = base_date + timedelta(days=1)
             for _ in range(10):  # Look ahead up to 10 days
                 if self.is_trading_day(current_date):
                     return current_date
@@ -325,13 +356,13 @@ class MarketCalendarService:
 
             # If we can't find a trading day, return a week from now
             self.error_handler.logger.warning(
-                f"Could not find next trading day from {from_date}"
+                f"Could not find next trading day from {base_date}"
             )
-            return from_date + timedelta(days=7)
+            return base_date + timedelta(days=7)
 
         except Exception as e:
             self.error_handler.handle_error(e, {"from_date": str(from_date)})
-            return from_date + timedelta(days=1)
+            return base_date + timedelta(days=1)
 
     def get_trading_days(self, start_date: date, end_date: date) -> list[date]:
         """

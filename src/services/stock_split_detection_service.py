@@ -10,65 +10,68 @@ Created: July 2025 (ML Data Integrity Enhancement)
 
 import logging
 import sys
+from collections.abc import Callable
 from datetime import date as date_type
 from datetime import datetime, timedelta
 
 # Add src to path for imports using pathlib
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-# Try to import core services
+if TYPE_CHECKING:
+    pass
+
+# Dependency aliases (single assignment to avoid conditional redefinitions)
+get_config_fn: Callable[..., Any]
+handle_error_fn: Callable[[Exception, dict[str, Any] | None, str, str], Any]
+DataPersistenceServiceAlias: type
+DataErrorCls: type[Exception]
+
 try:
-    from src.core.config import (
-        get_config,  # type: ignore[attr-defined]  # Dynamic path imports
+    from src.core.config import get_config as _real_get_config
+    from src.core.error_handler import (
+        DataError as _RealDataError,
     )
     from src.core.error_handler import (
-        handle_error,  # type: ignore[attr-defined]  # Dynamic path imports
+        handle_error as _real_handle_error,
     )
     from src.services.data_persistence_service import (
-        DataPersistenceService,  # type: ignore[attr-defined]  # Dynamic path imports
+        DataPersistenceService as _RealDataPersistenceService,
     )
 
-    # Try to get the real DataError
-    try:
-        from src.core.error_handler import (
-            DataError,  # type: ignore[attr-defined]  # Dynamic path imports
-        )
-    except ImportError:
-        # Keep fallback if import fails
-        class DataError(Exception):  # type: ignore[misc]  # Fallback class definition
-            """Fallback data error"""
-
-            pass
-
+    get_config_fn = _real_get_config
+    handle_error_fn = _real_handle_error
+    DataPersistenceServiceAlias = _RealDataPersistenceService
+    DataErrorCls = _RealDataError
 except ImportError:
-    # Fallback implementations
-    print("Warning: Could not import core modules, using fallback implementations")
-
-    def get_config(env=None):
-        """Fallback config getter."""
+    # Fallbacks
+    def _fallback_get_config(*_args: Any, **_kwargs: Any) -> Any:
         return None
 
-    def handle_error(error, context=None, module="", function=""):
-        """Fallback error handler."""
-        print(f"Error in {module}.{function}: {error}")
+    def _fallback_handle_error(
+        error: Exception,
+        context: dict[str, Any] | None = None,
+        module: str = "",
+        function: str = "",
+    ) -> Any:
+        logging.getLogger(__name__).error(
+            "Error in %s.%s: %s (context=%s)", module, function, error, context
+        )
         return None
 
-    class DataPersistenceService:
-        """Fallback data persistence service."""
-
-        def __init__(self):
+    class _FallbackDataPersistenceService:
+        def __init__(self) -> None:
             pass
 
-    class DataError(Exception):
-        """Fallback data error"""
-
-        pass
+    get_config_fn = _fallback_get_config
+    handle_error_fn = _fallback_handle_error
+    DataPersistenceServiceAlias = _FallbackDataPersistenceService
+    DataErrorCls = Exception
 
 
 class SplitEvent:
@@ -120,14 +123,14 @@ class StockSplitDetectionService:
     - Fresh data recommendations
     """
 
-    def __init__(self, data_persistence_service: DataPersistenceService | None = None):
+    def __init__(self, data_persistence_service: Any | None = None):
         """
         Initialize the Stock Split Detection Service.
 
         Args:
             data_persistence_service: Optional data persistence service for tracking
         """
-        self.data_service = data_persistence_service or DataPersistenceService()
+        self.data_service = data_persistence_service or DataPersistenceServiceAlias()
         self.config = None
         self.logger = logging.getLogger(__name__)
 
@@ -152,9 +155,9 @@ class StockSplitDetectionService:
     def _load_config(self) -> None:
         """Load configuration settings."""
         try:
-            self.config = get_config()
+            self.config = get_config_fn()
         except Exception as e:
-            handle_error(e, module="SplitDetection", function="_load_config")
+            handle_error_fn(e, None, "SplitDetection", "_load_config")
             self.config = None
 
     def _setup_split_tracking(self) -> None:
@@ -231,7 +234,7 @@ class StockSplitDetectionService:
             return high_confidence_splits
 
         except Exception as e:
-            handle_error(e, module="SplitDetection", function="detect_splits_in_data")
+            handle_error_fn(e, None, "SplitDetection", "detect_splits_in_data")
             return []
 
     def _detect_price_gaps(self, symbol: str, df: pd.DataFrame) -> list[SplitEvent]:
@@ -666,7 +669,7 @@ class StockSplitDetectionService:
 
 
 def get_split_detection_service(
-    data_persistence_service=None,
+    data_persistence_service: Any | None = None,
 ) -> StockSplitDetectionService:
     """
     Factory function to get a SplitDetectionService instance.

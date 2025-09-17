@@ -1,0 +1,64 @@
+{
+  "symbol": "PSTV",
+  "day": "2019-08-16",
+  "ib": {
+    "host": "127.0.0.1",
+    "port": 4002,
+    "client_id": 1,
+    "hourly_path": "/home/jrae/Machine Learning/IBDownloads/PSTV_USUSD_1 hour_2019-08-16.ftr",
+    "hourly_exists": false,
+    "seconds_path": "/home/jrae/Machine Learning/IBDownloads/PSTV_USUSD_1 sec_2019-08-16.ftr",
+    "seconds_exists": true,
+    "events": [
+      {
+        "event": "historical_request",
+        "symbol": "PSTV",
+        "end_datetime": "20190817 00:00:00",
+        "paths": {
+          "hourly": "/home/jrae/Machine Learning/IBDownloads/PSTV_USUSD_1 hour_2019-08-16.ftr",
+          "seconds": "/home/jrae/Machine Learning/IBDownloads/PSTV_USUSD_1 sec_2019-08-16.ftr"
+        }
+      },
+      {
+        "event": "hourly_result",
+        "rows": 0
+      },
+      {
+        "event": "seconds_result",
+        "rows": 7
+      }
+    ]
+  },
+  "databento": {
+    "enabled": true,
+    "result": {
+      "status": "skipped_preexisting"
+    }
+  },
+  "after_needs": {
+    "hourly": false,
+    "seconds": true,
+    "l2": true
+  },
+  "paths": {
+    "warrior_csv": "/home/jrae/Machine Learning/WarriorTrading_Trades.csv",
+    "level2_dir": "/home/jrae/Machine Learning/Level2/PSTV",
+    "ib_downloads_dir": "/home/jrae/Machine Learning/IBDownloads",
+    "logs_dir": "logs"
+  },
+  "env": {
+    "L2_BACKFILL_WINDOW_ET": "08:30-11:00",
+    "DATABENTO_DATASET": "NASDAQ.ITCH",
+    "DATABENTO_SCHEMA": "mbp-10"
+  },
+  "before_needs": {
+    "hourly": true,
+    "seconds": true,
+    "l2": false,
+    "paths": {
+      "hourly": "/home/jrae/Machine Learning/IBDownloads/PSTV_USUSD_1 hour_2019-08-16.ftr",
+      "seconds": "/home/jrae/Machine Learning/IBDownloads/PSTV_USUSD_1 sec_2019-08-16.ftr",
+      "l2_base": "/home/jrae/Machine Learning/Level2/PSTV/2019-08-16_snapshots.parquet"
+    }
+  }
+}

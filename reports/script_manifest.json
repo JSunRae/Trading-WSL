@@ -177,34 +177,62 @@
     },
     "path": "src/tools/analysis/analyze_scripts.py"
   },
-  "async_migration_demo": {
-    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
-    "path": "src/tools/migration/async_migration_demo.py"
-  },
   "auto_backfill_from_warrior": {
     "describe": {
       "dependencies": [
         "optional:databento",
         "config:DATABENTO_API_KEY",
         "config:L2_BACKFILL_WINDOW_ET",
-        "config:SYMBOL_MAPPING_FILE"
+        "config:SYMBOL_MAPPING_FILE",
+        "config:IB_HOST",
+        "config:IB_GATEWAY_PAPER_PORT",
+        "config:IB_PAPER_PORT",
+        "config:IB_DOWNLOADS_DIRNAME"
       ],
-      "description": "Automatically backfill historical L2 (08:00\u201311:30 ET) for Warrior list trading days using programmatic orchestrator.",
+      "description": "Automatically backfill historical L2 (09:25\u201311:00 ET) for Warrior list trading days using programmatic orchestrator. By default also downloads IB hourly (RTH) and 1-sec bars (09:00\u201311:00) needed for those tasks.",
       "examples": [
         "python -m src.tools.auto_backfill_from_warrior --since 3",
-        "python -m src.tools.auto_backfill_from_warrior --last 5 --dry-run"
+        "python -m src.tools.auto_backfill_from_warrior --last 5 --dry-run",
+        "python -m src.tools.auto_backfill_from_warrior --date 2025-07-29 --symbol AAPL"
       ],
       "input_schema": {
         "type": "object"
       },
       "inputs": {
+        "--date": {
+          "description": "Single trading day YYYY-MM-DD (filters Warrior tasks; fallback creates ad-hoc task if Warrior list absent)",
+          "required": false,
+          "type": "str"
+        },
         "--dry-run": {
+          "required": false,
+          "type": "flag"
+        },
+        "--end": {
+          "description": "End date YYYY-MM-DD (inclusive)",
+          "required": false,
+          "type": "str"
+        },
+        "--fetch-bars": {
+          "description": "Download IB hourly and 1-sec bars before L2 backfill (default: enabled)",
           "required": false,
           "type": "flag"
         },
         "--force": {
           "required": false,
           "type": "flag"
+        },
+        "--force-bars": {
+          "required": false,
+          "type": "flag"
+        },
+        "--ib-host": {
+          "required": false,
+          "type": "str"
+        },
+        "--ib-port": {
+          "required": false,
+          "type": "int"
         },
         "--last": {
           "description": "Keep only last N distinct dates after other filters",
@@ -220,12 +248,31 @@
           "required": false,
           "type": "int"
         },
+        "--no-fetch-bars": {
+          "description": "Disable IB hourly and 1-sec bar downloads (opt-out)",
+          "required": false,
+          "type": "flag"
+        },
         "--since": {
           "description": "Include tasks with trading_day >= today - N days",
           "required": false,
           "type": "int"
         },
+        "--start": {
+          "description": "Start date YYYY-MM-DD (inclusive)",
+          "required": false,
+          "type": "str"
+        },
         "--strict": {
+          "required": false,
+          "type": "flag"
+        },
+        "--symbol": {
+          "description": "Filter to a single local symbol; also used for ad-hoc fallback with explicit dates",
+          "required": false,
+          "type": "str"
+        },
+        "--use-tws": {
           "required": false,
           "type": "flag"
         }
@@ -248,7 +295,7 @@
         "config:L2_BACKFILL_WINDOW_ET",
         "config:SYMBOL_MAPPING_FILE"
       ],
-      "description": "Backfill historical L2 (08:00-11:30 ET) from DataBento for each Warrior list trading day.",
+      "description": "Backfill historical L2 (09:25-11:00 ET) from DataBento for each Warrior list trading day.",
       "examples": [
         "python -m src.tools.backfill_l2_from_warrior --date 2025-07-29",
         "python -m src.tools.backfill_l2_from_warrior --start 2025-07-01 --end 2025-07-10 --symbol AAPL"
@@ -308,28 +355,72 @@
     },
     "path": "src/tools/backfill_l2_from_warrior.py"
   },
-  "demo_stock_split_integration": {
+  "build_export_manifest": {
     "describe": {
       "dependencies": [
-        "config:PROJECT_ROOT"
+        "optional:jsonschema",
+        "config:PROMOTION_RULE_JSON (repo root promotion.rule.json by default)"
       ],
-      "description": "Demonstration of stock split detection and ML protection workflow (interactive, verbose).",
+      "description": "Validate TF_1 export manifest against Trading promotion rules and schema.",
       "examples": [
-        "python -m src.tools.demo_stock_split_integration --describe"
+        "python -m src.tools.validate_export_manifest --manifest tf1_export_manifest.json"
       ],
       "input_schema": {
         "type": "object"
       },
-      "inputs": {},
-      "name": "demo_stock_split_integration",
+      "inputs": {
+        "--manifest": {
+          "required": true,
+          "type": "path"
+        },
+        "--model-dir": {
+          "description": "Directory containing production.alias for non-dry emissions",
+          "required": false,
+          "type": "path"
+        },
+        "--rule": {
+          "description": "Override path to promotion.rule.json",
+          "required": false,
+          "type": "path"
+        }
+      },
+      "name": "validate_export_manifest",
       "output_schema": {
         "type": "object"
       },
       "outputs": {
-        "stdout": "Narrative demo output or schema JSON"
+        "stdout": "JSON validation result"
       }
     },
-    "path": "src/tools/demo_stock_split_integration.py"
+    "path": "src/tools/analysis/build_export_manifest.py"
+  },
+  "evaluate_and_emit_metrics": {
+    "describe": {
+      "description": "Compute Sharpe and Max Drawdown from returns or PnL and emit manifest-ready metrics.",
+      "examples": [
+        "--returns 0.01,-0.005,0.007",
+        "--pnl 10,-5,2,3"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "pnl": "comma-separated list of floats",
+        "returns": "comma-separated list of floats"
+      },
+      "name": "evaluate_and_emit_metrics",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "metrics": [
+          "sharpe|sharpe_sim",
+          "max_drawdown|max_drawdown_sim",
+          "f1|f1_macro"
+        ]
+      }
+    },
+    "path": "src/tools/analysis/evaluate_and_emit_metrics.py"
   },
   "fix_hardcoded_paths": {
     "describe": {
@@ -398,198 +489,6 @@
     },
     "path": "src/tools/analysis/generate_coverage_analysis.py"
   },
-  "ib_migration_demo": {
-    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
-    "path": "src/tools/migration/ib_migration_demo.py"
-  },
-  "ib_migration_helper": {
-    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
-    "path": "src/tools/migration/ib_migration_helper.py"
-  },
-  "integration_examples": {
-    "describe": {
-      "dependencies": [
-        "optional:src.core.config"
-      ],
-      "description": "Demonstrate integrating new modular services replacing legacy monolith components.",
-      "examples": [
-        "python -m src.tools.integration_examples --describe"
-      ],
-      "input_schema": {
-        "type": "object"
-      },
-      "inputs": {},
-      "name": "integration_examples",
-      "output_schema": {
-        "type": "object"
-      },
-      "outputs": {
-        "stdout": "Examples narrative or schema JSON"
-      }
-    },
-    "path": "src/tools/integration_examples.py"
-  },
-  "migrate_to_ib_async": {
-    "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
-    "path": "src/tools/migration/migrate_to_ib_async.py"
-  },
-  "migration_guide": {
-    "describe": {
-      "input_schema": {
-        "properties": {
-          "analyze_only": {
-            "default": false,
-            "description": "Only analyze codebase, skip migration plan",
-            "type": "boolean"
-          },
-          "include_examples": {
-            "default": true,
-            "description": "Include code examples in output",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "output_schema": {
-        "properties": {
-          "analysis": {
-            "properties": {
-              "error_handling_issues": {
-                "items": {
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "files_analyzed": {
-                "type": "integer"
-              },
-              "hardcoded_paths": {
-                "items": {
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "monolithic_classes": {
-                "items": {
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "print_statements": {
-                "items": {
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "type": "object"
-          },
-          "architecture_components": {
-            "type": "object"
-          },
-          "code_examples": {
-            "items": {
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "migration_plan": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "next_steps": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "warnings": [
-        "missing keys ['description'] (tolerated)"
-      ]
-    },
-    "path": "src/tools/migration_guide.py"
-  },
-  "phase2_progress_demo": {
-    "describe": {
-      "description": "Phase 2 Architecture Migration - Progress Demo",
-      "input_schema": {
-        "properties": {
-          "analyze_monolith": {
-            "default": true,
-            "description": "Analyze monolithic code reduction",
-            "type": "boolean"
-          },
-          "include_coordination_test": {
-            "default": true,
-            "description": "Include service coordination testing",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "output_schema": {
-        "properties": {
-          "coordination_status": {
-            "type": "boolean"
-          },
-          "monolith_analysis": {
-            "properties": {
-              "phase1_extracted": {
-                "type": "integer"
-              },
-              "phase1_reduction_percent": {
-                "type": "number"
-              },
-              "phase2_potential_percent": {
-                "type": "number"
-              },
-              "phase2_remaining": {
-                "type": "integer"
-              },
-              "target_services": {
-                "type": "object"
-              },
-              "total_lines": {
-                "type": "integer"
-              }
-            },
-            "type": "object"
-          },
-          "next_steps": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "service_status": {
-            "description": "Import status of Phase 2 services",
-            "type": "object"
-          },
-          "summary": {
-            "properties": {
-              "available_services": {
-                "type": "integer"
-              },
-              "progress_percentage": {
-                "type": "number"
-              },
-              "total_services": {
-                "type": "integer"
-              }
-            },
-            "type": "object"
-          }
-        },
-        "type": "object"
-      }
-    },
-    "path": "src/tools/phase2_progress_demo.py"
-  },
   "quick_start": {
     "describe": {
       "dependencies": [
@@ -597,9 +496,8 @@
         "config:IB_PAPER_PORT",
         "config:IB_LIVE_PORT"
       ],
-      "description": "Display project structure, IB setup guidance, and usage examples.",
+      "description": "Display project structure, IB setup guidance, and usage examples (describe-only stub).",
       "examples": [
-        "python -m src.tools.quick_start",
         "python -m src.tools.quick_start --describe"
       ],
       "input_schema": {
@@ -780,6 +678,41 @@
     },
     "path": "src/tools/analysis/script_inventory_analyzer.py"
   },
+  "self_check": {
+    "describe": {
+      "ci_checkout_submodules": false,
+      "cross_consume_workflow": true,
+      "docs_link_contracts": {
+        "copilot": false,
+        "readme": true
+      },
+      "files_present": {
+        "fixture": true,
+        "rule": true,
+        "schema": true
+      },
+      "fixture_schema_test_present": true,
+      "input_schema": {
+        "type": "object"
+      },
+      "observability_keys_test": true,
+      "output_schema": {
+        "type": "object"
+      },
+      "repo": "Trading",
+      "submodule_commit": "5b340fe",
+      "submodule_remote": "git@github.com:JSunRae/ml-contracts.git",
+      "tests": {
+        "fixture_schema": true,
+        "validator_smoke": true
+      },
+      "validator_cli_present": true,
+      "warnings": [
+        "missing keys ['description'] (tolerated)"
+      ]
+    },
+    "path": "src/tools/self_check.py"
+  },
   "setup_automated_trading": {
     "error": "invalid JSON: Expecting value: line 1 column 1 (char 0) raw=",
     "path": "src/tools/setup/setup_automated_trading.py"
@@ -798,26 +731,31 @@
         "tws_live_port": 7496,
         "tws_paper_port": 7497
       },
-      "description": "IB Gateway setup helper (config-driven ports/host).",
+      "description": "Generate IB Gateway config and helper scripts (enhanced Option D).",
       "env_keys": [
         "IB_HOST",
         "IB_GATEWAY_PAPER_PORT",
         "IB_GATEWAY_LIVE_PORT",
         "IB_PAPER_PORT",
         "IB_LIVE_PORT",
-        "IB_CLIENT_ID"
+        "IB_CLIENT_ID",
+        "IB_GATEWAY_START_CMD",
+        "IB_USE_TWS"
       ],
       "examples": [
         "python -m src.tools.setup.setup_ib_gateway --guide",
-        "python -m src.tools.setup.setup_ib_gateway --create-files",
-        "python -m src.tools.setup.setup_ib_gateway --guide --create-files"
+        "python -m src.tools.setup.setup_ib_gateway --create-files --enhanced",
+        "python -m src.tools.setup.setup_ib_gateway --create-files --enhanced --with-status --force"
       ],
       "input_schema": {
         "type": "object"
       },
       "inputs": [
         "--guide",
-        "--create-files"
+        "--create-files",
+        "--enhanced",
+        "--force",
+        "--with-status"
       ],
       "name": "setup_ib_gateway",
       "output_schema": {
@@ -828,7 +766,7 @@
         "start_gateway.sh",
         "check_gateway_status.py"
       ],
-      "version": "1.0.0"
+      "version": "1.2.0"
     },
     "path": "src/tools/setup/setup_ib_gateway.py"
   },
@@ -904,6 +842,45 @@
   "validate_env": {
     "error": "failed --describe: Traceback (most recent call last):\n  File \"/home/jrae/wsl projects/Trading/src/tools/validate_env.py\", line 16, in <modu",
     "path": "src/tools/validate_env.py"
+  },
+  "validate_export_manifest": {
+    "describe": {
+      "dependencies": [
+        "optional:jsonschema",
+        "config:PROMOTION_RULE_JSON (repo root promotion.rule.json by default)"
+      ],
+      "description": "Validate TF_1 export manifest against Trading promotion rules and schema.",
+      "examples": [
+        "python -m src.tools.validate_export_manifest --manifest tf1_export_manifest.json"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "inputs": {
+        "--manifest": {
+          "required": true,
+          "type": "path"
+        },
+        "--model-dir": {
+          "description": "Directory containing production.alias for non-dry emissions",
+          "required": false,
+          "type": "path"
+        },
+        "--rule": {
+          "description": "Override path to promotion.rule.json",
+          "required": false,
+          "type": "path"
+        }
+      },
+      "name": "validate_export_manifest",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "stdout": "JSON validation result"
+      }
+    },
+    "path": "src/tools/validate_export_manifest.py"
   },
   "validate_ml_structure": {
     "describe": {
@@ -994,7 +971,71 @@
     "path": "src/tools/verify_setup.py"
   },
   "warrior_update": {
-    "error": "failed --describe: Traceback (most recent call last):\n  File \"/home/jrae/wsl projects/Trading/src/tools/warrior_update.py\", line 28, in <mo",
+    "describe": {
+      "arguments": [
+        {
+          "choices": [
+            "main",
+            "recent",
+            "mark-downloaded",
+            "trainlist"
+          ],
+          "default": "main",
+          "name": "--mode"
+        },
+        {
+          "default": 0,
+          "name": "--start-row",
+          "type": "int"
+        },
+        {
+          "default": null,
+          "name": "--only-stock",
+          "type": "str"
+        },
+        {
+          "example": "30 mins,1 min",
+          "name": "--bar-sizes",
+          "type": "str"
+        },
+        {
+          "default": "INFO",
+          "name": "--log-level",
+          "type": "str"
+        }
+      ],
+      "env_keys": [
+        "ML_BASE_PATH",
+        "ML_BACKUP_PATH",
+        "IB_HOST",
+        "IB_PAPER_PORT",
+        "IB_LIVE_PORT",
+        "IB_GATEWAY_PAPER_PORT",
+        "IB_GATEWAY_LIVE_PORT"
+      ],
+      "input_schema": {
+        "type": "object"
+      },
+      "modes": {
+        "main": "Iterate warrior list rows; 1 min (5 days) + other bars (1 day).",
+        "mark-downloaded": "Reconcile existing downloaded files with tracking (no downloads).",
+        "recent": "30 mins only for yesterday for listed symbols.",
+        "trainlist": "Generate training list entries where 1 secs + 1 min exist for a date."
+      },
+      "name": "warrior_update",
+      "output_schema": {
+        "type": "object"
+      },
+      "outputs": {
+        "logs": "INFO level progress",
+        "side_effects": "Downloaded parquet/ftr files into ML base path"
+      },
+      "summary": "Download recent historical data for Warrior Trading symbols across bar sizes.",
+      "version": 1,
+      "warnings": [
+        "missing keys ['description'] (tolerated)"
+      ]
+    },
     "path": "src/tools/warrior_update.py"
   }
 }

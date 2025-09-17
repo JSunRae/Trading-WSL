@@ -7,6 +7,7 @@ Provides market schedule, trading days, and market open status.
 """
 
 from datetime import date, datetime, timedelta
+from datetime import time as dtime
 from typing import Any
 
 try:
@@ -60,10 +61,8 @@ class MarketInfo:
         """Check if market is currently open"""
         if self.calendar is None:
             # Fallback: assume market is open during business hours (9 AM - 4 PM ET)
-            import time
-
             now = datetime.now().time()
-            return time(9, 0) <= now <= time(16, 0)
+            return dtime(9, 0) <= now <= dtime(16, 0)
 
         try:
             return self.calendar.is_open_now(self.market_schedule)

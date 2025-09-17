@@ -11,19 +11,23 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-# Optional pyarrow import with graceful degradation
-try:
-    import pyarrow as pa
-    import pyarrow.parquet as pq
+# Optional pyarrow import with graceful degradation (typed as Any for mypy)
+if TYPE_CHECKING:  # Only for type checkers
+    pass
 
-    PYARROW_AVAILABLE = True
-except ImportError:
-    pa = None
-    pq = None
+pa: Any
+pq: Any
+try:
+    import pyarrow as pa  # type: ignore[no-redef]
+    import pyarrow.parquet as pq  # type: ignore[no-redef]
+
+    PYARROW_AVAILABLE: bool = True
+except ImportError:  # pragma: no cover - optional dependency
+    pa, pq = object(), object()  # harmless placeholders when not available
     PYARROW_AVAILABLE = False
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -38,7 +42,7 @@ class DataMetadata:
 
     symbol: str
     timeframe: str
-    date_range: tuple
+    date_range: tuple[datetime, datetime] | tuple[Any, Any]
     row_count: int
     file_size: int
     created_at: datetime
@@ -172,7 +176,8 @@ class ParquetRepository:
             file_path = self._get_data_path(symbol, timeframe, date_str)
 
             # Configure Parquet options for performance
-            compression = "snappy" if compress else None
+            # pyarrow's typing expects Literal set; pass exact strings
+            compression: str = "snappy" if compress else "none"
 
             # Save with metadata
             table = pa.Table.from_pandas(optimized_data)
@@ -191,9 +196,14 @@ class ParquetRepository:
             }
 
             # Add metadata to Parquet file
-            existing_meta = table.schema.metadata or {}
-            existing_meta.update({k.encode(): v.encode() for k, v in metadata.items()})
-            table = table.replace_schema_metadata(existing_meta)
+            try:
+                existing_meta: dict[bytes, bytes] = dict(table.schema.metadata or {})  # type: ignore[assignment]
+                existing_meta.update(
+                    {k.encode(): v.encode() for k, v in metadata.items()}
+                )
+                table = table.replace_schema_metadata(existing_meta)
+            except Exception:
+                pass
 
             # Write to file
             pq.write_table(

@@ -30,9 +30,10 @@ class IBConnectionConfig:
     gateway_paper_port: int = 4002
 
     def validate(self):
-        if self.port not in [7496, 7497, 4001, 4002]:
+        # Allow common IB ports plus WSL portproxy 4003
+        if self.port not in [7496, 7497, 4001, 4002, 4003]:
             raise ValueError(
-                "Port must be 7496 (live), 7497 (paper), 4001 (gateway live), or 4002 (gateway paper)"
+                "Port must be one of 7496 (live), 7497 (paper), 4001 (gateway live), 4002 (gateway paper), or 4003 (WSL portproxy)"
             )
         if self.paper_trading and self.port == 7496:
             raise ValueError("Paper trading should use port 7497")
@@ -208,10 +209,13 @@ class ConfigManager:
             "DATABENTO_SCHEMA": "mbp-10",
             "DATABENTO_TZ": "America/New_York",
             # Default backfill window updated per requirements
-            "L2_BACKFILL_WINDOW_ET": "08:30-11:00",
+            # Default L2 fetch window (ET)
+            # Updated per policy: DataBento Level 2 from 09:25 to 11:00 ET
+            "L2_BACKFILL_WINDOW_ET": "09:25-11:00",
             # Enforced trading window for DataBento L2 fetches
             "L2_ENFORCE_TRADING_WINDOW": "1",
-            "L2_TRADING_WINDOW_ET": "08:30-11:00",
+            # Clamp window for L2 if enforcement enabled
+            "L2_TRADING_WINDOW_ET": "09:25-11:00",
             "L2_BACKFILL_CONCURRENCY": "2",
             "SYMBOL_MAPPING_FILE": "config/symbol_mapping.json",
             # Backfill discovery & bar lookbacks
@@ -402,6 +406,15 @@ class ConfigManager:
             l2 = base / self.get_env("LEVEL2_DIRNAME") / symbol
             l2.mkdir(parents=True, exist_ok=True)
             return l2 / f"{date_str}_snapshots.parquet"
+        if file_type == "warrior_trading_trades":
+            # Primary location under ML base path
+            primary = ml_dir / self.get_env("WARRIOR_TRADES_FILENAME")
+            if primary.exists():
+                return primary
+            # Fallback to DATA_PATH_OVERRIDE (repo ./data by default) to reduce setup friction
+            data_override = Path(self.get_env("DATA_PATH_OVERRIDE", "./data"))
+            fallback = data_override / self.get_env("WARRIOR_TRADES_FILENAME")
+            return fallback if fallback.exists() else primary
         if file_type == "train_list":
             return ml_dir / f"{self.get_env('TRAIN_LIST_PREFIX')}{symbol}.xlsx"
         if file_type in simple:

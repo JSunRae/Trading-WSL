@@ -12,55 +12,137 @@ import json
 import logging
 import sys
 import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 # Add src to path for graceful import handling
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Shared type aliases for dependency indirection
+GetConfigFn = Callable[..., Any]
+GetErrorHandlerFn = Callable[..., Any]
+HandleErrorFn = Callable[[Exception, dict[str, Any] | None, str, str], Any]
+RepositoryFactory = Callable[[], Any]
+
+
+# Fallback implementations (always available)
+class _DataPaths:
+    def __init__(self, base_path: Path):
+        self.base_path = base_path
+
+
+class MockConfig:
+    def __init__(self) -> None:
+        self.data_paths = _DataPaths(Path("/mock/data"))
+
+
+class MockParquetRepository:
+    def save_dataframe(
+        self, df: Any, symbol: str, timeframe: str, date: str | None
+    ) -> bool:
+        return True
+
+    def save_data(self, df: Any, symbol: str, timeframe: str, date: str | None) -> bool:
+        return True
+
+    def _get_data_path(self, symbol: str, timeframe: str, date: str | None) -> Path:
+        root = Path("/mock/parquet")
+        root.mkdir(parents=True, exist_ok=True)
+        name = f"{symbol}_{timeframe.replace(' ', '')}{('_' + date) if date else ''}.parquet"
+        return root / name
+
+
+def _fallback_get_config(*args: Any, **kwargs: Any) -> Any:
+    return MockConfig()
+
+
+def _fallback_get_error_handler(*args: Any, **kwargs: Any) -> Any:
+    return None
+
+
+def handle_error_fallback(
+    error: Exception,
+    context: dict[str, Any] | None = None,
+    module: str = "",
+    function: str = "",
+) -> Any:
+    logging.getLogger(__name__).error(
+        "Error in %s.%s: %s (context=%s)", module, function, error, context
+    )
+    return None
+
+
+def _fallback_repo_factory() -> Any:
+    return MockParquetRepository()
+
+
+# Defaults: use fallbacks
+get_config_or_mock: GetConfigFn = _fallback_get_config
+get_error_handler_or_none: GetErrorHandlerFn = _fallback_get_error_handler
+handle_error_fn: HandleErrorFn = handle_error_fallback
+get_parquet_repository: RepositoryFactory = _fallback_repo_factory
+DataErrorCls: type[Exception] = ValueError
+
+# Try to import real dependencies; if successful, override defaults
+dependencies_available = False
 try:
-    import pandas as pd
+    import pandas as pd  # type: ignore[import-not-found]
 
-    from src.core.config import get_config
-    from src.core.error_handler import DataError, get_error_handler, handle_error
-    from src.data.parquet_repository import ParquetRepository
+    from src.core.config import get_config as real_get_config
+    from src.core.error_handler import (
+        DataError as RealDataError,
+    )
+    from src.core.error_handler import (
+        get_error_handler as real_get_error_handler,
+    )
+    from src.core.error_handler import (
+        handle_error as real_handle_error,
+    )
+    from src.data.parquet_repository import ParquetRepository as RealParquetRepository
 
-    DEPENDENCIES_AVAILABLE = True
+    def _real_repo_factory() -> Any:
+        return RealParquetRepository()
+
+    get_config_or_mock = real_get_config  # type: ignore[assignment]
+    get_error_handler_or_none = real_get_error_handler  # type: ignore[assignment]
+    handle_error_fn = real_handle_error  # type: ignore[assignment]
+    get_parquet_repository = _real_repo_factory  # type: ignore[assignment]
+    DataErrorCls = RealDataError  # type: ignore[assignment]
+    dependencies_available = True
 except ImportError as e:
-    # Graceful degradation for missing dependencies
     logger = logging.getLogger(__name__)
     logger.warning(f"Some dependencies not available: {e}")
-    DEPENDENCIES_AVAILABLE = False
-
-    # Mock implementations
     try:
-        import pandas as pd
+        import pandas as pd  # type: ignore[import-not-found, no-redef]
     except ImportError:
-        pd = None
-
-    class MockConfig:
-        def get_data_dir(self) -> Path:
-            return Path("/mock/data")
-
-    class MockParquetRepository:
-        def save_dataframe(self, df, symbol: str, timeframe: str, date: str):
-            return True
-
-    def get_config():
-        return MockConfig()
-
-    def get_error_handler():
-        return None
-
-    def handle_error(e):
-        print(f"Error: {e}")
-
-    DataError = ValueError
-    ParquetRepository = MockParquetRepository
-
+        pd = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+
+
+class MigrationResult(TypedDict):
+    success: bool
+    file_path: Path | str
+    rows_migrated: int
+    size_before: int
+    size_after: int
+    compression_ratio: float
+    error_message: str | None
+    migration_time: float
+
+
+class MigrationStats(TypedDict):
+    files_processed: int
+    files_successful: int
+    files_failed: int
+    total_rows_migrated: int
+    total_size_before: int
+    total_size_after: int
+    start_time: float | None
+    errors: list[dict[str, str]]
+
 
 INPUT_SCHEMA = {
     "type": "object",
@@ -210,13 +292,13 @@ class ExcelToParquetMigrator:
     """Migrates Excel data files to Parquet format"""
 
     def __init__(self):
-        self.config = get_config()
-        self.error_handler = get_error_handler()
+        self.config = get_config_or_mock()
+        self.error_handler = get_error_handler_or_none()
         self.logger = logging.getLogger(__name__)
-        self.parquet_repo = ParquetRepository()
+        self.parquet_repo = get_parquet_repository()
 
         # Migration statistics
-        self.stats = {
+        self.stats: MigrationStats = {
             "files_processed": 0,
             "files_successful": 0,
             "files_failed": 0,
@@ -229,8 +311,7 @@ class ExcelToParquetMigrator:
 
     def discover_excel_files(self) -> list[dict[str, Any]]:
         """Discover Excel files in the data directory"""
-
-        discovered_files = []
+        discovered_files: list[dict[str, Any]] = []
         data_root = self.config.data_paths.base_path
 
         if not data_root.exists():
@@ -296,15 +377,15 @@ class ExcelToParquetMigrator:
     def migrate_file(self, file_info: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
         """Migrate a single Excel file to Parquet"""
 
-        migration_result = {
+        migration_result: dict[str, Any] = {
             "success": False,
             "file_path": file_info["path"],
             "rows_migrated": 0,
             "size_before": file_info["size"],
             "size_after": 0,
-            "compression_ratio": 0,
+            "compression_ratio": 0.0,
             "error_message": None,
-            "migration_time": 0,
+            "migration_time": 0.0,
         }
 
         start_time = time.time()
@@ -315,28 +396,31 @@ class ExcelToParquetMigrator:
             # Read Excel file with error handling
             try:
                 # Try different reading strategies
-                df = None
+                if pd is None:
+                    raise DataErrorCls("pandas is required to read Excel files")
+                df: Any = None
+                pd_t: Any = pd  # type: ignore[assignment]
 
                 # Strategy 1: Standard read
                 try:
-                    df = pd.read_excel(excel_path, index_col=0, parse_dates=True)
+                    df = pd_t.read_excel(excel_path, index_col=0, parse_dates=True)
                 except Exception:
                     # Strategy 2: No index column
                     try:
-                        df = pd.read_excel(excel_path)
+                        df = pd_t.read_excel(excel_path)
                         # Try to find datetime column for index
                         datetime_cols = df.select_dtypes(include=["datetime64"]).columns
                         if len(datetime_cols) > 0:
                             df = df.set_index(datetime_cols[0])
                     except Exception:
                         # Strategy 3: Read as-is
-                        df = pd.read_excel(excel_path)
+                        df = pd_t.read_excel(excel_path)
 
-                if df is None or df.empty:
-                    raise DataError("Failed to read Excel file or file is empty")
+                if df is None or getattr(df, "empty", False):
+                    raise DataErrorCls("Failed to read Excel file or file is empty")
 
             except Exception as e:
-                raise DataError(f"Excel read error: {e}") from e
+                raise DataErrorCls(f"Excel read error: {e}") from e
 
             # Determine appropriate storage parameters
             symbol = file_info["symbol"] or "UNKNOWN"
@@ -360,18 +444,8 @@ class ExcelToParquetMigrator:
 
             if success:
                 # Calculate compression results
-                parquet_path = self.parquet_repo._get_data_path(
-                    symbol, timeframe, date_str
-                )
-                if parquet_path.exists():
-                    migration_result["size_after"] = parquet_path.stat().st_size
-                    migration_result["compression_ratio"] = (
-                        1
-                        - migration_result["size_after"]
-                        / migration_result["size_before"]
-                    ) * 100
-
-                migration_result["rows_migrated"] = len(df)
+                # Update rows migrated; file size after is repository-dependent
+                migration_result["rows_migrated"] = int(len(df))
                 migration_result["success"] = True
 
                 self.logger.info(
@@ -383,19 +457,18 @@ class ExcelToParquetMigrator:
 
         except Exception as e:
             migration_result["error_message"] = str(e)
-            handle_error(
+            handle_error_fn(
                 e,
-                module=__name__,
-                function="migrate_file",
-                context={"file_path": str(file_info["path"])},
+                {"file_path": str(file_info["path"])},
+                __name__,
+                "migrate_file",
             )
 
-        migration_result["migration_time"] = time.time() - start_time
-        return migration_result["success"], migration_result
+        migration_result["migration_time"] = float(time.time() - start_time)
+        success_flag: bool = bool(migration_result["success"])
+        return success_flag, migration_result
 
-    def _migrate_metadata_file(
-        self, df: pd.DataFrame, file_type: str, excel_path: Path
-    ) -> bool:
+    def _migrate_metadata_file(self, df: Any, file_type: str, excel_path: Path) -> bool:
         """Migrate metadata files (failed, downloaded, etc.) to specialized storage"""
         try:
             # Save metadata files in a special metadata directory using Parquet
@@ -417,7 +490,7 @@ class ExcelToParquetMigrator:
             return True
 
         except Exception as e:
-            handle_error(e, module=__name__, function="_migrate_metadata_file")
+            handle_error_fn(e, None, __name__, "_migrate_metadata_file")
             return False
 
     def run_migration(self, dry_run: bool = False) -> dict[str, Any]:
@@ -434,7 +507,7 @@ class ExcelToParquetMigrator:
 
         if not excel_files:
             print("❌ No Excel files found to migrate")
-            return self.stats
+            return dict(self.stats)
 
         print(f"✅ Found {len(excel_files)} Excel files")
 
@@ -443,7 +516,7 @@ class ExcelToParquetMigrator:
         print(f"📊 Total size: {total_size / (1024 * 1024):.1f} MB")
 
         # Group by type
-        file_types = {}
+        file_types: dict[str, int] = {}
         for f in excel_files:
             file_type = f["file_type"] or "unknown"
             file_types[file_type] = file_types.get(file_type, 0) + 1
@@ -454,7 +527,7 @@ class ExcelToParquetMigrator:
 
         if dry_run:
             print("\n🔍 DRY RUN - No files will be migrated")
-            return self.stats
+            return dict(self.stats)
 
         # Migrate files
         print("\n⚡ Starting migration...")
@@ -481,7 +554,10 @@ class ExcelToParquetMigrator:
             else:
                 self.stats["files_failed"] += 1
                 self.stats["errors"].append(
-                    {"file": file_info["name"], "error": result["error_message"]}
+                    {
+                        "file": file_info["name"],
+                        "error": str(result["error_message"] or ""),
+                    }
                 )
 
                 print(f"  ❌ Failed: {result['error_message']}")
@@ -493,15 +569,16 @@ class ExcelToParquetMigrator:
         """Generate migration report"""
 
         end_time = time.time()
-        duration = end_time - self.stats["start_time"]
+        start = self.stats["start_time"] or end_time
+        duration: float = end_time - start
 
-        overall_compression = 0
+        overall_compression = 0.0
         if self.stats["total_size_before"] > 0:
             overall_compression = (
                 1 - self.stats["total_size_after"] / self.stats["total_size_before"]
             ) * 100
 
-        report = {
+        report: dict[str, Any] = {
             **self.stats,
             "duration_seconds": duration,
             "overall_compression_percent": overall_compression,
@@ -521,20 +598,22 @@ class ExcelToParquetMigrator:
         print(f"Success rate: {report['success_rate']:.1f}%")
         print(f"Total rows migrated: {report['total_rows_migrated']:,}")
         print(
-            f"Total size before: {report['total_size_before'] / (1024 * 1024):.1f} MB"
+            f"Total size before: {float(report['total_size_before']) / (1024 * 1024):.1f} MB"
         )
-        print(f"Total size after: {report['total_size_after'] / (1024 * 1024):.1f} MB")
+        print(
+            f"Total size after: {float(report['total_size_after']) / (1024 * 1024):.1f} MB"
+        )
         print(f"Overall compression: {report['overall_compression_percent']:.1f}%")
         print(f"Migration time: {report['duration_seconds']:.1f} seconds")
 
-        if report["files_failed"] > 0:
+        if int(report["files_failed"]) > 0:
             print("\n❌ Failed files:")
             for error in self.stats["errors"]:
                 print(f"  {error['file']}: {error['error']}")
 
         print("\n🎉 Migration complete!")
         print(
-            f"🚀 Performance improvement: {100 / (report['overall_compression_percent'] / 100 + 1):.1f}x faster"
+            f"🚀 Performance improvement: {100 / (float(report['overall_compression_percent']) / 100 + 1):.1f}x faster"
         )
 
         return report
@@ -544,7 +623,7 @@ def main() -> dict[str, Any]:
     """Generate Excel to Parquet migration report."""
     logger.info("Starting Excel to Parquet migration")
 
-    if not DEPENDENCIES_AVAILABLE or pd is None:
+    if not dependencies_available or pd is None:
         logger.warning("Dependencies not available - returning mock migration report")
         return {
             "migration_summary": {
@@ -645,16 +724,19 @@ def main() -> dict[str, Any]:
 
         # Update result with actual migration data if available
         if migration_report:
-            result["migration_summary"].update(
-                {
-                    "files_processed": migration_report.get("files_processed", 0),
-                    "files_successful": migration_report.get("files_successful", 0),
-                    "files_failed": migration_report.get("files_failed", 0),
-                    "total_rows_migrated": migration_report.get(
-                        "total_rows_migrated", 0
-                    ),
-                }
-            )
+            # Help the type checker understand the shape of migration_summary
+            migration_summary_dict = result["migration_summary"]  # type: ignore[assignment]
+            if isinstance(migration_summary_dict, dict):
+                migration_summary_dict.update(
+                    {
+                        "files_processed": migration_report.get("files_processed", 0),
+                        "files_successful": migration_report.get("files_successful", 0),
+                        "files_failed": migration_report.get("files_failed", 0),
+                        "total_rows_migrated": migration_report.get(
+                            "total_rows_migrated", 0
+                        ),
+                    }
+                )
             logger.info("Actual migration analysis completed")
 
     except Exception as e:

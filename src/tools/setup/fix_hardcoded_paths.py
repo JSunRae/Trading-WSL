@@ -74,17 +74,17 @@ class HardcodedPathFixer:
 
     def find_python_files(self) -> list[Path]:
         """Find all Python files that need to be processed"""
-        python_files = []
+        python_files: list[Path] = []
 
         # Search in main source directories
-        search_dirs = [
+        search_dirs: list[Path] = [
             self.project_root / "src",
             self.project_root,  # Root level files
         ]
 
         for search_dir in search_dirs:
             if search_dir.exists():
-                python_files.extend(search_dir.glob("**/*.py"))
+                python_files.extend(list(search_dir.glob("**/*.py")))
 
         # Filter out specific files we don't want to modify
         exclude_patterns = [
@@ -97,7 +97,7 @@ class HardcodedPathFixer:
             "dist",
         ]
 
-        filtered_files = []
+        filtered_files: list[Path] = []
         for file_path in python_files:
             if not any(pattern in str(file_path) for pattern in exclude_patterns):
                 filtered_files.append(file_path)
@@ -114,14 +114,11 @@ class HardcodedPathFixer:
             print(f"⚠️  Could not read {file_path}: {e}")
             return {}
 
-        findings = {}
-
+        findings: dict[str, list[tuple[int, str]]] = {}
         for i, line in enumerate(lines, 1):
             for pattern, _ in self.hardcoded_patterns:
                 if re.search(pattern, line):
-                    if pattern not in findings:
-                        findings[pattern] = []
-                    findings[pattern].append((i, line.strip()))
+                    findings.setdefault(pattern, []).append((i, line.strip()))
 
         return findings
 
@@ -275,7 +272,7 @@ class HardcodedPathFixer:
         python_files = self.find_python_files()
         print(f"📁 Found {len(python_files)} Python files to analyze")
 
-        all_findings = {}
+        all_findings: dict[Path, dict[str, list[tuple[int, str]]]] = {}
         files_with_issues = 0
 
         for file_path in python_files:
@@ -312,8 +309,34 @@ class HardcodedPathFixer:
         return files_fixed > 0
 
 
+def _print_findings_summary(
+    findings: dict[Path, dict[str, list[tuple[int, str]]]],
+) -> None:
+    """Print a compact summary of findings to keep main() simple."""
+    print("\n📋 Summary of findings:")
+    files_list = list(findings.items())
+    preview_files = files_list[:10]
+    for file_path, file_findings in preview_files:
+        print(f"  • {file_path}")
+        patterns_list = list(file_findings.items())
+        for pattern, locations in patterns_list[:3]:
+            print(f"     🔍 Pattern: {pattern}")
+            for line_num, line_content in locations[:2]:
+                print(f"        Line {line_num}: {line_content}")
+            if len(locations) > 2:
+                print(f"        ... and {len(locations) - 2} more matches")
+    if len(files_list) > 10:
+        print(f"  ... and {len(files_list) - 10} more files")
+
+
+def _ask_proceed() -> bool:
+    """Ask for confirmation to proceed with fixes."""
+    response = input("\n🤔 Proceed with fixes? (y/N): ").strip().lower()
+    return response == "y"
+
+
 def main():
-    """Main execution function"""
+    """Main execution function (thin dispatcher to keep complexity low)."""
     parser = argparse.ArgumentParser(description="Fix hardcoded paths in codebase")
     parser.add_argument("--describe", action="store_true", help="Show tool description")
     parser.add_argument(
@@ -335,49 +358,41 @@ def main():
         }
         print(json.dumps(describe_info, indent=2))
         return True
+    return run_cli(args.dry_run)
 
+
+def run_cli(dry_run: bool) -> bool:
+    """Run the CLI flow for analyzing and fixing hardcoded paths."""
     print("🚨 CRITICAL ISSUE FIX #1: Hardcoded Paths")
     print("=" * 50)
     print("Priority: IMMEDIATE")
     print("Impact: Platform independence, environment portability")
-    print()
 
     fixer = HardcodedPathFixer()
 
-    # First run analysis
-    print("PHASE 1: Analysis")
-    print("-" * 20)
+    # Phase 1: Analyze
     findings = fixer.run_analysis()
-
     if not findings:
-        print("✅ No hardcoded paths found! System is clean.")
+        print("✅ No hardcoded paths found.")
         return True
 
-    # Show findings
-    print("\n📋 Hardcoded Paths Found:")
-    for file_path, file_findings in findings.items():
-        print(f"\n📄 {file_path.relative_to(fixer.project_root)}")
-        for pattern, locations in file_findings.items():
-            print(f"   🔍 Pattern: {pattern}")
-            for line_num, line_content in locations[:3]:  # Show first 3 matches
-                print(f"      Line {line_num}: {line_content}")
-            if len(locations) > 3:
-                print(f"      ... and {len(locations) - 3} more matches")
+    _print_findings_summary(findings)
 
-    # Ask for confirmation
-    print(f"\n⚠️  Found hardcoded paths in {len(findings)} files")
-    print("This will:")
+    print("\nThis will:")
     print("• Add ConfigManager imports where needed")
     print("• Replace hardcoded paths with config-based paths")
     print("• Add helper methods to ConfigManager")
     print("• Make the system platform-independent")
 
-    response = input("\n🤔 Proceed with fixes? (y/N): ").strip().lower()
-    if response != "y":
+    if dry_run:
+        print("\n🔎 Dry run: no changes will be made.")
+        return True
+
+    if not _ask_proceed():
         print("❌ Fixes cancelled by user")
         return False
 
-    # Run fixes
+    # Phase 2: Apply fixes
     print("\nPHASE 2: Applying Fixes")
     print("-" * 25)
     success = fixer.run_fixes()
@@ -390,9 +405,8 @@ def main():
         print("• Verify cross-platform compatibility")
         print("• Move to Critical Issue #2: Monolithic Class Decomposition")
         return True
-    else:
-        print("\n❌ No fixes were needed or applied")
-        return False
+    print("\n❌ No fixes were needed or applied")
+    return False
 
 
 if __name__ == "__main__":

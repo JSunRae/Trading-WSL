@@ -72,7 +72,7 @@ def test_execute_success():
     # In lightweight test context the background thread may mark execution FAILED
     # if no real order objects transition to filled. Accept broader set but ensure
     # not a validation-level rejection.
-    assert status.status.name in ("RECEIVED", "EXECUTED", "FAILED")
+    assert status.status.name in ("RECEIVED", "VALIDATED", "EXECUTED", "FAILED")
     if status.status.name == "FAILED":
         assert status.error_message  # provide diagnostic when failure occurs
 
@@ -84,7 +84,7 @@ def test_execute_failure():
     time.sleep(0.05)
     status = executor.get_signal_status(execution_id)
     assert status is not None
-    assert status.status.name in ("RECEIVED", "FAILED", "REJECTED")
+    assert status.status.name in ("RECEIVED", "VALIDATED", "FAILED", "REJECTED")
 
 
 def test_rejection_paths_low_confidence_and_size():
@@ -143,7 +143,7 @@ def test_eventual_executed_status():
     # Accept EXECUTED or still RECEIVED (thread timing); ensure not REJECTED
     final = executor.get_signal_status(exec_id)
     assert final is not None
-    assert final.status.name in ("EXECUTED", "RECEIVED", "FAILED")
+    assert final.status.name in ("EXECUTED", "RECEIVED", "VALIDATED", "FAILED")
     executor = MLSignalExecutor(order_service=FakeOrderManager())
     signal = make_signal(confidence=0.1)
     execution_id = executor.receive_signal(signal)

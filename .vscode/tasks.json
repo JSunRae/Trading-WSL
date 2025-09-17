@@ -9,6 +9,23 @@
       "problemMatcher": []
     },
     {
+      "label": "coverage:bars",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "src.tools.analysis.build_bars_coverage"],
+      "windows": {
+        "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Notify TBS (waiting)",
       "type": "shell",
       "command": "./scripts/notify_tbs.sh",
@@ -368,12 +385,13 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": [
-        "src/tools/backfill_l2_from_warrior.py",
+        "src/tools/auto_backfill_from_warrior.py",
         "--since",
         "3",
         "--max-tasks",
         "500",
-        "--strict"
+        "--strict",
+        "--no-fetch-bars"
       ],
       "options": {
         "env": {

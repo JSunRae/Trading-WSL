@@ -1,5 +1,5 @@
 # Unused Code Report
-Generated: 2025-09-11 11:19:37
+Generated: 2025-09-16 20:47:56
 
 - `evaluate_trading_metrics` in `src/analytics/evaluation.py` — never executed
 - `metrics_to_tf1_manifest` in `src/analytics/evaluation.py` — never executed
@@ -46,7 +46,16 @@ Generated: 2025-09-11 11:19:37
 - `BaseRepository.load` in `src/data/data_manager.py` — never executed
 - `BaseRepository.exists` in `src/data/data_manager.py` — never executed
 - `BaseRepository.delete` in `src/data/data_manager.py` — never executed
+- `ExcelRepository.load` in `src/data/data_manager.py` — never executed
+- `ExcelRepository.exists` in `src/data/data_manager.py` — never executed
 - `ExcelRepository.delete` in `src/data/data_manager.py` — never executed
+- `DownloadTracker.mark_failed` in `src/data/data_manager.py` — never executed
+- `DownloadTracker.mark_downloadable` in `src/data/data_manager.py` — never executed
+- `DownloadTracker.save_all` in `src/data/data_manager.py` — never executed
+- `DownloadTracker.save_failed_downloads` in `src/data/data_manager.py` — never executed
+- `DownloadTracker.save_downloadable_stocks` in `src/data/data_manager.py` — never executed
+- `DownloadTracker.save_downloaded_stocks` in `src/data/data_manager.py` — never executed
+- `DataManager.cleanup` in `src/data/data_manager.py` — never executed
 - `DataManager.warrior_list` in `src/data/data_manager.py` — never executed
 - `DataManager.train_list_loadsave` in `src/data/data_manager.py` — never executed
 - `SignalExecution.is_complete` in `src/execution/ml_signal_executor.py` — never executed

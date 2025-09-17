@@ -46,7 +46,7 @@ Single authoritative list of environment variables. Defaults sourced from `Confi
 | DATABENTO_SCHEMA                | mbp-10                       | L2 schema selection                       | databento service          |
 | DATABENTO_TZ                    | America/New_York             | Timezone for vendor window parse          | backfill window logic      |
 | L2_BACKFILL_WINDOW_ET           | 08:00-11:30                  | ET window for historical slice extraction | backfill_api               |
-| L2_BACKFILL_CONCURRENCY         | 2                            | Legacy backfill CLI concurrency           | backfill_l2_from_warrior   |
+| L2_BACKFILL_CONCURRENCY         | 2                            | Deprecated (use L2_MAX_WORKERS)           | auto_backfill_from_warrior |
 | L2_MAX_WORKERS                  | 4                            | New orchestrator worker pool size         | auto_backfill_from_warrior |
 | L2_TASK_BACKOFF_BASE_MS         | 250                          | Base backoff (ms) for vendor retry        | databento_l2_service       |
 | L2_TASK_BACKOFF_MAX_MS          | 2000                         | Max backoff cap (ms)                      | databento_l2_service       |
@@ -89,7 +89,7 @@ L2_MAX_WORKERS=2
 
 ## Notes
 
-- Concurrency: `L2_MAX_WORKERS` governs the new orchestrator. Legacy tool still respects `L2_BACKFILL_CONCURRENCY` (fallback when `L2_MAX_WORKERS` unset).
+- Concurrency: `L2_MAX_WORKERS` governs the orchestrator. `L2_BACKFILL_CONCURRENCY` is deprecated and only used as a fallback when `L2_MAX_WORKERS` is unset.
 - Backoff: `L2_TASK_BACKOFF_*` provide bounded jittered exponential backoff for vendor rate limiting and transient network issues.
 - Logging: `LOG_LEVEL` defaults to INFO; set DEBUG for verbose per-task traces or WARNING to reduce noise in cron.
 - Security: Omit `IB_USERNAME` / `IB_PASSWORD` from committed files; use a secrets manager in production.

@@ -1,187 +1,93 @@
 #!/bin/bash
-# IB Gateway Startup Script
-# This script helps start and monitor IB Gateway
+set -euo pipefail
 
 echo "🚀 IB Gateway Startup Helper"
 echo "=============================="
 
-# Resolve host/port from env (default to Gateway Paper)
-# WSL2 note: Windows host isn't 127.0.0.1 from Linux. Try nameserver IP as fallback.
-HOST=${IB_HOST:-}
-PORT=${IB_PORT:-}
+DEFAULT_HOST="${IB_HOST:-127.0.0.1}"
+HOST="$DEFAULT_HOST"
+USE_TWS="${IB_USE_TWS:-0}"
+PREFER_LINUX="${IB_PREFER_LINUX:-1}"
 
-# Helper: sanitize a port string (strip comments and non-digits)
-sanitize_port() {
-    local x="$1"
-    # Drop everything after a '#'
-    x="${x%%#*}"
-    # Remove all non-digits
-    x="$(echo "$x" | sed 's/[^0-9]//g')"
-    echo "$x"
-}
-
-# Detect WSL and compute Windows host IP (first nameserver)
-is_wsl=false
-if grep -qi "microsoft" /proc/version 2>/dev/null; then
-    is_wsl=true
-fi
-
-if [ -z "$HOST" ]; then
-    if [ "$is_wsl" = true ]; then
-        # Common WSL2 Windows host IP via resolv.conf nameserver
-        WIN_HOST=$(awk '/nameserver/ {print $2; exit}' /etc/resolv.conf 2>/dev/null)
-        HOST=${WIN_HOST:-127.0.0.1}
-    else
-        HOST=127.0.0.1
-    fi
-fi
-
-# Default ports if not provided
-if [ -z "$PORT" ]; then
-    if [ "${IB_USE_TWS:-0}" = "1" ]; then
-        PORT="$(sanitize_port "${IB_PAPER_PORT:-7497}")"
-    else
-        PORT="$(sanitize_port "${IB_GATEWAY_PAPER_PORT:-4002}")"
-    fi
+if [[ -n "${IB_PORT:-}" ]]; then
+  PORT="$IB_PORT"
 else
-    PORT="$(sanitize_port "$PORT")"
+  if [[ "$USE_TWS" == "1" ]]; then PORT="${IB_PAPER_PORT:-7497}"; else PORT="${IB_GATEWAY_PAPER_PORT:-4002}"; fi
 fi
 
-# Optional: Show Windows portproxy rules (WSL-only) for quick diagnostics
-if [ "$is_wsl" = true ]; then
-    echo "\n🔎 Checking Windows portproxy rules (if any):"
-    powershell.exe -NoProfile -Command "netsh interface portproxy show v4tov4" 2>/dev/null | tr -d '\r' || true
+sanitize_port(){ local x="$1"; x="${x%%#*}"; echo "$x" | sed 's/[^0-9]//g'; }
+PORT="$(sanitize_port "$PORT")"
+
+is_wsl=false; grep -qi microsoft /proc/version 2>/dev/null && is_wsl=true || true
+if [[ -z "$HOST" ]]; then
+  if $is_wsl; then HOST=$(awk '/nameserver/ {print $2; exit}' /etc/resolv.conf 2>/dev/null || echo 127.0.0.1); else HOST=127.0.0.1; fi
 fi
 
-# Check if Gateway is already running
-check_once() {
-    local h="$1" p="$2"
-    PYBIN=${VENV_PY:-./.venv/bin/python}
-    "$PYBIN" - <<'PY'
-import os, re, socket, sys
-h = os.environ.get('CHK_HOST')
-raw = os.environ.get('CHK_PORT', '0') or '0'
-# Extract first integer from the string safely (tolerate inline comments)
-m = re.search(r"\d+", raw)
-p = int(m.group(0)) if m else 0
-s = socket.socket()
-s.settimeout(2)
-try:
-    r = s.connect_ex((h, p))
-finally:
-    s.close()
-sys.exit(0 if r == 0 else 1)
+echo "Target host: $HOST"; echo "Target port: $PORT";
+if $is_wsl; then echo "Environment: WSL"; else echo "Environment: Native"; fi
+if $is_wsl; then echo -e "\n🔎 Windows portproxy rules:"; powershell.exe -NoProfile -Command "netsh interface portproxy show v4tov4" 2>/dev/null | tr -d '\r' || true; fi
+
+check_listener_once(){ python - <<'PY'
+import os,re,socket,sys
+h=os.environ.get('CHK_HOST','127.0.0.1'); raw=os.environ.get('CHK_PORT','0'); m=re.search(r"\d+",raw); p=int(m.group(0)) if m else 0
+s=socket.socket(); s.settimeout(1.5)
+try: r=s.connect_ex((h,p))
+finally: s.close()
+sys.exit(0 if r==0 else 1)
 PY
 }
 
-check_gateway() {
-    # Try a small matrix of host/port candidates
-    CANDIDATE_HOSTS=("$HOST")
-    [ "$is_wsl" = true ] && CANDIDATE_HOSTS+=("127.0.0.1")
-    # Include explicit Windows host if provided
-    [ -n "$WIN_HOST" ] && CANDIDATE_HOSTS+=("$WIN_HOST")
-    # Enumerate Windows IPv4 addresses (best-effort) to cover Wi-Fi/Ethernet/vEthernet
-    if [ "$is_wsl" = true ]; then
-        mapfile -t WIN_IPS < <(powershell.exe -NoProfile -Command "Get-NetIPAddress -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress" 2>/dev/null | tr -d '\r' | sed 's/\s\+//g' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)
-        for ip in "${WIN_IPS[@]}"; do
-            # Skip 127.0.0.1
-            [ "$ip" = "127.0.0.1" ] && continue
-            CANDIDATE_HOSTS+=("$ip")
-        done
-    fi
+has_nc(){ command -v nc >/dev/null 2>&1; }
+can_nc(){ local h="$1" p="$2"; nc -z -w1 "$h" "$p" >/dev/null 2>&1; }
 
-    # Build sanitized candidate port list
-    CANDIDATE_PORTS=()
-    sp="$(sanitize_port "$PORT")"; [ -n "$sp" ] && CANDIDATE_PORTS+=("$sp")
-    for v in "${IB_GATEWAY_PAPER_PORT:-4002}" "${IB_GATEWAY_LIVE_PORT:-4001}" "${IB_PAPER_PORT:-7497}" "${IB_LIVE_PORT:-7496}"; do
-        sp="$(sanitize_port "$v")"
-        [ -n "$sp" ] && CANDIDATE_PORTS+=("$sp")
+check_any(){
+  local hosts=("$HOST"); $is_wsl && hosts+=("127.0.0.1")
+  local ports=("$PORT" "${IB_GATEWAY_PAPER_PORT:-4002}" "${IB_PAPER_PORT:-7497}" 4003)
+  for h in "${hosts[@]}"; do
+    for p in "${ports[@]}"; do
+      if has_nc && can_nc "$h" "$p"; then HOST="$h" PORT="$p"; echo "✅ Detected listener $h:$p (nc)"; return 0; fi
+      CHK_HOST="$h" CHK_PORT="$p" check_listener_once && HOST="$h" PORT="$p" && echo "✅ Detected listener $h:$p" && return 0 || true
     done
-
-    for h in "${CANDIDATE_HOSTS[@]}"; do
-        for p in "${CANDIDATE_PORTS[@]}"; do
-            CHK_HOST="$h" CHK_PORT="$p" check_once
-            if [ $? -eq 0 ]; then
-                HOST="$h"; PORT="$p"; export HOST PORT
-                echo "✅ Detected listener at $HOST:$PORT"
-                return 0
-            fi
-        done
-    done
-    return 1
+  done
+  return 1
 }
 
-# Start Gateway if not running
-if check_gateway; then
-    echo "✅ IB Gateway is already running on ${HOST}:${PORT}"
-else
-    if [ -n "${IB_GATEWAY_START_CMD}" ]; then
-        echo "🔄 Attempting to auto-start IB Gateway via IB_GATEWAY_START_CMD"
-        echo "    ${IB_GATEWAY_START_CMD}"
-        # Try to launch Windows app from WSL (non-blocking)
-        ( eval "${IB_GATEWAY_START_CMD}" >/dev/null 2>&1 & ) || true
-        sleep 3
-    else
-        echo "🔄 IB Gateway not detected. Please:"
-        echo "   1. Start IB Gateway/TWS on Windows"
-        echo "   2. Login and enable API"
-        echo "   3. Ensure correct port: ${PORT}"
-        echo "   4. If using TWS, set IB_PORT=7497 and IB_USE_TWS=1 in test env"
-        echo "   5. In Gateway/TWS API settings:"
-        echo "      - Enable 'ActiveX and Socket Clients'"
-        echo "      - Uncheck 'Allow connections from localhost only'"
-        echo "      - Or add your WSL IP to Trusted IPs: $(awk '/nameserver/ {print $2; exit}' /etc/resolv.conf 2>/dev/null)"
-        echo ""
-    fi
+attempt_windows_autofind(){
+  $is_wsl || return 0
+  [[ "$PREFER_LINUX" == "1" ]] && return 0
+  [[ -n "${IB_GATEWAY_START_CMD:-}" ]] && return 0
+  echo "🔄 Attempting Windows auto-discovery"
+  powershell.exe -NoProfile -Command '
+    & {
+      $gw = Get-ChildItem -Path "C:\Jts\ibgateway" -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending | Select-Object -First 1
+      if ($gw) {
+        Start-Process -WindowStyle Minimized -FilePath (Join-Path $gw.FullName "ibgateway.exe")
+        "Launched:" + $gw.FullName
+      } else {
+        "NoInstallFound"
+      }
+    }
+  ' 2>/dev/null | tr -d '\r' || true
+}
 
-    echo "⏳ Waiting for Gateway to start on ${HOST}:${PORT}..."
+launch_if_needed(){ if check_any; then echo "✅ Gateway already running"; return 0; fi; if [[ -n "${IB_GATEWAY_START_CMD:-}" ]]; then echo "🔄 Launching via IB_GATEWAY_START_CMD"; ( eval "$IB_GATEWAY_START_CMD" >/dev/null 2>&1 & ) || true; else attempt_windows_autofind; fi; echo "⏳ Waiting for listener..."; for i in {1..70}; do if check_any; then echo "✅ Up (after $i attempts)"; return 0; fi; sleep 3; done; echo "❌ Timeout" >&2; return 1; }
 
-    # Wait for Gateway to become available
-    for i in {1..60}; do
-        if check_gateway; then
-            echo "✅ Gateway is now running!"
-            break
-        fi
-        echo "   Waiting... ($i/60)"
-        sleep 5
-    done
+launch_if_needed || exit 1
 
-    if ! check_gateway; then
-    echo "❌ Gateway startup timeout. Please start Gateway manually."
-        echo "   Hint: If IBKR binds only on 127.0.0.1, WSL cannot reach it."
-        echo "   Fix: Uncheck 'Allow connections from localhost only' and/or add Trusted IP."
-        exit 1
-    fi
-fi
-
-echo ""
-echo "🧪 Testing connection..."
-PYBIN=${VENV_PY:-./.venv/bin/python}
-"$PYBIN" - <<PY
-import asyncio,sys,os
-HOST=os.environ.get('HOST')
-PORT=int(os.environ.get('PORT','0') or '0')
-
-async def test_connection():
-    try:
-        from src.lib.ib_async_wrapper import IBAsync
-        ib = IBAsync()
-        ok = await ib.connect(HOST, PORT, 1, timeout=10)
-        if ok:
-            print('✅ Gateway connection successful!')
-            await ib.disconnect()
-            return True
-        print('❌ Gateway connection failed')
-        return False
-    except Exception as e:
-        print(f'❌ Connection test error: {e}')
-        return False
-
-raise SystemExit(0 if asyncio.run(test_connection()) else 1)
+echo -e "\n🧪 API connectivity test..."
+python - <<'PY'
+import asyncio,os,sys
+HOST=os.environ.get('HOST'); PORT=int(os.environ.get('PORT','0') or 0); CID=int(os.environ.get('IB_CLIENT_ID','2011') or 2011)
+async def main():
+  try:
+    from src.lib.ib_async_wrapper import IBAsync
+    ib=IBAsync(); ok=await ib.connect(HOST,PORT,CID,timeout=12)
+    if ok:
+      print(f"✅ Connected to IB @ {HOST}:{PORT} (clientId={CID})"); await ib.disconnect(); return 0
+    print('❌ API connect returned False'); return 2
+  except Exception as e:
+    print(f"❌ API test error: {e}"); return 3
+raise SystemExit(asyncio.run(main()))
 PY
-
-if [ $? -eq 0 ]; then
-    echo "🎉 IB Gateway is ready for trading!"
-else
-    echo "⚠️  Connection test failed. Check Gateway settings."
-fi
+res=$?; if [[ $res -eq 0 ]]; then echo "🎉 IB Gateway ready."; else echo "⚠️  API test failed ($res)"; fi

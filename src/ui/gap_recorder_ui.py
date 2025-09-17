@@ -8,7 +8,7 @@ import tkinter as tk
 from collections.abc import Iterable
 from datetime import datetime
 from tkinter import ttk
-from typing import Any
+from typing import Any, cast
 
 from src.config import extensions as cfg_ext
 from src.recording.l2_slot_manager import L2SlotManager
@@ -28,7 +28,7 @@ REFRESH_INTERVAL_MS = cfg_ext.refresh_seconds() * 1000
 
 
 class App:
-    ib: MD_IB | None
+    ib: Any | None
     scanner: GapRvolScanner
     ib_scanner: IBMarketScanner
     market_data_service: MarketDataService
@@ -46,15 +46,34 @@ class App:
 
             self.ib, _tracker = get_ib_connection_sync(live_mode=False)
         except Exception:  # noqa: BLE001
-            try:
-                self.ib = MD_IB()  # type: ignore
-            except Exception:  # noqa: BLE001 pragma: no cover - ultimate fallback
-                self.ib = None  # type: ignore
+            # Fallback to uninitialized/None; avoid constructing Protocols at runtime
+            self.ib = None  # type: ignore[assignment]
         # Core scanner components
-        self.scanner = GapRvolScanner(self.ib)
-        self.ib_scanner = IBMarketScanner(self.ib)  # type: ignore[arg-type]
-        md_ib: MD_IB | None = self.ib if isinstance(self.ib, MD_IB) else None  # type: ignore[arg-type]
-        self.market_data_service = MarketDataService(md_ib)  # type: ignore[arg-type]
+        self.scanner = GapRvolScanner(None)
+        self.ib_scanner = IBMarketScanner(self.ib)
+
+        # Pass IB to MarketDataService – if unavailable, use a NullIB stub
+        class NullIB:
+            def isConnected(self) -> bool:  # noqa: N802
+                return False
+
+            def qualifyContracts(self, *_args: Any, **_kwargs: Any) -> Any:  # noqa: N802
+                return None
+
+            def reqMktDepth(self, *_args: Any, **_kwargs: Any) -> Any:  # noqa: N802
+                return None
+
+            def cancelMktDepth(self, *_args: Any, **_kwargs: Any) -> Any:  # noqa: N802
+                return None
+
+            def reqTickByTickData(self, *_args: Any, **_kwargs: Any) -> Any:  # noqa: N802
+                return None
+
+            def cancelTickByTickData(self, *_args: Any, **_kwargs: Any) -> Any:  # noqa: N802
+                return None
+
+        md_ib_any = self.ib if self.ib is not None else NullIB()
+        self.market_data_service = MarketDataService(cast(MD_IB, md_ib_any))
         self.session_mgr = SessionManager(self.market_data_service, L2SlotManager())
         # Runtime state
         self.event_q = queue.Queue()
@@ -217,9 +236,10 @@ class App:
             ]
             if iid:
                 self.tree.item(iid, values=values)
+                row_iid: str = iid
             else:
-                iid = self.tree.insert("", "end", values=values)
-            keep.add(iid)
+                row_iid = self.tree.insert("", "end", values=values)
+            keep.add(row_iid)
         for iid in existing - keep:
             self.tree.delete(iid)
         summary = self.session_mgr.active_summary()

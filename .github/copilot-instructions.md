@@ -75,3 +75,12 @@ This document defines what AI assistants may change and how they should operate 
 ```bash
 ./scripts/notify_tbs.sh "${workspaceFolderBasename}" "run-$(date +%s)" "<paste-the-prompt-here>"
 ```
+
+---
+
+## Start Here (Quick Pointers)
+
+- Where are the diagrams? See `docs/ARCHITECTURE.md` for all mermaid diagrams (flows, components, data paths). The README links out but does not embed full diagrams.
+- Where are TF_1 contracts? See `docs/TF_1_ALIGNMENT.md` for manifests, parquet layout, and cross-repo rules. Do not edit files in `contracts/` directly.
+- Where is test guidance? Tests under `tests/`; run “Run Tests” or “Run Tests with Coverage” VS Code tasks, or `pytest -q` locally.
+- Tool self‑docs: Every tool supports `--describe`. Validate all via the “describe:all” task.

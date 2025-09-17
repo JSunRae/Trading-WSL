@@ -35,6 +35,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from collections.abc import Sequence
 
 import pandas as pd
 
@@ -48,6 +49,11 @@ from src.lib.ib_async_wrapper import IBAsync
 
 try:
     from src.core.config import get_config
+    from src.services.market_data.artifact_check import (
+        compute_bars_gaps as _compute_bars_gaps,
+    )
+
+    has_gap_api = True
 except Exception:  # pragma: no cover
 
     def get_config(*_args, **_kwargs) -> Any:  # type: ignore
@@ -62,6 +68,9 @@ except Exception:  # pragma: no cover
 
         return Dummy()
 
+    has_gap_api = False
+    _compute_bars_gaps = None  # type: ignore[assignment]
+
 
 async def fully_automated_trading(
     symbols: list[str],
@@ -69,6 +78,7 @@ async def fully_automated_trading(
     bar_size: str = "1 min",
     paper_trading: bool = True,
     save_data: bool = True,
+    resume_gaps: bool = True,
 ) -> bool:
     """
     Complete automated trading pipeline
@@ -139,6 +149,73 @@ async def fully_automated_trading(
             return False
         logger.info("✅ Connected to IB API on port %s!", used_port)
 
+        async def _fetch_per_gap(
+            symbol: str,
+            bar_size: str,
+            gaps_list: Sequence[Any],
+        ) -> pd.DataFrame | None:
+            """Issue one IB request per gap window and merge results.
+
+            - Converts ISO-like gap times to IB endDateTime and duration strings.
+            - Filters each returned frame to the exact [start, end] window.
+            - Merges frames (outer) and sorts by index.
+            """
+            contract = ib.create_stock_contract(symbol)
+            frames: list[pd.DataFrame] = []
+            # Decide RTH behavior by bar granularity, mirroring backfill defaults
+            use_rth = False if "sec" in bar_size else True
+            for gap in gaps_list:
+                start_iso: str
+                end_iso: str
+                try:
+                    start_iso = str(gap.get("start", ""))  # type: ignore[call-arg, attr-defined]
+                    end_iso = str(gap.get("end", ""))  # type: ignore[call-arg, attr-defined]
+                except Exception:
+                    try:
+                        start_iso = str(gap["start"])  # type: ignore[index]
+                        end_iso = str(gap["end"])  # type: ignore[index]
+                    except Exception:
+                        continue
+                if len(start_iso) < 19 or len(end_iso) < 19:
+                    continue
+                try:
+                    start_dt = datetime.fromisoformat(start_iso.replace("Z", ""))
+                    end_dt = datetime.fromisoformat(end_iso.replace("Z", ""))
+                    if end_dt <= start_dt:
+                        continue
+                    duration_s = int((end_dt - start_dt).total_seconds())
+                    # IB expects duration like 'NNN S' for fine windows
+                    duration_str = f"{max(1, duration_s)} S"
+                    end_dt_str = end_dt.strftime("%Y%m%d %H:%M:%S")
+                    df_part = await ib.req_historical_data(
+                        contract,
+                        duration=duration_str,
+                        bar_size=bar_size,
+                        end_datetime=end_dt_str,
+                        use_rth=use_rth,
+                    )
+                    if df_part is None or df_part.empty:
+                        continue
+                    # filter to exact window
+                    try:
+                        df_part = df_part.loc[
+                            (df_part.index >= start_dt) & (df_part.index <= end_dt)
+                        ]
+                    except Exception:
+                        pass
+                    frames.append(df_part)
+                except Exception:
+                    continue
+            if not frames:
+                return None
+            try:
+                df_all = pd.concat(frames).sort_index()
+                # drop duplicates by index if any
+                df_all = df_all[~df_all.index.duplicated(keep="last")]
+                return df_all
+            except Exception:
+                return None
+
         # Step 3: Process each symbol
         logger.info(f"📊 Step 3: Processing {len(symbols)} symbols...")
         all_data: dict[str, pd.DataFrame] = {}
@@ -146,7 +223,77 @@ async def fully_automated_trading(
             logger.info(f"📈 Processing {symbol} ({i}/{len(symbols)})...")
             try:
                 contract = ib.create_stock_contract(symbol)
-                df = await ib.req_historical_data(contract, duration, bar_size)
+                # Gap-aware targeted fetches per gap window
+                if resume_gaps and has_gap_api and _compute_bars_gaps is not None:
+                    try:
+                        today_str = datetime.now().strftime("%Y-%m-%d")
+                        gaps_info = _compute_bars_gaps(symbol, today_str, bar_size)
+                        if gaps_info.get("needed"):
+                            gap_list = list(gaps_info.get("gaps") or [])
+                            if gap_list:
+                                logger.info(
+                                    "Gap-aware fetch for %s %s: %d window(s)",
+                                    symbol,
+                                    bar_size,
+                                    len(gap_list),
+                                )
+                                df_gap = await _fetch_per_gap(
+                                    symbol, bar_size, gap_list
+                                )
+                                if df_gap is not None and not df_gap.empty:
+                                    df = df_gap
+                                    logger.info(
+                                        "✅ Downloaded %d bars for %s via %d gap window(s)",
+                                        len(df),
+                                        symbol,
+                                        len(gap_list),
+                                    )
+                                    all_data[symbol] = df
+                                    # Basic analysis + pacing
+                                    latest_price = df["close"].iloc[-1]
+                                    avg_price = df["close"].mean()
+                                    price_change = (
+                                        (latest_price - df["close"].iloc[0])
+                                        / df["close"].iloc[0]
+                                    ) * 100
+                                    volatility = df["close"].pct_change().std() * 100
+                                    logger.info(f"💰 {symbol} Analysis:")
+                                    logger.info(f"   Latest: ${latest_price:.2f}")
+                                    logger.info(f"   Average: ${avg_price:.2f}")
+                                    logger.info(f"   Change: {price_change:+.2f}%")
+                                    logger.info(f"   Volatility: {volatility:.2f}%")
+                                    if latest_price > avg_price * 1.02:
+                                        signal = "🔥 STRONG BUY"
+                                    elif latest_price > avg_price:
+                                        signal = "📈 BUY"
+                                        signal = "🔻 STRONG SELL"
+                                    else:
+                                        signal = "📉 SELL"
+                                    logger.info(f"   Signal: {signal}")
+                                    success_count += 1
+                                    if i < len(symbols):
+                                        await asyncio.sleep(1)
+                                    continue
+                    except Exception:
+                        # fall through to generic request
+                        pass
+
+                # Fallback: single generic request (optionally aligned to policy end)
+                end_dt_str: str | None = None
+                if resume_gaps and has_gap_api and _compute_bars_gaps is not None:
+                    try:
+                        today_str = datetime.now().strftime("%Y-%m-%d")
+                        gaps_info = _compute_bars_gaps(symbol, today_str, bar_size)
+                        target_end = (gaps_info.get("target_window") or {}).get("end")
+                        if target_end and len(target_end) >= 19:
+                            dt_obj = datetime.fromisoformat(target_end.replace("Z", ""))
+                            end_dt_str = dt_obj.strftime("%Y%m%d %H:%M:%S")
+                    except Exception:
+                        end_dt_str = None
+
+                df = await ib.req_historical_data(
+                    contract, duration, bar_size, end_datetime=end_dt_str
+                )
                 if df is None or df.empty:
                     logger.warning(f"⚠️  No data received for {symbol}")
                     continue
@@ -197,6 +344,10 @@ async def fully_automated_trading(
                 )
                 df.to_csv(csv_file)
                 logger.info(f"💾 Saved {symbol} data: {parquet_file}")
+                try:
+                    _append_bars_manifest(parquet_file, symbol, bar_size, df)
+                except Exception:
+                    pass
             summary_file = data_dir / f"trading_summary_{timestamp}.txt"
             with summary_file.open("w") as f:
                 f.write("AUTOMATED TRADING SUMMARY\n")
@@ -314,6 +465,11 @@ Examples:
         action="store_true",
         help="Don't save data files (default: save data)",
     )
+    parser.add_argument(
+        "--no-resume-gaps",
+        action="store_true",
+        help="Disable gap-aware planning for bars; always fetch based on duration/window",
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
@@ -329,6 +485,7 @@ Examples:
                 "--bar-size",
                 "--live",
                 "--no-save",
+                "--no-resume-gaps",
                 "--verbose",
             ],
             "outputs": [
@@ -410,6 +567,7 @@ Examples:
                 bar_size=args.bar_size,
                 paper_trading=not args.live,
                 save_data=not args.no_save,
+                resume_gaps=not args.no_resume_gaps,
             )
         )
 
@@ -429,6 +587,55 @@ Examples:
     except Exception as e:
         print(f"\n❌ FATAL ERROR: {e}")
         return 1
+
+
+def _append_bars_manifest(
+    path: Path, symbol: str, bar_size: str, df: pd.DataFrame
+) -> None:
+    """Append a JSONL entry for any saved bars to enable fast discovery.
+
+    Schema mirrors auto_backfill bars manifest writer.
+    """
+    try:
+        from src.core.config import get_config  # local import to avoid early heavy deps
+    except Exception:  # pragma: no cover
+        return
+
+    cfg = get_config()
+    manifest_path = cfg.data_paths.base_path / "bars_download_manifest.jsonl"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    time_start: str | None = None
+    time_end: str | None = None
+    try:
+        idx = getattr(df, "index", None)
+        if isinstance(idx, pd.DatetimeIndex) and len(idx) > 0:
+            # Use first/last to avoid extra type-check noise on min/max
+            t_start = idx[0].to_pydatetime()
+            t_end = idx[-1].to_pydatetime()
+            time_start = t_start.isoformat()
+            time_end = t_end.isoformat()
+    except Exception:
+        time_start = None
+        time_end = None
+
+    record = {
+        "schema_version": "bars_manifest.v1",
+        "written_at": datetime.now().isoformat(),
+        "vendor": "IBKR",
+        "file_format": "parquet",
+        "symbol": symbol,
+        "bar_size": bar_size,
+        "path": str(path),
+        "filename": path.name,
+        "rows": int(len(df)) if hasattr(df, "__len__") else 0,
+        "columns": list(df.columns) if hasattr(df, "columns") else [],
+        "time_start": time_start,
+        "time_end": time_end,
+    }
+
+    with manifest_path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 if __name__ == "__main__":
