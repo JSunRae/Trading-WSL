@@ -85,10 +85,10 @@ ui = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/trading-project"
-Repository = "https://github.com/yourusername/trading-project"
-Documentation = "https://github.com/yourusername/trading-project/docs"
-"Bug Tracker" = "https://github.com/yourusername/trading-project/issues"
+Homepage = "https://github.com/JSunRae/Trading-WSL"
+Repository = "https://github.com/JSunRae/Trading-WSL"
+Documentation = "https://github.com/JSunRae/Trading-WSL/docs"
+"Bug Tracker" = "https://github.com/JSunRae/Trading-WSL/issues"
 
 [project.scripts]
 trading-main = "src.ib_main:main"

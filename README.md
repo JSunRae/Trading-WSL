@@ -1,7 +1,7 @@
 ## Status
 
-[![CI](https://github.com/JSunRae/Trading/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JSunRae/Trading/actions/workflows/ci.yml)
-[![Cross-Repo Smoke (Trading)](https://github.com/JSunRae/Trading/actions/workflows/cross-smoke-trading.yml/badge.svg?branch=main)](https://github.com/JSunRae/Trading/actions/workflows/cross-smoke-trading.yml)
+[![CI](https://github.com/JSunRae/Trading-WSL/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JSunRae/Trading-WSL/actions/workflows/ci.yml)
+[![Cross-Repo Smoke (Trading)](https://github.com/JSunRae/Trading-WSL/actions/workflows/cross-smoke-trading.yml/badge.svg?branch=main)](https://github.com/JSunRae/Trading-WSL/actions/workflows/cross-smoke-trading.yml)
 
 ## Table of Contents (Quick Navigation)
 
@@ -31,7 +31,7 @@ Agent guidance moved: see `.github/copilot-instructions.md` for the authoritativ
 ## 1. Quick Start (90% use‑case)
 
 ```bash
-cd "/home/jrae/wsl projects/Trading"
+cd "/home/jrae/wsl projects/Trading-WSL"
 source .venv/bin/activate  # Linux/Mac
 python src/tools/setup/setup_automated_trading.py
 python src/tools/run_trading_fully_automated.py --symbols AAPL

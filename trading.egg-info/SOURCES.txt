@@ -118,6 +118,7 @@ src/tools/verify_setup.py
 src/tools/warrior_update.py
 src/tools/analysis/analyze_root_files.py
 src/tools/analysis/analyze_scripts.py
+src/tools/analysis/build_bars_coverage.py
 src/tools/analysis/build_export_manifest.py
 src/tools/analysis/evaluate_and_emit_metrics.py
 src/tools/analysis/generate_coverage_analysis.py
@@ -168,7 +169,9 @@ tests/test_gateway_ready.py
 tests/test_ib_async_stubs.py
 tests/test_ib_availability.py
 tests/test_ib_compat_errors.py
+tests/test_ib_conn.py
 tests/test_ib_connect.py
+tests/test_ib_plan_policy.py
 tests/test_infra_smoke.py
 tests/test_integrated_error_handling.py
 tests/test_integrated_error_handling_extended.py
