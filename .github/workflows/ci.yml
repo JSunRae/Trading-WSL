@@ -29,23 +29,23 @@ jobs:
       - name: Validate tools --describe JSON
         run: |
           set -e
-          PY=python
+          PY=python3
           echo 'Testing all tools with --describe as JSON...'
           for tool in \
-            'src/tools/auto_backfill_from_warrior.py' \
-            'src/tools/analyze_depth.py' \
-            'src/tools/record_depth.py' \
-            'src/tools/quick_start.py' \
-            'src/tools/analysis/analyze_scripts.py' \
-            'src/tools/analysis/system_check_analysis.py' \
-            'src/tools/analysis/validate_ml_structure.py' \
-            'src/tools/analysis/script_inventory_analyzer.py' \
-            'src/tools/setup/setup_automated_trading.py' \
-            'src/tools/setup/setup_ib_gateway.py' \
-            'src/tools/setup/fix_hardcoded_paths.py' \
-            'src/tools/validate_export_manifest.py'; do
+            'src.tools.auto_backfill_from_warrior' \
+            'src.tools.analyze_depth' \
+            'src.tools.record_depth' \
+            'src.tools.quick_start' \
+            'src.tools.analysis.analyze_scripts' \
+            'src.tools.analysis.system_check_analysis' \
+            'src.tools.analysis.validate_ml_structure' \
+            'src.tools.analysis.script_inventory_analyzer' \
+            'src.tools.setup.setup_automated_trading' \
+            'src.tools.setup.setup_ib_gateway' \
+            'src.tools.setup.fix_hardcoded_paths' \
+            'src.tools.validate_export_manifest'; do
             echo "Testing $tool --describe..."
-            output=$($PY "$tool" --describe 2>&1) || { echo "Error: $tool --describe failed"; exit 1; }
+            output=$($PY -m "$tool" --describe 2>&1) || { echo "Error: $tool --describe failed"; exit 1; }
             echo "$output" | $PY -m json.tool > /dev/null || { echo "Error: $tool --describe returned invalid JSON"; echo "$output"; exit 1; }
           done
           echo 'All tools --describe validation completed successfully!'
@@ -56,7 +56,7 @@ jobs:
           # PASS: with model-dir containing production.alias
           mkdir -p /tmp/model_dir
           echo "tf1-model-stable" > /tmp/model_dir/production.alias
-          python -m src.tools.validate_export_manifest --manifest examples/tf1_export_manifest.sample.json --model-dir /tmp/model_dir
+          python3 -m src.tools.validate_export_manifest --manifest examples/tf1_export_manifest.sample.json --model-dir /tmp/model_dir
           # FAIL: same manifest but missing production.alias should exit nonzero
           rm -f /tmp/model_dir/production.alias || true
           if python -m src.tools.validate_export_manifest --manifest examples/tf1_export_manifest.sample.json --model-dir /tmp/model_dir; then
@@ -73,4 +73,4 @@ jobs:
         env:
           PYTHONWARNINGS: default
         run: |
-          python -m pytest -q tests/
+          python3 -m pytest -q tests/

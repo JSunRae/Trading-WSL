@@ -72,12 +72,12 @@ jobs:
           pip install -e .[dev]
 
       - name: Check for sync pattern leftovers
-        run: python src/utils/detect_sync_leftovers.py
+        run: python scripts/detect_sync_leftovers.py
 
       - name: Verify async migration completeness
         run: |
           # Count remaining sync issues
-          SYNC_COUNT=$(python src/utils/detect_sync_leftovers.py | grep -c "SYNC PATTERN" || echo "0")
+          SYNC_COUNT=$(python scripts/detect_sync_leftovers.py | grep -c "SYNC PATTERN" || echo "0")
           echo "Remaining sync patterns: $SYNC_COUNT"
 
           # Fail if sync patterns increased (regression)

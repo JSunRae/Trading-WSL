@@ -43,8 +43,8 @@ project_root = Path(__file__).parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from src.automation.headless_gateway import HeadlessGateway
-from src.lib.ib_async_wrapper import IBAsync
+# from src.automation.headless_gateway import HeadlessGateway
+# from src.lib.ib_async_wrapper import IBAsync
 
 try:
     from src.core.config import get_config
@@ -520,6 +520,9 @@ Examples:
         }
         print(json.dumps(describe_info, indent=2))
         return 0
+    # Import heavy dependencies only after --describe check
+    from src.automation.headless_gateway import HeadlessGateway
+    from src.lib.ib_async_wrapper import IBAsync
 
     # Setup logging level
     if args.verbose:
