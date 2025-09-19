@@ -134,12 +134,12 @@ fi
 
 python - <<'PY'
 import asyncio, sys
-HOST='__HOST__'; PORT=__PORT__; CID=__CID__
 async def main():
     try:
         from src.lib.ib_async_wrapper import IBAsync
         ib=IBAsync()
-        ok=await ib.connect(HOST, PORT, CID, timeout=10)
+        # Use canonical connection path (no explicit host/port to use env defaults)
+        ok=await ib.connect(timeout=10)
         print('API connect:', '✅ OK' if ok else '❌ FAIL')
         if ok:
             await ib.disconnect()
@@ -185,9 +185,7 @@ PY
             "    print(f'{name:<14} ({port}):', '✅ Online' if up else '❌ Offline')\n"
             "    return up\n\n"
             "async def api_test(port: int) -> bool:\n"
-            "    try:\n        from src.lib.ib_async_wrapper import IBAsync\n        ib = IBAsync()\n        ok = await ib.connect(HOST, port, "
-            f"{cfg.client_id}"
-            ", timeout=5)\n        if ok:\n            await ib.disconnect()\n        return ok\n"
+            "    try:\n        from src.lib.ib_async_wrapper import IBAsync\n        ib = IBAsync()\n        # Use canonical connection path with explicit port override\n        ok = await ib.connect(port=port, timeout=5)\n        if ok:\n            await ib.disconnect()\n        return ok\n"
             "    except Exception:\n        return False\n\n"
             "active = [p for p,n in PORTS.items() if check(p,n)]\n"
             "if active:\n    print('\\nAPI tests:')\n    for p in active:\n        try:\n            ok = asyncio.run(api_test(p))\n            print('  Port', p, '->', '✅ Success' if ok else '❌ Fail')\n        except Exception as e:\n            print('  Error:', e)\n"

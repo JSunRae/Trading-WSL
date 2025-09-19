@@ -147,8 +147,10 @@ def save_excel_for_review(df: DataFrame, str_name: str = "") -> str:
     try:
         from ..core.config import get_config
 
-        base = get_config().data_paths.base_path / "Machine Learning"
+        # Use configured ML base path directly (it already points to the ML root)
+        base = get_config().data_paths.base_path
     except Exception:
+        # Last-resort fallback mirrors default for ML_BASE_PATH
         base = Path.home() / "Machine Learning"
 
     base.mkdir(parents=True, exist_ok=True)

@@ -1,3 +1,4 @@
 {
-  "NAT": { "symbol": "NAT", "dataset": "BATS.PITCH", "schema": "mbp-10" }
+  "NAT": { "symbol": "NAT", "dataset": "BATS.PITCH", "schema": "mbp-10" },
+  "WFI": { "symbol": "WFI", "dataset": "XNYS.PILLAR", "schema": "mbp-10" }
 }

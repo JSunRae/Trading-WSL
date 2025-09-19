@@ -89,7 +89,9 @@ class AsyncIBWrapper(EWrapper):
         self._loop: asyncio.AbstractEventLoop | None = None
 
         # Event queues for async communication - properly typed
-        self._connection_events: asyncio.Queue[tuple[str, bool]] = asyncio.Queue()
+        # Events: (event_name, payload)
+        # event_name in {"socket_open", "api_ready", "disconnected"}
+        self._connection_events: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
         self._error_events: asyncio.Queue[ErrorContext] = asyncio.Queue()
         self._historical_data_events: asyncio.Queue[
             tuple[RequestId, list[dict[str, Any]]]
@@ -108,6 +110,10 @@ class AsyncIBWrapper(EWrapper):
         # Request tracking - properly typed
         self._pending_requests: dict[RequestId, Symbol] = {}
         self._request_id: RequestId = 1000
+
+        # Handshake state
+        self._api_ready: bool = False
+        self._managed_accounts: list[str] = []
 
     # Loop wiring
     def set_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
@@ -151,7 +157,7 @@ class AsyncIBWrapper(EWrapper):
         return self._request_id
 
     # Public accessors for protected data - Type-safe access from client
-    def get_connection_events(self) -> asyncio.Queue[tuple[str, bool]]:
+    def get_connection_events(self) -> asyncio.Queue[tuple[str, Any]]:
         """Get connection events queue"""
         return self._connection_events
 
@@ -210,11 +216,70 @@ class AsyncIBWrapper(EWrapper):
     # Connection callbacks
     def connectAck(self) -> None:
         """Connection acknowledged"""
-        self._enqueue(self._connection_events, ("connected", True))
+        # TCP socket is open and API acknowledged
+        try:
+            self.logger.info("[SOCKET_OPEN] IB socket acknowledged by API")
+        except Exception:
+            pass
+        # Required for asynchronous connection path
+        try:
+            self.startApi()  # type: ignore[attr-defined]
+            # Nudge server for nextValidId
+            try:
+                self.reqIds(-1)  # type: ignore[attr-defined]
+            except Exception:
+                import time
+
+                time.sleep(0.05)
+                self.reqIds(-1)  # type: ignore[attr-defined]
+        except Exception as e:
+            try:
+                self.logger.error("connectAck handling error: %s", e)
+            except Exception:
+                pass
+        self._enqueue(self._connection_events, ("socket_open", True))
 
     def connectionClosed(self) -> None:
         """Connection closed"""
         self._enqueue(self._connection_events, ("disconnected", True))
+        self._api_ready = False
+
+    # Handshake readiness events
+    def nextValidId(self, orderId: int) -> None:  # noqa: N802
+        """API handshake event indicating readiness (first valid order id)."""
+        self._api_ready = True
+        try:
+            self.logger.info("[API_READY] nextValidId=%s", orderId)
+        except Exception:
+            pass
+        self._enqueue(
+            self._connection_events,
+            ("api_ready", {"source": "nextValidId", "orderId": orderId}),
+        )
+
+    def managedAccounts(self, accountsList: str) -> None:  # noqa: N802
+        """Accounts list received; another indicator of API readiness."""
+        try:
+            accounts = [a.strip() for a in accountsList.split(",") if a.strip()]
+        except Exception:
+            accounts = []
+        self._managed_accounts = accounts
+        self._api_ready = True
+        try:
+            self.logger.info("[API_READY] managedAccounts=%s", accounts)
+        except Exception:
+            pass
+        self._enqueue(
+            self._connection_events,
+            ("api_ready", {"source": "managedAccounts", "accounts": accounts}),
+        )
+
+    # Introspection helpers
+    def is_api_ready(self) -> bool:
+        return self._api_ready
+
+    def get_managed_accounts(self) -> list[str]:
+        return list(self._managed_accounts)
 
     # Error handling
     def error(
@@ -270,7 +335,6 @@ class AsyncIBWrapper(EWrapper):
         self._enqueue(self._historical_data_events, (reqId, bars))
         # Proactively free memory; finalizer will pop again safely (pop with default)
         try:
-            self._historical_data.pop(reqId, None)
             self._pending_requests.pop(reqId, None)
         except Exception:
             pass
@@ -384,13 +448,53 @@ class AsyncIBClient(EClient):
         self.state: ConnectionState = ConnectionState.DISCONNECTED
         self._connection_lock: asyncio.Lock = asyncio.Lock()
 
-    async def connect_async(
-        self, host: str, port: int, clientId: int, timeout: float = 30
+    async def connect_async(  # noqa: C901 - Connection handshake logic intentionally verbose
+        self,
+        host: str,
+        port: int,
+        clientId: int,
+        timeout: float = 30,
+        *,
+        first_attempt: bool = True,
+        account_hint: str | None = None,
+        host_type: str | None = None,
     ) -> bool:
         """
         Async connection to IB Gateway/TWS
         Key improvement: Non-blocking connection with timeout
         """
+        import socket
+        import subprocess
+        import time
+
+        def _tcp_probe(h: str, p: int, t: float = 2.0) -> bool:
+            s: socket.socket | None = None
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(t)
+                return s.connect_ex((h, int(p))) == 0
+            except Exception:
+                return False
+            finally:
+                if s is not None:
+                    try:
+                        s.close()
+                    except Exception:
+                        pass
+
+        def _detect_gw_pid() -> str:
+            """Best-effort discovery of GW Java PID (stringified)."""
+            try:
+                out = subprocess.check_output(
+                    ["bash", "-lc", "pgrep -f install4j.ibgateway.GWClient | tail -n1"],
+                    stderr=subprocess.DEVNULL,
+                    timeout=1.5,
+                )
+                pid = out.decode("utf-8", "ignore").strip()
+                return pid or "?"
+            except Exception:
+                return "?"
+
         async with self._connection_lock:
             try:
                 self.state = ConnectionState.CONNECTING
@@ -402,6 +506,19 @@ class AsyncIBClient(EClient):
                 def connect_func() -> None:
                     cast(Any, self.connect)(host, port, clientId)
 
+                t0 = time.perf_counter()
+                tcp_ok = _tcp_probe(host, port, t=2.0)
+                gw_pid = _detect_gw_pid()
+                self.logger.info(
+                    "[TELEMETRY] attempt host=%s port=%s clientId=%s tcp_probe_ok=%s gw_pid=%s host_type=%s",
+                    host,
+                    port,
+                    clientId,
+                    bool(tcp_ok),
+                    gw_pid,
+                    host_type or "unknown",
+                )
+
                 connect_task = loop.run_in_executor(None, connect_func)
 
                 # Wait for connection with timeout
@@ -409,17 +526,89 @@ class AsyncIBClient(EClient):
                     await asyncio.wait_for(connect_task, timeout=timeout)
                 except TimeoutError:
                     self.state = ConnectionState.FAILED
+                    self.logger.warning(
+                        "[HANG_DIAG] tcp_ok=%s connectAck=N apiReady=N gw_pid=%s port=%s note=connect() timeout",
+                        bool(tcp_ok),
+                        gw_pid,
+                        port,
+                    )
                     return False
 
-                # Wait for connection acknowledgment
+                # Wait for socket acknowledgment ([SOCKET_OPEN])
+                t_connect_return = time.perf_counter()
                 try:
-                    event, _ = await asyncio.wait_for(
+                    event, _payload = await asyncio.wait_for(
                         self.wrapper.get_connection_events().get(), timeout=10
                     )
-                    if event == "connected":
+                except TimeoutError:
+                    self.state = ConnectionState.FAILED
+                    t_ack_to = time.perf_counter()
+                    self.logger.warning(
+                        "[HANG_DIAG] tcp_ok=%s connectAck=N apiReady=N gw_pid=%s port=%s time_to_ack=%.3fs",
+                        bool(tcp_ok),
+                        gw_pid,
+                        port,
+                        (t_ack_to - t0),
+                    )
+                    return False
+                if event != "socket_open":
+                    # Unexpected event order; treat as failure for safety
+                    self.state = ConnectionState.FAILED
+                    return False
+
+                # Handshake gating: wait for API_READY (nextValidId/managedAccounts)
+                handshake_timeout = 30.0 if first_attempt else max(5.0, float(timeout))
+                try:
+                    # Fast-path: if wrapper already marked ready
+                    if not self.wrapper.is_api_ready():
+                        # Allow account hint shortcut: if provided, reduce wait threshold
+                        effective_timeout = (
+                            5.0
+                            if (account_hint and account_hint.strip())
+                            else handshake_timeout
+                        )
+                        while True:
+                            evt, _payload = await asyncio.wait_for(
+                                self.wrapper.get_connection_events().get(),
+                                timeout=effective_timeout,
+                            )
+                            if evt == "api_ready":
+                                break
+                    # If we got here, API is ready
+                    t_api = time.perf_counter()
+                    self.logger.info(
+                        "[TELEMETRY] ack->api time_to_ack=%.3fs time_to_api=%.3fs host=%s port=%s clientId=%s gw_pid=%s host_type=%s",
+                        (t_connect_return - t0),
+                        (t_api - t_connect_return),
+                        host,
+                        port,
+                        clientId,
+                        gw_pid,
+                        host_type or "unknown",
+                    )
+                    self.state = ConnectionState.CONNECTED
+                    return True
+                except TimeoutError:
+                    # Handshake did not complete
+                    t_api_to = time.perf_counter()
+                    self.logger.warning(
+                        "[HANG_DIAG] tcp_ok=%s connectAck=Y apiReady=N gw_pid=%s port=%s time_to_ack=%.3fs time_to_api=%.3fs hint=Possible hidden modal/first-run gate; try foreground launch.",
+                        bool(tcp_ok),
+                        gw_pid,
+                        port,
+                        (t_connect_return - t0),
+                        (t_api_to - t_connect_return),
+                    )
+                    if account_hint and account_hint.strip():
+                        # Optional bypass: assume ready when a single known account is configured
+                        try:
+                            self.logger.info(
+                                "[API_READY] assumed via account_hint after warmup"
+                            )
+                        except Exception:
+                            pass
                         self.state = ConnectionState.CONNECTED
                         return True
-                except TimeoutError:
                     self.state = ConnectionState.FAILED
                     return False
 
@@ -464,14 +653,14 @@ class IBAsync:
             except Exception:
                 return val
 
-        # Connection parameters - Env-first (WSL→Windows portproxy friendly)
-        self.host = _sanitize_host(os.environ.get("IB_HOST", "172.17.208.1"))
+        # Connection parameters - Env-first (Linux-first defaults)
+        self.host: str = _sanitize_host(os.environ.get("IB_HOST", "127.0.0.1"))
         try:
-            self.port = int(os.environ.get("IB_PORT", "4003"))
+            self.port: int = int(os.environ.get("IB_PORT", "4002"))
         except ValueError:
-            self.port = 4003
+            self.port = 4002
         try:
-            self.client_id = int(os.environ.get("IB_CLIENT_ID", "2011"))
+            self.client_id: int = int(os.environ.get("IB_CLIENT_ID", "2011"))
         except ValueError:
             self.client_id = 2011
 
@@ -504,63 +693,184 @@ class IBAsync:
         timeout: float = 30,
         *,
         fallback: bool = True,
+        account_hint: str | None = None,
+        autostart: bool = False,
     ) -> bool:
         """
-        Connect to IB Gateway/TWS with automatic reconnection.
+        Connect to IB Gateway/TWS using the canonical connection path.
 
         Highlights:
+        - Uses canonical ib_conn.get_ib_connect_plan() and try_connect_candidates()
         - Explicit timeout handling
         - Better error reporting
         - Automatic pacing setup
+        - Optional autostart of Gateway/TWS via project helper when candidates fail
         """
 
-        # Resolve env-first defaults when not explicitly provided
-        # Sanitize env/arg-sourced host to avoid inline comments causing DNS errors
-        def _sanitize_host(val: str) -> str:
-            try:
-                s = val.strip()
-                if "#" in s:
-                    s = s.split("#", 1)[0].rstrip()
-                return s.split()[0] if s else s
-            except Exception:
-                return val
+        # Import canonical connection functions
+        try:
+            from src.infra.ib_conn import get_ib_connect_plan, try_connect_candidates
+        except ImportError as e:
+            self.logger.error("Cannot import canonical connection functions: %s", e)
+            return False
 
-        h = (
-            _sanitize_host(host)
-            if host
-            else _sanitize_host(os.environ.get("IB_HOST", "172.17.208.1"))
-        )
-        try:
-            p = int(port if port is not None else os.environ.get("IB_PORT", "4003"))
-        except ValueError:
-            p = 4003
-        try:
-            cid = int(
-                clientId
-                if clientId is not None
-                else os.environ.get("IB_CLIENT_ID", "2011")
+        # If explicit host/port provided, use them directly (bypass canonical plan)
+        if host is not None or port is not None or clientId is not None:
+            # Sanitize env/arg-sourced host to avoid inline comments causing DNS errors
+            def _sanitize_host(val: str) -> str:
+                try:
+                    s = val.strip()
+                    if "#" in s:
+                        s = s.split("#", 1)[0].rstrip()
+                    return s.split()[0] if s else s
+                except Exception:
+                    return val
+
+            h = str(_sanitize_host(host)) if host else str(self.host)
+            p = int(port) if port is not None else int(self.port)
+            cid = int(clientId) if clientId is not None else int(self.client_id)
+
+            # Validate port range to avoid invalid values like 0
+            if not (1 <= int(p) <= 65535):
+                self.logger.error(f"Invalid port resolved: {p}; refusing to connect")
+                return False
+
+            # Single attempt with explicit parameters (no fallback)
+            # First attempt: longer handshake timeout (30s default)
+            success = await self.client.connect_async(
+                h,
+                p,
+                cid,
+                timeout,
+                first_attempt=True,
+                account_hint=account_hint,
+                host_type=None,
             )
-        except ValueError:
-            cid = 2011
 
-        self.host = h
-        self.port = p
-        self.client_id = cid
+            if success:
+                self.host, self.port, self.client_id = h, p, cid
+                self.connected = True
+                self.reconnect_attempts = 0
+                try:
+                    self.wrapper.set_event_loop(asyncio.get_running_loop())
+                except RuntimeError:
+                    self.wrapper.set_event_loop(asyncio.get_event_loop())
+                self._message_processing_task = asyncio.create_task(
+                    self._process_messages()
+                )
+                self._error_handling_task = asyncio.create_task(self._handle_errors())
+                self.logger.info(
+                    f"Connected to IB at {self.host}:{self.port} (Client ID: {self.client_id})"
+                )
+                return True
+            # Warmup retry: same host/port with clientId+1 when handshake fails
+            self.logger.warning(
+                "Handshake did not complete; retrying once with clientId+1 on same socket"
+            )
+            try:
+                await self.disconnect()
+            except Exception:
+                pass
+            cid2 = cid + 1
+            success2 = await self.client.connect_async(
+                h,
+                p,
+                cid2,
+                max(5.0, timeout),
+                first_attempt=False,
+                account_hint=account_hint,
+                host_type=None,
+            )
+            if success2:
+                self.host, self.port, self.client_id = h, p, cid2
+                self.connected = True
+                self.reconnect_attempts = 0
+                try:
+                    self.wrapper.set_event_loop(asyncio.get_running_loop())
+                except RuntimeError:
+                    self.wrapper.set_event_loop(asyncio.get_event_loop())
+                self._message_processing_task = asyncio.create_task(
+                    self._process_messages()
+                )
+                self._error_handling_task = asyncio.create_task(self._handle_errors())
+                self.logger.info(
+                    f"Connected to IB at {self.host}:{self.port} (Client ID: {self.client_id})"
+                )
+                return True
+            self.logger.error(f"Failed to complete handshake at {h}:{p}")
+            return False
 
-        # Primary attempt
-        success = await self.client.connect_async(h, p, cid, timeout)
+        # Use canonical connection plan
+        try:
+            plan = get_ib_connect_plan()
+        except Exception as e:
+            self.logger.error("Failed to get canonical connection plan: %s", e)
+            return False
 
-        if success:
+        # Respect fallback flag for Windows/portproxy candidates
+        if not fallback:
+            # Filter out Windows candidates
+            plan["candidates"] = [
+                p for p in plan["candidates"] if p not in {4003, 4004}
+            ]
+
+        self.logger.info(
+            "Using canonical connection plan: host=%s, candidates=%s, method=%s",
+            plan["host"],
+            plan["candidates"],
+            plan.get("method", "unknown"),
+        )
+
+        # Connect callback for try_connect_candidates
+        async def connect_cb(h: str, p: int, cid: int) -> bool:
+            # First attempt per port uses first_attempt=True; internal warmup retry handled by connect_async
+            return await self.client.connect_async(
+                h,
+                p,
+                cid,
+                timeout,
+                first_attempt=True,
+                account_hint=account_hint,
+                host_type=plan.get("host_type"),
+            )
+
+        # Try connection using canonical candidate logic
+        events: list[dict[str, Any]] = []
+        try:
+            ok, used_port = await try_connect_candidates(
+                connect_cb,
+                plan["host"],
+                plan["candidates"],
+                plan["client_id"],
+                autostart=autostart,  # allow caller to opt-in to autostart
+                events=events,
+            )
+        except Exception as e:
+            self.logger.error("Connection attempt failed: %s", e)
+            return False
+
+        if ok and used_port is not None:
+            # Extract the successful clientId from events
+            successful_client_id = plan["client_id"]
+            for event in events:
+                if (
+                    event.get("event") == "ib_connected"
+                    and event.get("port") == used_port
+                ):
+                    successful_client_id = event.get("client_id", plan["client_id"])
+                    break
+
+            self.host = plan["host"]
+            self.port = used_port
+            self.client_id = successful_client_id
             self.connected = True
             self.reconnect_attempts = 0
-            # Capture current event loop for thread-safe wrapper enqueues
+
             try:
                 self.wrapper.set_event_loop(asyncio.get_running_loop())
             except RuntimeError:
-                # If no running loop, try default loop
                 self.wrapper.set_event_loop(asyncio.get_event_loop())
 
-            # Start background tasks
             self._message_processing_task = asyncio.create_task(
                 self._process_messages()
             )
@@ -569,152 +879,14 @@ class IBAsync:
             self.logger.info(
                 f"Connected to IB at {self.host}:{self.port} (Client ID: {self.client_id})"
             )
+            return True
         else:
-            if not fallback:
-                # Caller requested no platform fallback; return immediate failure
-                return False
-            self.logger.error(f"Failed to connect to IB at {h}:{p}")
-            # WSL fallback: if running inside WSL, try Windows host IPs and common ports.
-            # Also include an early TCP probe to give actionable hints when the port is open
-            # but the API handshake is rejected by settings (e.g., Trusted IPs).
-            import socket
-            from pathlib import Path
-
-            # Helper: enumerate Windows IPv4 addresses from WSL via PowerShell (best-effort)
-            def _windows_ipv4_addrs() -> list[str]:
-                addrs: list[str] = []
-                try:
-                    import re
-                    import subprocess
-
-                    out = subprocess.check_output(
-                        [
-                            "powershell.exe",
-                            "-NoProfile",
-                            "-Command",
-                            "Get-NetIPAddress -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress",
-                        ],
-                        timeout=3,
-                    )
-                    # Decode possibly CRLF and Windows-1252; fallback to utf-8
-                    text = out.decode(errors="ignore").replace("\r", "")
-                    for line in text.splitlines():
-                        line = line.strip()
-                        if re.match(r"^\d+\.\d+\.\d+\.\d+$", line):
-                            addrs.append(line)
-                except Exception:
-                    pass
-                return addrs
-
-            # Detect WSL
-            wsl = False
-            try:
-                text = Path("/proc/version").read_text(
-                    encoding="utf-8", errors="ignore"
-                )
-                if "microsoft" in text.lower():
-                    wsl = True
-            except Exception:
-                wsl = False
-
-            candidates: list[tuple[str, int]] = []
-            port_order: list[int] = []
-            # Prefer the requested port first
-            if p not in port_order:
-                port_order.append(p)
-            # Then common ports (include WSL portproxy 4003 early)
-            for _pp in [4003, 4002, 4001, 7497, 7496]:
-                if _pp not in port_order:
-                    port_order.append(_pp)
-
-            if wsl:
-                # 1) Nameserver IP (Windows host in many WSL distros)
-                try:
-                    import re as _re
-
-                    ns_ip = None
-                    for line in (
-                        Path("/etc/resolv.conf")
-                        .read_text(encoding="utf-8", errors="ignore")
-                        .splitlines()
-                    ):
-                        m = _re.match(r"^nameserver\s+(\S+)", line)
-                        if m:
-                            ns_ip = m.group(1)
-                            break
-                    if ns_ip:
-                        for p in port_order:
-                            candidates.append((ns_ip, p))
-                except Exception:
-                    pass
-
-                # 2) Any Windows IPv4 addresses (covers Wi-Fi/Ethernet/vEthernet)
-                for addr in _windows_ipv4_addrs():
-                    for p in port_order:
-                        candidates.append((addr, p))
-
-                # 3) Loopback with alternate ports (if Gateway was forwarded to localhost)
-                for p in port_order:
-                    candidates.append(("127.0.0.1", p))
-
-            # De-duplicate preserving order and skip the original attempt
-            seen: set[tuple[str, int]] = set()
-            uniq: list[tuple[str, int]] = []
-            for c in candidates:
-                if c not in seen and not (c[0] == h and c[1] == p):
-                    uniq.append(c)
-                    seen.add(c)
-
-            # Try candidates with a short timeout; if TCP is open but API handshake fails,
-            # emit a targeted hint about IB API settings.
-            for h, p in uniq:
-                # Quick TCP probe
-                tcp_open = False
-                s: socket.socket | None = None
-                try:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.settimeout(1.5)
-                    tcp_open = s.connect_ex((h, p)) == 0
-                except Exception:
-                    tcp_open = False
-                finally:
-                    try:
-                        if s is not None:
-                            s.close()
-                    except Exception:
-                        pass
-
-                self.logger.info("Retrying IB connect via candidate %s:%s", h, p)
-                if await self.client.connect_async(h, p, cid, 10):
-                    self.host, self.port = h, p
-                    self.connected = True
-                    try:
-                        self.wrapper.set_event_loop(asyncio.get_running_loop())
-                    except RuntimeError:
-                        self.wrapper.set_event_loop(asyncio.get_event_loop())
-                    self._message_processing_task = asyncio.create_task(
-                        self._process_messages()
-                    )
-                    self._error_handling_task = asyncio.create_task(
-                        self._handle_errors()
-                    )
-                    self.logger.info(
-                        "Connected to IB at %s:%s (Client ID: %s)", h, p, cid
-                    )
-                    return True
-                else:
-                    if tcp_open:
-                        # Port is open but handshake failed: provide actionable guidance
-                        self.logger.error(
-                            "TCP %s:%s is reachable but API handshake failed. "
-                            "Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', "
-                            "uncheck 'Allow connections from localhost only' or add your WSL/host IP to Trusted IPs, "
-                            "and allow the port through Windows Firewall.",
-                            h,
-                            p,
-                        )
-
-        return success
+            self.logger.error(
+                "Failed to connect using canonical plan: host=%s, candidates=%s",
+                plan["host"],
+                plan["candidates"],
+            )
+            return False
 
     async def disconnect(self) -> None:
         """Graceful disconnect"""
@@ -1187,17 +1359,12 @@ def util_df(bars: list[dict[str, Any]]) -> pd.DataFrame:
 IB = IBAsync
 
 if __name__ == "__main__":
-    # Demo usage
+    # Demo usage using canonical connection path
     async def main() -> None:
-        import os
-
         ib = IBAsync()
 
-        # Connect (env-first with WSL defaults)
-        h = os.environ.get("IB_HOST", "172.17.208.1")
-        p = int(os.environ.get("IB_PORT", "4003"))
-        cid = int(os.environ.get("IB_CLIENT_ID", "2011"))
-        connected = await ib.connect(h, p, cid)
+        # Connect using canonical connection path (no explicit parameters)
+        connected = await ib.connect()
         if not connected:
             print("Failed to connect")
             return

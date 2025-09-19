@@ -1,4 +1,4 @@
-# ruff: noqa: E402,N8
+# ruff: noqa: E402
 """Level 2 Market Depth Recorder (Interactive Brokers)
 
 Clean implementation after refactor issues. Provides:
@@ -138,6 +138,8 @@ class DepthRecorder(EWrapper, EClient):
         self.snapshot_thread: threading.Thread | None = None
         self.stop_event = threading.Event()
         self.api_thread: threading.Thread | None = None
+        # Handshake readiness flag
+        self._api_ready: bool = False
 
     # ----- Setup --------------------------------------------------
     def _setup_logging(self) -> None:
@@ -149,10 +151,25 @@ class DepthRecorder(EWrapper, EClient):
 
     def _ensure_dirs(self) -> None:
         (self.output_dir / self.symbol).mkdir(parents=True, exist_ok=True)
-        Path("logs").mkdir(exist_ok=True)
+
+    # Handshake readiness events
+    def nextValidId(self, orderId: int):  # noqa: N802
+        self._api_ready = True
+        try:
+            self.logger.info("[API_READY] nextValidId=%s", orderId)
+        except Exception:
+            pass
+
+    def managedAccounts(self, accountsList: str):  # noqa: N802
+        self._api_ready = True
+        try:
+            accounts = [a.strip() for a in accountsList.split(",") if a.strip()]
+            self.logger.info("[API_READY] managedAccounts=%s", accounts)
+        except Exception:
+            pass
 
     # ----- Connection ---------------------------------------------
-    def connect_to_ib(self) -> bool:
+    def connect_to_ib(self) -> bool:  # noqa: C901 - Intentional detailed handshake gating
         try:
             plan = get_ib_connect_plan()
             host = self.host or str(plan.get("host", self.host))
@@ -162,31 +179,110 @@ class DepthRecorder(EWrapper, EClient):
                 if p not in candidates:
                     candidates.append(p)
             self.logger.info(
-                "Connecting depth recorder host=%s candidates=%s paper=%s",
+                "Connecting depth recorder host=%s candidates=%s clientId=%s paper=%s",
                 host,
                 candidates,
+                self.client_id,
                 self.paper_mode,
             )
+            account_hint = os.getenv("IB_ACCOUNT") or os.getenv("ACCOUNT")
             # Try each candidate until connected
             for port in candidates:
                 try:
+                    # Attempt connect
+                    self._api_ready = False
                     self.connect(host, port, self.client_id)
                     if not self.api_thread or not self.api_thread.is_alive():
                         self.api_thread = threading.Thread(
                             target=super().run, daemon=True
                         )
                         self.api_thread.start()
+                    # Wait for socket open (connectAck)
                     start = time.time()
                     while not self.connected and time.time() - start < 10:
-                        time.sleep(0.1)
-                    if self.connected:
+                        time.sleep(0.05)
+                    if not self.connected:
+                        self.logger.warning(
+                            "Timeout waiting for [SOCKET_OPEN] %s:%s; trying next",
+                            host,
+                            port,
+                        )
+                        continue
+                    # Handshake gating: wait for nextValidId or managedAccounts
+                    ready = False
+                    t0 = time.time()
+                    while time.time() - t0 < 20.0:
+                        if self._api_ready:
+                            ready = True
+                            break
+                        time.sleep(0.05)
+                    if ready or account_hint:
+                        if not ready and account_hint:
+                            self.logger.info(
+                                "[API_READY] assumed via account_hint=%s after timeout",
+                                account_hint,
+                            )
+                        else:
+                            self.logger.info("[API_READY] %s:%s", host, port)
+                        self.port = port
+                        return True
+                    # Warmup retry on same port with clientId+1
+                    self.logger.warning(
+                        "Handshake not ready within timeout; retrying once on same port with clientId+1"
+                    )
+                    try:
+                        self.disconnect()
+                    except Exception:
+                        pass
+                    self.client_id = int(self.client_id) + 1
+                    self._api_ready = False
+                    self.connect(host, port, self.client_id)
+                    if not self.api_thread or not self.api_thread.is_alive():
+                        self.api_thread = threading.Thread(
+                            target=super().run, daemon=True
+                        )
+                        self.api_thread.start()
+                    t1 = time.time()
+                    while not self.connected and time.time() - t1 < 10:
+                        time.sleep(0.05)
+                    if not self.connected:
+                        self.logger.warning(
+                            "Handshake retry failed on %s:%s; trying next candidate",
+                            host,
+                            port,
+                        )
+                        continue
+                    # Wait shortly for API_READY on retry
+                    ready2 = False
+                    t2 = time.time()
+                    while time.time() - t2 < 10.0:
+                        if self._api_ready:
+                            ready2 = True
+                            break
+                        time.sleep(0.05)
+                    if ready2 or account_hint:
+                        if not ready2 and account_hint:
+                            self.logger.info(
+                                "[API_READY] assumed via account_hint=%s after retry timeout",
+                                account_hint,
+                            )
+                        else:
+                            self.logger.info("[API_READY] %s:%s (retry)", host, port)
                         self.port = port
                         return True
                     self.logger.warning(
-                        "Timeout connecting %s:%s; trying next", host, port
+                        "Handshake retry did not reach API_READY on %s:%s; trying next",
+                        host,
+                        port,
                     )
                 except Exception as e:
-                    self.logger.warning("Connect error on %s:%s -> %s", host, port, e)
+                    self.logger.warning(
+                        "Connect error on %s:%s (clientId=%s) -> %s",
+                        host,
+                        port,
+                        self.client_id,
+                        e,
+                    )
             self.logger.error(
                 "Unable to connect to any candidate ports: %s", candidates
             )
@@ -197,7 +293,20 @@ class DepthRecorder(EWrapper, EClient):
 
     def connectAck(self):  # noqa: N802
         self.connected = True
-        self.logger.info("Connection acknowledged")
+        self.logger.info(
+            "[SOCKET_OPEN] Connection acknowledged (clientId=%s)", self.client_id
+        )
+        # Required for asynchronous connection path
+        try:
+            self.startApi()  # type: ignore[attr-defined]
+            # Nudge server for nextValidId
+            try:
+                self.reqIds(-1)  # type: ignore[attr-defined]
+            except Exception:
+                time.sleep(0.05)
+                self.reqIds(-1)  # type: ignore[attr-defined]
+        except Exception as e:
+            self.logger.error("connectAck handling error: %s", e)
 
     def connectionClosed(self):  # noqa: N802
         self.connected = False

@@ -64,10 +64,12 @@ class DataBentoL2Service:
     ) -> pd.DataFrame:
         """Fetch range with small exponential backoff and return DataFrame.
 
-        Tries multiple symbology inputs to avoid 422 symbology_invalid_request:
-        prefers 'smart' → 'parent' → 'raw_symbol'.
+        Uses stype_in='raw_symbol' (valid for equities). If DataBento reports
+        symbology_invalid_symbol, return an empty DataFrame so the caller
+        classifies the task as EMPTY rather than ERROR. For other errors,
+        apply a small exponential backoff and retry up to 3 attempts.
         """
-        last_err: Exception | None = None
+
         try:
             base_ms = int(os.getenv("L2_TASK_BACKOFF_BASE_MS", "250") or 250)
         except ValueError:
@@ -79,43 +81,33 @@ class DataBentoL2Service:
         if max_ms < base_ms:
             max_ms = base_ms
 
-        # Prefer robust symbol resolution first
-        stype_order = ["smart", "parent", "raw_symbol"]
-
+        last_err: Exception | None = None
         for attempt in range(1, 4):
-            for stype_in in stype_order:
-                try:
-                    stype_out = "instrument_id"
-                    store = client.timeseries.get_range(
-                        dataset=req.dataset,
-                        start=start_iso,
-                        end=end_iso,
-                        symbols=req.symbol,
-                        schema=req.schema,
-                        stype_in=stype_in,
-                        stype_out=stype_out,
-                        limit=None,
-                    )
-                    return store.to_df()
-                except Exception as e:  # noqa: PERF203 - narrow on message
-                    last_err = e
-                    # If the error is specifically symbology-related, try next stype
-                    # Avoid tight loop on other errors (rate-limit, network) by breaking
-                    msg = repr(e)
-                    if (
-                        "symbology_invalid_request" in msg
-                        or "invalid symbology" in msg.lower()
-                    ) and stype_in != stype_order[-1]:
-                        # try next stype_in without backoff
-                        continue
-                    # For non-symbology or last stype_in, apply backoff unless last attempt
-                    if attempt == 3:
-                        raise
-                    exp_ms = min(base_ms * (2 ** (attempt - 1)), max_ms)
-                    _time.sleep(exp_ms / 1000.0)
-                    break  # move to next outer attempt after backoff
+            try:
+                store = client.timeseries.get_range(
+                    dataset=req.dataset,
+                    start=start_iso,
+                    end=end_iso,
+                    symbols=req.symbol,
+                    schema=req.schema,
+                    stype_in="raw_symbol",
+                    stype_out="instrument_id",
+                    limit=None,
+                )
+                return store.to_df()
+            except Exception as e:  # noqa: PERF203 - narrow on message
+                last_err = e
+                msg = repr(e)
+                if (
+                    "symbology_invalid_symbol" in msg
+                    or "symbology_invalid_request" in msg
+                ):
+                    return pd.DataFrame()
+                if attempt == 3:
+                    raise
+                exp_ms = min(base_ms * (2 ** (attempt - 1)), max_ms)
+                _time.sleep(exp_ms / 1000.0)
 
-        # Should not reach here
         if last_err:
             raise last_err
         raise RuntimeError("Unknown DataBento fetch failure")

@@ -11,6 +11,7 @@ Env vars (Linux-first defaults; Windows portproxy supported via overrides):
 - IB_PORT            default 4002
 - IB_CLIENT_ID       default 2011
 - IB_CONNECT_TIMEOUT default 20 (seconds)
+- IB_HOST_AUTODETECT default 0 (enable to autodetect host)
 - LOG_LEVEL          default INFO
 
 Note on clientId: Do not reuse the same clientId concurrently. Pass different
@@ -23,6 +24,7 @@ import asyncio
 import json
 import logging
 import os
+import socket
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
@@ -107,6 +109,182 @@ def _sanitize_host(val: str) -> str:
         return val
 
 
+def _truthy_env(key: str, default: bool = False) -> bool:
+    """Return True if env var is truthy (1/true/yes/on)."""
+    val = os.environ.get(key)
+    if val is None:
+        return default
+    return str(val).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _detect_wsl_eth0_ip() -> str | None:
+    """Detect WSL eth0 IPv4 address, or None if not found."""
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["ip", "-4", "a", "show", "eth0"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                if "inet " in line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        ip = parts[1].split("/")[0]
+                        return ip
+    except Exception:
+        pass
+    return None
+
+
+def _tcp_probe(host: str, port: int, timeout: float = 1.0) -> bool:
+    """Probe if TCP connection to host:port succeeds within timeout."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (TimeoutError, OSError):
+        return False
+
+
+def _autodetect_host(port: int) -> tuple[str, str]:
+    """Autodetect available host by probing candidates on given port.
+
+    Returns (host, host_type) where host_type is 'ipv4_loopback', 'ipv6_loopback', 'wsl_eth0', or 'none'.
+    """
+    candidates = [
+        ("127.0.0.1", "ipv4_loopback"),
+        ("::1", "ipv6_loopback"),
+    ]
+    wsl_ip = _detect_wsl_eth0_ip()
+    if wsl_ip:
+        candidates.append((wsl_ip, "wsl_eth0"))
+
+    for host, host_type in candidates:
+        if _tcp_probe(host, port):
+            return host, host_type
+
+    # Fallback to ipv4_loopback even if no listener
+    return "127.0.0.1", "ipv4_loopback_fallback"
+
+
+def _parse_jts_config() -> dict[str, Any]:
+    """Parse ~/Jts/jts.ini for diagnostic information (non-invasive).
+
+    Returns dict with keys: api_port, ssl_enabled, trusted_ips, found.
+    """
+    result: dict[str, Any] = {
+        "found": False,
+        "api_port": None,
+        "ssl_enabled": None,
+        "trusted_ips": [],
+    }
+
+    try:
+        jts_path = Path.home() / "Jts" / "jts.ini"
+        if not jts_path.exists():
+            return result
+
+        result["found"] = True
+        content = jts_path.read_text(encoding="utf-8", errors="ignore")
+
+        # Look for API settings
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            if "=" in line:
+                key, value = line.split("=", 1)
+                key, value = key.strip().lower(), value.strip()
+
+                # API port settings
+                if "socketport" in key or "apiport" in key:
+                    try:
+                        result["api_port"] = int(value)
+                    except ValueError:
+                        pass
+
+                # SSL settings
+                elif "usessl" in key or "ssl" in key:
+                    result["ssl_enabled"] = value.lower() in {"true", "1", "yes", "on"}
+
+                # Trusted IPs
+                elif "trustedips" in key or "trusted_ips" in key:
+                    # Parse comma-separated IP list
+                    ips = [ip.strip() for ip in value.split(",") if ip.strip()]
+                    result["trusted_ips"] = ips
+
+    except Exception:
+        # Silent failure for diagnostic function
+        pass
+
+    return result
+
+
+def _log_jts_diagnostics() -> None:
+    """Log JTS configuration diagnostics for troubleshooting."""
+    try:
+        jts_info = _parse_jts_config()
+        log = logging.getLogger("ib_conn")
+
+        if not jts_info["found"]:
+            log.debug(
+                "~/Jts/jts.ini not found (Gateway may use different config location)"
+            )
+            return
+
+        log.info("JTS config diagnostics:")
+
+        if jts_info["api_port"]:
+            log.info("  API port (jts.ini): %s", jts_info["api_port"])
+        else:
+            log.info("  API port (jts.ini): not detected")
+
+        if jts_info["ssl_enabled"] is not None:
+            log.info("  SSL enabled: %s", jts_info["ssl_enabled"])
+        else:
+            log.info("  SSL setting: not detected")
+
+        if jts_info["trusted_ips"]:
+            localhost_in_trusted = any(
+                ip in {"127.0.0.1", "localhost", "0.0.0.0", "*"}
+                for ip in jts_info["trusted_ips"]
+            )
+            log.info("  Trusted IPs: %s", ", ".join(jts_info["trusted_ips"]))
+            log.info("  Localhost in trusted IPs: %s", localhost_in_trusted)
+        else:
+            log.info("  Trusted IPs: not detected")
+
+    except Exception as e:
+        logging.getLogger("ib_conn").debug("JTS diagnostics failed: %s", e)
+
+
+def _is_valid_port(p: int) -> bool:
+    return 1 <= int(p) <= 65535
+
+
+def _filter_valid_ports(ports: Iterable[int]) -> list[int]:
+    log = logging.getLogger("ib_conn")
+    out: list[int] = []
+    for p in ports:
+        try:
+            ip = int(p)
+        except Exception:
+            continue
+        if _is_valid_port(ip):
+            if ip not in out:
+                out.append(ip)
+        else:
+            try:
+                log.warning("Ignoring invalid IB port candidate: %s", p)
+            except Exception:
+                pass
+    return out
+
+
 async def _attempt_connect_once(
     ib_ctor: Any,
     log: logging.Logger,
@@ -183,6 +361,12 @@ async def connect_ib(
     # Resolve defaults (favor explicit args over env) and sanitize host
     host = _sanitize_host(host or _env_str("IB_HOST", "127.0.0.1"))
     port = int(port if port is not None else _env_int("IB_PORT", 4002))
+    # Clamp invalid port values to a safe default (4002) and warn
+    if not _is_valid_port(port):
+        logging.getLogger("ib_conn").warning(
+            "Invalid IB_PORT=%s; clamping to 4002 to avoid :0 logs", port
+        )
+        port = 4002
     client_id = int(
         client_id if client_id is not None else _env_int("IB_CLIENT_ID", 2011)
     )
@@ -314,7 +498,8 @@ def _candidate_base_ports() -> tuple[int, int]:
 def _build_candidate_ports() -> list[int]:
     """Build candidate port list env-first, Linux-first order.
 
-    Order: [IB_PORT?, gateway_paper(4002), tws_paper(7497), 4003]
+    Base order (Linux-first): [IB_PORT?, gateway_paper(4002), tws_paper(7497)]
+    Windows/portproxy [4003, 4004] are appended ONLY when IB_ALLOW_WINDOWS=1.
     """
     out: list[int] = []
     env_port = os.environ.get("IB_PORT")
@@ -324,10 +509,16 @@ def _build_candidate_ports() -> list[int]:
         except ValueError:
             pass
     gw_paper, tws_paper = _candidate_base_ports()
-    for p in (gw_paper, tws_paper, 4003):
+    for p in (gw_paper, tws_paper):
         if p not in out:
             out.append(p)
-    return out
+    # Gate Windows/portproxy ports behind explicit opt-in
+    if _truthy_env("IB_ALLOW_WINDOWS", False):
+        for p in (4003, 4004):
+            if p not in out:
+                out.append(p)
+    # Validate and return
+    return _filter_valid_ports(out)
 
 
 def _detect_connect_method(resolved_host: str, env_host: str, env_port: str) -> str:
@@ -345,7 +536,7 @@ def _detect_connect_method(resolved_host: str, env_host: str, env_port: str) -> 
     except ValueError:
         p_int = None
     if env_host.startswith("172.") or env_host.startswith("192.168."):
-        if p_int in {4003, 4004}:
+        if p_int in {4003, 4004} and _truthy_env("IB_ALLOW_WINDOWS", False):
             return "windows-portproxy"
     return "linux"
 
@@ -354,16 +545,27 @@ def get_ib_connect_plan() -> dict[str, Any]:
     """Return a connection plan with env-first defaults and candidate ports.
 
     Returns a dict with keys: host (str), candidates (list[int]), client_id (int),
-    timeout (int). This centralizes the logic used by tools to prefer the WSL
+    timeout (int), method (str), host_type (str). This centralizes the logic used by tools to prefer the WSL
     portproxy first and then fall back to Gateway/TWS paper defaults.
+
+    If IB_HOST_AUTODETECT=1, probes 127.0.0.1, ::1, WSL eth0 IP on port 4002 to find available host.
 
     If the project's config is importable, it will be consulted to enrich the
     candidate list. Otherwise sensible fallbacks are used.
     """
     _load_dotenv_if_present()
 
-    # Host: prefer explicit env, else Linux Gateway default (sanitize to drop inline comments)
-    host = _sanitize_host(_env_str("IB_HOST", "127.0.0.1"))
+    # Log JTS diagnostics for troubleshooting (non-invasive)
+    _log_jts_diagnostics()
+
+    # Host autodetect if enabled
+    if _truthy_env("IB_HOST_AUTODETECT", False):
+        host, host_type = _autodetect_host(4002)
+        log = logging.getLogger("ib_conn")
+        log.info("IB host autodetect: selected %s (%s)", host, host_type)
+    else:
+        host = _sanitize_host(_env_str("IB_HOST", "127.0.0.1"))
+        host_type = "explicit"
 
     # Client ID and timeout
     client_id = _env_int("IB_CLIENT_ID", 2011)
@@ -371,7 +573,7 @@ def get_ib_connect_plan() -> dict[str, Any]:
 
     candidates = _build_candidate_ports()
 
-    # De-duplicate while preserving order
+    # De-duplicate while preserving order (ports already validated)
     deduped = _dedupe_ints(candidates)
 
     # WSL-specific host rewriting removed; rely on explicit env overrides
@@ -381,10 +583,17 @@ def get_ib_connect_plan() -> dict[str, Any]:
     method = _detect_connect_method(host, env_host, env_port)
 
     log = logging.getLogger("ib_conn")
+    allow_windows = _truthy_env("IB_ALLOW_WINDOWS", False)
     if method == "linux":
-        log.info("Using Linux IB Gateway (default)")
+        if allow_windows:
+            log.info(
+                "IB plan: Linux-first with Windows fallback enabled (IB_ALLOW_WINDOWS=1)"
+            )
+        else:
+            log.info("IB plan: Linux-only (Windows fallback disabled)")
     else:
-        log.info("Using Windows Gateway via portproxy (fallback)")
+        # Only possible when allow_windows and env suggests portproxy
+        log.info("IB plan: Windows portproxy (explicit opt-in via IB_ALLOW_WINDOWS=1)")
 
     return {
         "host": host,
@@ -392,6 +601,7 @@ def get_ib_connect_plan() -> dict[str, Any]:
         "client_id": client_id,
         "timeout": timeout,
         "method": method,
+        "host_type": host_type,
     }
 
 
@@ -425,17 +635,97 @@ async def try_connect_candidates(  # noqa: C901 - orchestrator helper with guard
     except Exception:
         pass
 
-    async def _attempt_all() -> int | None:
-        for p in candidates:
+    async def _probe_tcp(host: str, port: int) -> bool:
+        """Check if TCP connection is possible."""
+        s: socket.socket | None = None
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(2.0)
+            return s.connect_ex((host, port)) == 0
+        except Exception:
+            return False
+        finally:
+            if s is not None:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+
+    async def _try_handshake_for_port(
+        host: str, port: int, base_client_id: int
+    ) -> int | None:
+        """Try API handshake for a specific port with clientId cycling."""
+        # Try a few nearby clientIds to avoid duplicate-client collisions
+        for cid_offset in range(3):
+            current_cid = base_client_id + cid_offset
             try:
-                ok = await connect_cb(host, int(p), client_id)
+                ok = await connect_cb(host, port, current_cid)
             except TypeError:
                 # Some wrappers use clientId keyword only
-                ok = await connect_cb(host, int(p), clientId=client_id)  # type: ignore[call-arg]
+                ok = await connect_cb(host, port, clientId=current_cid)  # type: ignore[call-arg]
+            except Exception as e:
+                log.warning(
+                    "API handshake error for %s:%s (clientId=%s): %s",
+                    host,
+                    port,
+                    current_cid,
+                    e,
+                )
+                continue
+
             if ok:
-                ev.append({"event": "ib_connected", "port": int(p)})  # type: ignore[arg-type]
-                return int(p)
-            log.info("IB connect failed on %s:%s; trying next candidate", host, p)
+                ev.append(
+                    {"event": "ib_connected", "port": port, "client_id": current_cid}
+                )  # type: ignore[arg-type]
+                log.info(
+                    "✅ API handshake successful for %s:%s (clientId=%s)",
+                    host,
+                    port,
+                    current_cid,
+                )
+                return port
+
+            log.info(
+                "API handshake failed for %s:%s (clientId=%s); trying next clientId",
+                host,
+                port,
+                current_cid,
+            )
+
+        # All clientIds failed for this port
+        log.warning(
+            "TCP open but API handshake failed for %s:%s with all clientIds → not API socket or SSL-only. "
+            "Check IB Gateway/TWS API settings: enable 'ActiveX and Socket Clients', "
+            "verify Trusted IPs, and ensure SSL is disabled for plain connections",
+            host,
+            port,
+        )
+        return None
+
+    async def _attempt_all() -> int | None:
+        for p in candidates:
+            # Validate port to avoid :0 attempts
+            if not _is_valid_port(p):
+                log.warning("Skipping invalid port candidate: %s", p)
+                continue
+
+            # TCP probe first
+            if not await _probe_tcp(host, p):
+                log.info("TCP probe failed for %s:%s; trying next candidate", host, p)
+                continue
+
+            # TCP is open, now attempt API handshake with clientId cycling
+            log.info(
+                "[SOCKET_OPEN] TCP probe successful for %s:%s; attempting API handshake (clientId~=%s)",
+                host,
+                p,
+                client_id,
+            )
+            result = await _try_handshake_for_port(host, p, client_id)
+            if result is not None:
+                log.info("[API_READY] %s:%s", host, p)
+                return result
+
         return None
 
     port = await _attempt_all()
@@ -495,7 +785,15 @@ async def try_connect_candidates(  # noqa: C901 - orchestrator helper with guard
     return False, None
 
 
-__all__ += ["get_ib_connect_plan", "try_connect_candidates"]
+__all__ += ["get_ib_connect_plan", "try_connect_candidates", "connect_ib_planned"]
+
+# Test utilities
+__all__ += [
+    "_build_candidate_ports",
+    "_filter_valid_ports",
+    "_is_valid_port",
+    "_parse_jts_config",
+]
 
 
 async def connect_ib_planned(

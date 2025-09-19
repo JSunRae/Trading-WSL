@@ -44,7 +44,6 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from src.automation.headless_gateway import HeadlessGateway
-from src.infra.ib_conn import get_ib_connect_plan, try_connect_candidates
 from src.lib.ib_async_wrapper import IBAsync
 
 try:
@@ -130,24 +129,16 @@ async def fully_automated_trading(
         # Step 2: Connect to API
         logger.info("🔌 Step 2: Connecting to IB API...")
         ib = IBAsync()
-        plan = get_ib_connect_plan()
-        logger.info(
-            "🔌 IB connection plan: host=%s candidates=%s clientId=%s",
-            plan["host"],
-            plan["candidates"],
-            plan["client_id"],
-        )
-        ok, used_port = await try_connect_candidates(
-            ib.connect,
-            plan["host"],
-            plan["candidates"],
-            int(plan["client_id"]),
-            autostart=True,
-        )
+
+        # Use canonical connection path directly
+        acct_hint = os.environ.get("IB_ACCOUNT") or os.environ.get("ACCOUNT")
+        ok = await ib.connect(timeout=20, account_hint=acct_hint)
         if not ok:
-            logger.error("❌ Failed to connect to IB API with planned candidates")
+            logger.error(
+                "❌ Failed to connect to IB API using canonical connection path"
+            )
             return False
-        logger.info("✅ Connected to IB API on port %s!", used_port)
+        logger.info("✅ Connected to IB API on %s:%s!", ib.host, ib.port)
 
         async def _fetch_per_gap(
             symbol: str,
@@ -218,12 +209,14 @@ async def fully_automated_trading(
 
         # Step 3: Process each symbol
         logger.info(f"📊 Step 3: Processing {len(symbols)} symbols...")
-    # Map symbol to downloaded dataframe; values assigned only when non-empty
-    all_data: dict[str, pd.DataFrame] = {}
+        # Map symbol to downloaded dataframe; values assigned only when non-empty
+        all_data: dict[str, pd.DataFrame] = {}
         for i, symbol in enumerate(symbols, 1):
             logger.info(f"📈 Processing {symbol} ({i}/{len(symbols)})...")
             try:
                 contract = ib.create_stock_contract(symbol)
+                # Ensure DataFrame variable accommodates optional results across branches
+                df_final: pd.DataFrame | None = None
                 # Gap-aware targeted fetches per gap window
                 if resume_gaps and has_gap_api and _compute_bars_gaps is not None:
                     try:
@@ -242,22 +235,24 @@ async def fully_automated_trading(
                                     symbol, bar_size, gap_list
                                 )
                                 if df_gap is not None and not df_gap.empty:
-                                    df = df_gap
+                                    df_final = df_gap
                                     logger.info(
                                         "✅ Downloaded %d bars for %s via %d gap window(s)",
-                                        len(df),
+                                        len(df_final),
                                         symbol,
                                         len(gap_list),
                                     )
-                                    all_data[symbol] = df
+                                    all_data[symbol] = df_final
                                     # Basic analysis + pacing
-                                    latest_price = df["close"].iloc[-1]
-                                    avg_price = df["close"].mean()
+                                    latest_price = df_final["close"].iloc[-1]
+                                    avg_price = df_final["close"].mean()
                                     price_change = (
-                                        (latest_price - df["close"].iloc[0])
-                                        / df["close"].iloc[0]
+                                        (latest_price - df_final["close"].iloc[0])
+                                        / df_final["close"].iloc[0]
                                     ) * 100
-                                    volatility = df["close"].pct_change().std() * 100
+                                    volatility = (
+                                        df_final["close"].pct_change().std() * 100
+                                    )
                                     logger.info(f"💰 {symbol} Analysis:")
                                     logger.info(f"   Latest: ${latest_price:.2f}")
                                     logger.info(f"   Average: ${avg_price:.2f}")
@@ -293,20 +288,21 @@ async def fully_automated_trading(
                     except Exception:
                         end_dt_str = None
 
-                df: pd.DataFrame | None = await ib.req_historical_data(
+                df_final = await ib.req_historical_data(
                     contract, duration, bar_size, end_datetime=end_dt_str
                 )
-                if df is None or df.empty:
+                if df_final is None or df_final.empty:
                     logger.warning(f"⚠️  No data received for {symbol}")
                     continue
-                logger.info(f"✅ Downloaded {len(df)} bars for {symbol}")
-                all_data[symbol] = df
-                latest_price = df["close"].iloc[-1]
-                avg_price = df["close"].mean()
+                logger.info(f"✅ Downloaded {len(df_final)} bars for {symbol}")
+                all_data[symbol] = df_final
+                latest_price = df_final["close"].iloc[-1]
+                avg_price = df_final["close"].mean()
                 price_change = (
-                    (latest_price - df["close"].iloc[0]) / df["close"].iloc[0]
+                    (latest_price - df_final["close"].iloc[0])
+                    / df_final["close"].iloc[0]
                 ) * 100
-                volatility = df["close"].pct_change().std() * 100
+                volatility = df_final["close"].pct_change().std() * 100
                 logger.info(f"💰 {symbol} Analysis:")
                 logger.info(f"   Latest: ${latest_price:.2f}")
                 logger.info(f"   Average: ${avg_price:.2f}")

@@ -104,6 +104,7 @@ def _fetch_ib_bars_for_task(  # noqa: C901
     ib_host: str | None = None,
     ib_port: int | None = None,
     use_tws: bool = False,
+    auto_start_gateway: bool = False,
     progress_update: Callable[[str], None] | None = None,
     metrics: dict[str, float | int] | None = None,
 ) -> None:
@@ -134,12 +135,6 @@ def _fetch_ib_bars_for_task(  # noqa: C901
         from datetime import timedelta as _td
 
         from src.core.config import get_config as _getcfg  # type: ignore
-        from src.infra.ib_conn import (  # type: ignore
-            get_ib_connect_plan as _plan,
-        )
-        from src.infra.ib_conn import (
-            try_connect_candidates as _try_connect,
-        )
         from src.lib.ib_async_wrapper import IBAsync as _IBAsync  # type: ignore
     except Exception:
         log.debug("Skipping IB bars fetch due to missing deps", exc_info=True)
@@ -170,36 +165,41 @@ def _fetch_ib_bars_for_task(  # noqa: C901
 
     async def _run() -> None:  # noqa: C901
         ib = _IBAsync()
-        plan = _plan()
-        if ib_host:
-            plan["host"] = ib_host
-        if ib_port is not None:
-            chosen_port = int(ib_port)
-            plan["candidates"] = [chosen_port] + [
-                p for p in plan["candidates"] if p != chosen_port
-            ]
-        if use_tws and 7497 not in plan["candidates"]:
-            plan["candidates"].insert(0, 7497)
-        host = plan["host"]
-        client_id = int(plan["client_id"])
-        candidates = [int(p) for p in plan["candidates"]]
 
-        async def _connect_cb(h: str, p: int, c: int) -> bool:
-            return await ib.connect(h, p, c, fallback=False)
-
-        log.info(
-            "Connecting IB for bars %s %s host=%s candidates=%s",
-            symbol,
-            ds,
-            plan["host"],
-            plan["candidates"],
-        )
+        # Use DEBUG to avoid spamming progress output; progress_update will surface status
+        log.debug("Connecting IB for bars %s %s", symbol, ds)
         if progress_update:
             progress_update(f"{symbol} {ds}: connecting…")
         _t_conn0 = time.monotonic()
-        ok, connected_port = await _try_connect(
-            _connect_cb, host, candidates, client_id, autostart=True, events=[]
-        )
+
+        # Use canonical connection with explicit overrides if provided
+        if ib_host or ib_port is not None:
+            # Custom host/port specified, use explicit connection
+            h = ib_host or os.environ.get("IB_HOST", "127.0.0.1")
+            p = (
+                ib_port
+                if ib_port is not None
+                else int(os.environ.get("IB_PORT", "4002"))
+            )
+            cid = int(os.environ.get("IB_CLIENT_ID", "2011"))
+            acct_hint = os.environ.get("IB_ACCOUNT") or os.environ.get("ACCOUNT")
+            ok = await ib.connect(
+                host=h,
+                port=p,
+                clientId=cid,
+                timeout=20,
+                account_hint=acct_hint,
+                autostart=auto_start_gateway,
+            )
+            connected_port = p if ok else None
+        else:
+            # Use canonical connection path
+            acct_hint = os.environ.get("IB_ACCOUNT") or os.environ.get("ACCOUNT")
+            ok = await ib.connect(
+                timeout=20, account_hint=acct_hint, autostart=auto_start_gateway
+            )
+            connected_port = ib.port if ok else None
+
         _conn_dur = time.monotonic() - _t_conn0
         if metrics is not None:
             metrics["connect_total_s"] = float(
@@ -431,6 +431,35 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Prefer TWS (7497) over Gateway (4002); WSL default proxy is 4003",
     )
+    # Progress controls (default: progress bar enabled; can be disabled via flag or env L2_PROGRESS)
+    p.add_argument(
+        "--progress",
+        dest="progress",
+        action="store_true",
+        default=str(os.getenv("L2_PROGRESS", "1")).strip().lower()
+        in {"1", "true", "yes", "on"},
+        help="Show a single-line progress bar (overwrites in place) (default)",
+    )
+    p.add_argument(
+        "--no-progress",
+        dest="progress",
+        action="store_false",
+        help="Disable progress bar output",
+    )
+    # Gateway autostart (default: enabled; opt-out flag provided)
+    p.add_argument(
+        "--auto-start-gateway",
+        dest="auto_start_gateway",
+        action="store_true",
+        default=True,
+        help="If connection candidates fail, attempt to start IB Gateway and retry once (default)",
+    )
+    p.add_argument(
+        "--no-autostart-gateway",
+        dest="auto_start_gateway",
+        action="store_false",
+        help="Disable automatic IB Gateway start when connection fails",
+    )
     return p.parse_args()
 
 
@@ -498,6 +527,79 @@ def _emit_summary_line(summary: dict[str, Any]) -> None:
     print(line)
 
 
+def _clear_line() -> str:
+    """Return ANSI sequence to clear the current line, keeping cursor on it.
+
+    This helps progress bars overwrite themselves even when previous content was longer.
+    """
+    return "\r\x1b[2K"
+
+
+# --- Progress rendering state (for bar-stays-at-bottom behaviour) ---
+_progress_active: bool = False
+_progress_line: str = ""
+
+
+def _set_progress_active(active: bool) -> None:
+    global _progress_active
+    _progress_active = bool(active)
+
+
+def _set_progress_line(line: str) -> None:
+    global _progress_line
+    _progress_line = line
+
+
+def _rerender_progress_if_active() -> None:
+    if _progress_active and _progress_line:
+        try:
+            sys.stdout.write(_progress_line)
+            sys.stdout.flush()
+        except Exception:
+            pass
+
+
+class _ProgressAwareStreamHandler(logging.Handler):
+    """StreamHandler that keeps a one-line progress bar at the bottom.
+
+    Before emitting a log message, it clears the current terminal line; after the
+    message is written, it redraws the progress line if active.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:  # type: ignore[override]
+        try:
+            if _progress_active:
+                try:
+                    sys.stdout.write(_clear_line())
+                    sys.stdout.flush()
+                except Exception:
+                    pass
+            msg = self.format(record)
+            stream = sys.stdout
+            stream.write(msg + "\n")
+            stream.flush()
+            _rerender_progress_if_active()
+        except Exception:
+            self.handleError(record)
+
+
+class _ProgressClearFilter(logging.Filter):
+    """Filter that just clears the line before other handlers emit.
+
+    Used when the root logger already has handlers we don't control; we at least
+    clear the progress line before logs so the next progress update can redraw.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:  # type: ignore[override]
+        if _progress_active:
+            try:
+                sys.stdout.write(_clear_line())
+                sys.stdout.flush()
+            except Exception:
+                pass
+        return True
+
+
 def main() -> int:  # noqa: C901 - complexity accepted (out of scope)
     args = _parse_args()
     if getattr(args, "describe", False):
@@ -506,13 +608,22 @@ def main() -> int:  # noqa: C901 - complexity accepted (out of scope)
         sys.stdout.flush()
         return 0
     # Ensure readable defaults for logging
-    if not logging.getLogger().handlers:
-        logging.basicConfig(
-            level=getattr(
-                logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO
-            ),
-            format="%(levelname)s:%(name)s:%(message)s",
-        )
+    root = logging.getLogger()
+    if not root.handlers:
+        level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+        root.setLevel(level)
+        handler = _ProgressAwareStreamHandler()
+        handler.setLevel(level)
+        handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+        root.addHandler(handler)
+    else:
+        # Add a pre-emit clear filter to existing handlers so logs don't break the bar
+        _f = _ProgressClearFilter()
+        for _h in list(root.handlers):
+            try:
+                _h.addFilter(_f)
+            except Exception:
+                pass
 
     # Drop very noisy wire logs (keep requests/answers)
     class _DropSendingFilter(logging.Filter):
@@ -684,12 +795,16 @@ def main() -> int:  # noqa: C901 - complexity accepted (out of scope)
             return f"ETA {end_str}"
 
         width = 30
+        if args.progress:
+            _set_progress_active(True)
         for idx, (sym, d) in enumerate(tasks, start=1):
             ds = d.strftime("%Y-%m-%d")
 
             def _render_line(
                 done_count: int, status: str, *, _sym: str = sym, _ds: str = ds
             ) -> None:
+                if not args.progress:
+                    return
                 cur_index = min(done_count + 1, total)
                 progress = cur_index / total
                 bar = "#" * int(width * progress) + "-" * (
@@ -701,17 +816,19 @@ def main() -> int:  # noqa: C901 - complexity accepted (out of scope)
                     if done_count > 0
                     else "ETA --:--:--"
                 )
-                line = f"\r{prefix} {eta}  current={_sym} {_ds} | {status:<24}"
+                line = f"{_clear_line()}{prefix} {eta}  current={_sym} {_ds} | {status:<24}"
                 try:
+                    _set_progress_line(line)
                     sys.stdout.write(line)
                     sys.stdout.flush()
                 except Exception:
                     pass
 
-            # Initial render for this task
-            _render_line(idx - 1, "starting")
+            # Defer initial progress render until the task actually starts (e.g., connecting)
 
             def _per_task_update(msg: str, *, _done: int = idx - 1) -> None:
+                if not args.progress:
+                    return
                 # Update inline status without creating new lines
                 _render_line(_done, msg)
 
@@ -733,17 +850,21 @@ def main() -> int:  # noqa: C901 - complexity accepted (out of scope)
                     ib_host=args.ib_host,
                     ib_port=args.ib_port,
                     use_tws=bool(args.use_tws),
-                    progress_update=_per_task_update,
+                    auto_start_gateway=bool(args.auto_start_gateway),
+                    progress_update=_per_task_update if args.progress else None,
                     metrics=metrics,
                 )
             except Exception:
                 # Keep going on errors; details already logged
                 pass
             # Finalize line for this task as completed
-            _render_line(idx, "completed")
+            if args.progress:
+                _render_line(idx, "completed")
         # Finish progress line
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        if args.progress:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            _set_progress_active(False)
     elif not args.fetch_bars and tasks:
         # Explicit opt-out
         logging.getLogger("auto_backfill").info(

@@ -1,5 +1,5 @@
 {
-  "scan_timestamp": "2025-08-16T00:00:00Z",
+  "scan_timestamp": "2025-09-17T00:00:00Z",
   "patterns_searched": [
     "([A-Za-z]:\\\\|[A-Za-z]:/|/home/|~/|\\\\\\\\|/mnt/|/var/|/tmp/|Machine\\s+Learning|\\.xlsx|\\.csv|\\.parquet|\\.feather|requestChecker\\.bin)",
     "127\\.0\\.0\\.1|localhost|4001|4002|7496|7497"
@@ -111,9 +111,96 @@
       }
     ]
   },
+  "additional_findings": {
+    "hardcoded_paths": [
+      {
+        "file": "src/data/pandas_helpers.py",
+        "type": "ML_BASE_PATH",
+        "literals": [
+          "get_config().data_paths.base_path / \"Machine Learning\"",
+          "Path.home() / \"Machine Learning\""
+        ],
+        "status": "fixed in code: now uses config base path directly (no appended 'Machine Learning')"
+      },
+      {
+        "file": "src/data/data_manager.py",
+        "type": "ML_BASE_PATH",
+        "literals": ["self.config.data_paths.base_path / \"Machine Learning\""],
+        "suggestion": "Use config.data_paths.base_path directly; don't append 'Machine Learning'"
+      },
+      {
+        "file": "src/services/market_data/depth_service.py",
+        "type": "LEVEL2_DIRNAME",
+        "literals": [
+          "get_config().data_paths.base_path / \"level2_data\"",
+          "Path.home() / \"Machine Learning\" / \"level2_data\""
+        ],
+        "suggestion": "Write under {ML_BASE_PATH}/{LEVEL2_DIRNAME}/{SYMBOL}/ with a distinct CSV name, or use get_data_file_path('level2', symbol, date) for consistency"
+      },
+      {
+        "file": "src/services/path_service.py",
+        "type": "fallback_paths",
+        "literals": ["Path.home() / \"Machine Learning/\"", "IBDownloads/"],
+        "note": "Fallbacks only; primary pathing already uses ConfigManager and env keys"
+      }
+    ]
+  },
+  "env_duplicates_analysis": {
+    "duplicates": [
+      {
+        "keys": ["L2_BACKFILL_CONCURRENCY", "L2_MAX_WORKERS"],
+        "status": "overlapping",
+        "used_by": ["auto_backfill_from_warrior", "docs", "tools"],
+        "recommendation": "Keep L2_MAX_WORKERS as canonical; accept L2_BACKFILL_CONCURRENCY only as legacy alias with deprecation notice"
+      },
+      {
+        "keys": [
+          "IB_PORT",
+          "IB_PAPER_PORT",
+          "IB_LIVE_PORT",
+          "IB_GATEWAY_PAPER_PORT",
+          "IB_GATEWAY_LIVE_PORT"
+        ],
+        "status": "partially overlapping",
+        "used_by": [
+          "ib connection helpers",
+          "setup_ib_gateway",
+          "request wrappers"
+        ],
+        "recommendation": "Prefer deriving connection port from paper/live mode when connecting to TWS (IB_PAPER_PORT/IB_LIVE_PORT). Reserve IB_GATEWAY_* for headless gateway. Treat IB_PORT as optional override only; avoid hard-coded fallback 4003 in new code"
+      },
+      {
+        "keys": ["IB_HOST", "IB_HOST_Virtual"],
+        "status": "conceptual duplicate",
+        "used_by": ["README guidance"],
+        "recommendation": "Document IB_HOST_Virtual explicitly in ENVIRONMENT.md as optional WSL/portproxy override. Keep IB_HOST default consistent repo-wide (prefer 127.0.0.1)"
+      },
+      {
+        "keys": ["LOG_LEVEL", "logging.level (config.json)"],
+        "status": "overlapping config vs env",
+        "recommendation": "Clarify precedence: env LOG_LEVEL should override config.json at runtime; config.json remains default. Align docs"
+      }
+    ],
+    "inconsistencies": [
+      {
+        "key": "IB_HOST",
+        "defaults": {
+          "ENVIRONMENT.md": "127.0.0.1",
+          "config._env_defaults": "172.17.208.1",
+          "config/config.json": "127.0.0.1"
+        },
+        "impact": "Different defaults can cause unexpected remote host attempts under WSL",
+        "proposed_fix": "Standardize default to 127.0.0.1 in code and docs; provide IB_HOST_Virtual guidance for WSL portproxy"
+      }
+    ]
+  },
   "summary": {
-    "total_files_with_hardcoded_paths": 15,
-    "total_hardcoded_literals": 87,
-    "migration_priority": "HIGH"
+    "total_files_with_hardcoded_paths": 18,
+    "total_hardcoded_literals": 94,
+    "migration_priority": "HIGH",
+    "notes": [
+      "Fixed one occurrence in src/data/pandas_helpers.py to use config base path directly",
+      "Remaining actionable spots: src/data/data_manager.py (append of 'Machine Learning'), depth CSV location in depth_service.py"
+    ]
   }
 }

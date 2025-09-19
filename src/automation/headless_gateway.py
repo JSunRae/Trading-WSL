@@ -27,10 +27,67 @@ import signal
 import socket
 import subprocess
 import time
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 import psutil
+
+
+def _maybe_kill(proc: psutil.Process, reason: str, logger: logging.Logger) -> int:
+    """Attempt to kill a process and return PID if successful, else 0."""
+    try:
+        proc.kill()
+        pid = int(proc.info.get("pid") or 0)
+        if pid:
+            logger.info(f"Killed {reason}: {pid}")
+            return pid
+    except Exception:
+        pass
+    return 0
+
+
+def _iter_processes(attrs: list[str]) -> Iterable[psutil.Process]:
+    """Wrapper for psutil.process_iter; returns an iterable of processes."""
+    # We intentionally avoid strict typing of psutil internals here.
+    return psutil.process_iter(attrs)  # type: ignore[no-any-return]
+
+
+def _kill_gateway_processes(logger: logging.Logger) -> list[int]:
+    """Kill java-based IB Gateway processes by name/cmdline match."""
+    killed: list[int] = []
+    attrs: list[str] = ["pid", "name", "cmdline"]
+    for proc in _iter_processes(attrs):
+        try:
+            name = (proc.info.get("name") or "").lower()
+            cmdline = " ".join(proc.info.get("cmdline") or []).lower()
+            if "java" in name and ("ibgateway" in cmdline or "jts" in cmdline):
+                pid = _maybe_kill(proc, "existing Gateway process", logger)
+                if pid:
+                    killed.append(pid)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+    return killed
+
+
+def _kill_port_processes(port: int, logger: logging.Logger) -> list[int]:
+    """Kill any process bound to the given local TCP port."""
+    killed: list[int] = []
+    attrs: list[str] = ["pid", "name", "cmdline"]
+    for proc in _iter_processes(attrs):
+        try:
+            for conn in proc.net_connections() or []:
+                laddr = getattr(conn, "laddr", None)
+                if laddr and getattr(laddr, "port", None) == port:
+                    pid = _maybe_kill(proc, f"process using port {port}", logger)
+                    if pid:
+                        killed.append(pid)
+                    break
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+        except Exception:
+            continue
+    return killed
 
 
 class HeadlessGateway:
@@ -66,7 +123,8 @@ class HeadlessGateway:
         self.client_id = 1
 
         # Process management
-        self.gateway_process: subprocess.Popen | None = None
+        # Use bytes for Popen stdio streams
+        self.gateway_process: subprocess.Popen[bytes] | None = None
         self.config_dir = Path.home() / ".ibgateway_automated"
         self.config_dir.mkdir(exist_ok=True)
 
@@ -124,49 +182,13 @@ class HeadlessGateway:
         except Exception:
             return False
 
-    def kill_existing_gateway(self):
-        """Kill any existing IB Gateway processes"""
-        killed_processes: list[int] = []
-
-        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-            try:
-                # Check for IB Gateway processes
-                if proc.info["name"] and "java" in proc.info["name"].lower():
-                    if proc.info["cmdline"]:
-                        cmdline = " ".join(proc.info["cmdline"])
-                        if "ibgateway" in cmdline.lower() or "jts" in cmdline.lower():
-                            proc.kill()
-                            killed_processes.append(proc.info["pid"])
-                            self.logger.info(
-                                f"Killed existing Gateway process: {proc.info['pid']}"
-                            )
-
-                # Also check for processes using our port
-                try:
-                    conns = proc.net_connections()
-                except Exception:
-                    conns = []
-                for conn in conns:
-                    try:
-                        if (
-                            conn.laddr
-                            and getattr(conn.laddr, "port", None) == self.port
-                        ):
-                            proc.kill()
-                            killed_processes.append(proc.info["pid"])
-                            self.logger.info(
-                                f"Killed process using port {self.port}: {proc.info['pid']}"
-                            )
-                    except Exception:
-                        continue
-
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                continue
-
-        if killed_processes:
-            time.sleep(3)  # Give processes time to die
-
-        return len(killed_processes)
+    def kill_existing_gateway(self) -> int:  # noqa: C901 - acceptable operational complexity
+        """Kill any existing IB Gateway processes (delegates to helpers)."""
+        killed = _kill_gateway_processes(self.logger)
+        killed += _kill_port_processes(self.port, self.logger)
+        if killed:
+            time.sleep(3)
+        return len(killed)
 
     def create_gateway_config(self) -> Path:
         """Create IB Gateway configuration files"""
@@ -425,9 +447,15 @@ wait $GATEWAY_PID
                 stdout, stderr = self.gateway_process.communicate()
                 self.logger.error("Gateway process terminated:")
                 if stdout:
-                    self.logger.error(f"STDOUT: {stdout.decode()}")
+                    try:
+                        self.logger.error(f"STDOUT: {stdout.decode()}")
+                    except Exception:
+                        self.logger.error("STDOUT: <binary>")
                 if stderr:
-                    self.logger.error(f"STDERR: {stderr.decode()}")
+                    try:
+                        self.logger.error(f"STDERR: {stderr.decode()}")
+                    except Exception:
+                        self.logger.error("STDERR: <binary>")
                 return False
 
             # Check if API port is available
@@ -455,7 +483,7 @@ wait $GATEWAY_PID
         """Test if Gateway API is responding correctly"""
         try:
             # Try to make a simple connection
-            reader, writer = await asyncio.wait_for(
+            _, writer = await asyncio.wait_for(
                 asyncio.open_connection("127.0.0.1", self.port), timeout=5
             )
 
@@ -572,22 +600,14 @@ async def demo_headless_gateway():
             import sys
 
             sys.path.append(str(Path(__file__).parent.parent))
-            from infra.ib_conn import get_ib_connect_plan, try_connect_candidates
             from lib.ib_async_wrapper import IBAsync
 
             ib = IBAsync()
-            plan = get_ib_connect_plan()
-            ok, used = await try_connect_candidates(
-                ib.connect,
-                plan["host"],
-                [int(p) for p in plan["candidates"]],
-                int(plan["client_id"]),
-                autostart=False,
-            )
-            connected = ok
+            # Use canonical connection path directly
+            connected = await ib.connect(timeout=15)
 
             if connected:
-                print(f"✅ Connected to IB API on port {used}!")
+                print(f"✅ Connected to IB API on {ib.host}:{ib.port}!")
 
                 # Test data retrieval
                 contract = ib.create_stock_contract("AAPL")

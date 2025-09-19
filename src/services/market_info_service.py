@@ -74,7 +74,7 @@ class MarketInfo:
             print(f"Warning: Error checking market status: {e}")
             return False
 
-    def get_last_trade_day(self, for_date: datetime | date) -> datetime:
+    def get_last_trade_day(self, for_date: datetime | date) -> datetime:  # noqa: C901
         """Get the last trading day before or on the given date"""
         if self.market_schedule is None:
             # Fallback: return previous weekday
@@ -99,10 +99,12 @@ class MarketInfo:
                 mask = idx_naive.normalize() <= pd.Timestamp(for_date_dt.date())
                 open_dates = self.market_schedule.loc[mask]
             else:
-                # Fallback: original string-based slicing
-                open_dates = self.market_schedule.loc[
-                    : for_date_dt.strftime("%Y-%m-%d")
-                ]
+                # Fallback: original string-based slicing using label up to date
+                label = for_date_dt.strftime("%Y-%m-%d")
+                try:
+                    open_dates = self.market_schedule.loc[:label]
+                except Exception:
+                    open_dates = self.market_schedule
 
             if open_dates.empty:
                 # No trading days found, use fallback
@@ -200,7 +202,7 @@ class MarketInfo:
             print(f"Warning: Error checking trading day: {e}")
             return check_date.weekday() < 5
 
-    def get_next_trading_day(self, from_date: datetime | date) -> datetime:
+    def get_next_trading_day(self, from_date: datetime | date) -> datetime:  # noqa: C901
         """Get next trading day after given date"""
         if self.market_schedule is None:
             # Fallback: find next weekday

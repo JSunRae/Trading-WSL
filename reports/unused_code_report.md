@@ -1,5 +1,5 @@
 # Unused Code Report
-Generated: 2025-09-16 20:47:56
+Generated: 2025-09-18 11:46:06
 
 - `evaluate_trading_metrics` in `src/analytics/evaluation.py` — never executed
 - `metrics_to_tf1_manifest` in `src/analytics/evaluation.py` — never executed
@@ -32,6 +32,7 @@ Generated: 2025-09-16 20:47:56
 - `ConfigManager.get_file_format_settings` in `src/core/config.py` — never executed
 - `ConfigManager.get_special_file` in `src/core/config.py` — never executed
 - `ConfigManager.databento_enabled` in `src/core/config.py` — never executed
+- `ConfigManager.get_l2_backfill_concurrency` in `src/core/config.py` — never executed
 - `ConfigManager.get_bar_lookback_days` in `src/core/config.py` — never executed
 - `ConfigManager.get_backup_path` in `src/core/config.py` — never executed
 - `ConfigManager.is_paper_trading` in `src/core/config.py` — never executed
@@ -46,16 +47,7 @@ Generated: 2025-09-16 20:47:56
 - `BaseRepository.load` in `src/data/data_manager.py` — never executed
 - `BaseRepository.exists` in `src/data/data_manager.py` — never executed
 - `BaseRepository.delete` in `src/data/data_manager.py` — never executed
-- `ExcelRepository.load` in `src/data/data_manager.py` — never executed
-- `ExcelRepository.exists` in `src/data/data_manager.py` — never executed
 - `ExcelRepository.delete` in `src/data/data_manager.py` — never executed
-- `DownloadTracker.mark_failed` in `src/data/data_manager.py` — never executed
-- `DownloadTracker.mark_downloadable` in `src/data/data_manager.py` — never executed
-- `DownloadTracker.save_all` in `src/data/data_manager.py` — never executed
-- `DownloadTracker.save_failed_downloads` in `src/data/data_manager.py` — never executed
-- `DownloadTracker.save_downloadable_stocks` in `src/data/data_manager.py` — never executed
-- `DownloadTracker.save_downloaded_stocks` in `src/data/data_manager.py` — never executed
-- `DataManager.cleanup` in `src/data/data_manager.py` — never executed
 - `DataManager.warrior_list` in `src/data/data_manager.py` — never executed
 - `DataManager.train_list_loadsave` in `src/data/data_manager.py` — never executed
 - `SignalExecution.is_complete` in `src/execution/ml_signal_executor.py` — never executed

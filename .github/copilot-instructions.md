@@ -35,6 +35,18 @@ This document defines what AI assistants may change and how they should operate 
 - Never create duplicate/alternate script copies; edit in place.
 - Always activate the project’s Python environment before running or testing.
 
+### Progress Bar Preferences (User Standard)
+
+When adding or modifying progress indicators in CLIs/tools, follow these rules:
+
+- Single-line, bottom-of-terminal bar: render using carriage return + clear line ("\r\x1b[2K") so it overwrites itself and never spams history.
+- Always visible unless explicitly disabled: default to showing the bar; provide `--no-progress` to disable. Respect `L2_PROGRESS=0/1` when applicable.
+- Include timing details: show elapsed time, ETA, and the expected end time (e.g., `ETA 13:47:12`). If the run crosses days, include the date.
+- Logs above the bar: install a logging handler/filter that clears the line before emitting a record and redraws the bar after, so normal logs appear above while the bar remains at the bottom.
+- Throttle refresh rate: avoid updating the bar more than ~10–15 times per second to keep terminals smooth and CPU usage low.
+- No prints for progress: do not use print() for progress increments; write to stdout with overwrite and flush. Reserve print() for final SUMMARY lines or structured outputs.
+- Be resilient: if the terminal is non-interactive (no TTY), automatically disable the bar and fall back to periodic textual updates.
+
 ## Commit & Quality Gates
 
 - Ruff lint and format must pass.

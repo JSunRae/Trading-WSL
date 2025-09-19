@@ -66,7 +66,7 @@ class ExcelRepository(BaseRepository):
             try:
                 file_path = self.config.get_data_file_path("excel", symbol=identifier)
             except Exception:
-                base = self.config.data_paths.base_path / "Machine Learning"
+                base = self.config.data_paths.base_path
                 base.mkdir(parents=True, exist_ok=True)
                 file_path = base / f"{identifier}.xlsx"
             file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ class ExcelRepository(BaseRepository):
             try:
                 file_path = self.config.get_data_file_path("excel", symbol=identifier)
             except Exception:
-                base = self.config.data_paths.base_path / "Machine Learning"
+                base = self.config.data_paths.base_path
                 file_path = base / f"{identifier}.xlsx"
             if file_path.exists():
                 return SafeDataFrameAccessor.safe_read_excel(
@@ -105,11 +105,7 @@ class ExcelRepository(BaseRepository):
         try:
             file_path = self.config.get_data_file_path("excel", symbol=identifier)
         except Exception:
-            file_path = (
-                self.config.data_paths.base_path
-                / "Machine Learning"
-                / f"{identifier}.xlsx"
-            )
+            file_path = self.config.data_paths.base_path / f"{identifier}.xlsx"
         return file_path.exists()
 
     def delete(self, identifier: str) -> bool:
@@ -118,11 +114,7 @@ class ExcelRepository(BaseRepository):
             try:
                 file_path = self.config.get_data_file_path("excel", symbol=identifier)
             except Exception:
-                file_path = (
-                    self.config.data_paths.base_path
-                    / "Machine Learning"
-                    / f"{identifier}.xlsx"
-                )
+                file_path = self.config.data_paths.base_path / f"{identifier}.xlsx"
             if file_path.exists():
                 file_path.unlink()
                 return True

@@ -186,9 +186,11 @@ class ConfigManager:
             "REQUEST_CHECKER_BIN": "Files/requestChecker.bin",
             "LEVEL2_DIRNAME": "Level2",
             "IB_DOWNLOADS_DIRNAME": "IBDownloads",
-            # IB connectivity defaults (env-first; WSL→Windows portproxy friendly)
-            "IB_HOST": "172.17.208.1",
-            "IB_PORT": "4003",
+            # IB connectivity defaults (env-first; localhost by default).
+            # For WSL/portproxy, set IB_HOST explicitly (e.g., 172.17.208.1) and/or IB_PORT.
+            "IB_HOST": "127.0.0.1",
+            # Leave IB_PORT empty to allow tool-specific defaults (paper: 7497, live: 7496)
+            "IB_PORT": "",
             "IB_CLIENT_ID": "2011",
             "IB_LIVE_PORT": "7496",
             "IB_PAPER_PORT": "7497",

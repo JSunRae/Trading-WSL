@@ -80,9 +80,12 @@ class MarketDepthService:
         try:
             from ..core.config import get_config
 
-            base_path = get_config().data_paths.base_path / "level2_data"
+            cfg = get_config()
+            l2_dir = cfg.get_env("LEVEL2_DIRNAME", "Level2")
+            base_path = cfg.data_paths.base_path / l2_dir / self.symbol
         except Exception:
-            base_path = Path.home() / "Machine Learning" / "level2_data"
+            # Fallback mirrors environment default
+            base_path = Path.home() / "Machine Learning" / "Level2" / self.symbol
 
         base_path.mkdir(parents=True, exist_ok=True)
 

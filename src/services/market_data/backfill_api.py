@@ -79,6 +79,7 @@ def backfill_l2(  # noqa: C901 - orchestration style kept intentionally simple
     # Early exit: when file exists and not forcing, avoid verbose logs
     if dest.exists() and not force:
         logger.info("Lvl2 %s Exists: %s", symbol, dest)
+
         return {
             "symbol": symbol,
             "date": date_str,
